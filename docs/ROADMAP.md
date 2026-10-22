@@ -27,7 +27,7 @@
 |---|---|---|---|
 | 0 | The project runs | done | [phase-0](phases/phase-0-runs.md) |
 | 1 | Data import | done | [phase-1](phases/phase-1-data.md) |
-| 2 | Thin end-to-end: search → product → sellers → store | not started | — |
+| 2 | Thin end-to-end: search → product → sellers → store | in progress | [phase-2](phases/phase-2-thin-e2e.md) |
 | 3 | Docker and first deploy | not started | — |
 | 4 | Filters, area and comparison | not started | — |
 | 5 | Assistant: understand the need | not started | — |

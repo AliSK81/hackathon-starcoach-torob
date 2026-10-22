@@ -4,7 +4,7 @@
 
 - **Current phase:** 2 — Thin end-to-end
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs a placeholder page.
-- **Last change:** Change 6
+- **Last change:** Change 7
 
 ### What we need from the user
 
@@ -174,3 +174,23 @@ Not done yet:
 
 Next change idea:
 - Phase 2 plan; JSON API for search, product and shop
+
+### Change 7 — JSON API: search, product with sellers, shop with products — 2026-10-22
+Phase: 2, step 1
+How to see it: `uv run starcoach serve`, then `/api/search?q=شارژر اپل`, `/api/products/<id>`, `/api/shops/<id>`, `/api/meta`
+Proof it works: on the full DB, «شارژر اپل ۲۰ وات» → product with 59 sellers, cheapest first; first seller «پاساژ علاءالدین، طبقه منفی 2، پلاک 138», «باز است · تا 20:00». Timings: search 3 ms, product 4 ms, shop 2 ms. 35 tests pass (search → product → shop flow, 404s, 503 when the DB is missing, call-for-price offers have no price and a note).
+
+Research: none new.
+Questions: none
+Decisions: TorobPay is shown as its own payment type, not as installments, until research 02 says what it is.
+
+Shipped:
+- `starcoach/api.py`: read model with transparency labels (price note per price status, payment channel text, hours status)
+- Routes in `starcoach/app.py`; one read-only connection per request
+- Phase 2 plan
+
+Not done yet:
+- No UI on top of the API yet
+
+Next change idea:
+- Search page and product cards in the web app
