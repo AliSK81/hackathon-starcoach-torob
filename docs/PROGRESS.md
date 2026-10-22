@@ -2,9 +2,9 @@
 
 ## Status board
 
-- **Current phase:** 3 — Docker and first deploy
+- **Current phase:** 4 — Filters, area and comparison (3 waits on the host)
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page.
-- **Last change:** Change 9
+- **Last change:** Change 10
 
 ### What we need from the user
 
@@ -247,3 +247,23 @@ Not done yet:
 
 Next change idea:
 - Phase 4 filters while waiting for the host
+
+### Change 10 — Filter model and data-only reasons (not wired to the API yet) — 2026-10-22
+Phase: 4, step 1 (partial)
+How to see it: `uv run pytest tests/test_filters.py`
+Proof it works: 3 new tests pass (38 total): bad params are ignored; unknown hours / unknown fast delivery never count as a match; a budget never matches a «call for price» offer; Alaeddin→Charsou distance is ~90 m.
+
+Research: 01 §8 (payment), 02 §9 (passage coordinates).
+Questions: none
+Decisions: none
+
+Shipped:
+- `starcoach/filters.py`: `Filters`, `parse_filters`, `shop_matches`, `offer_matches`, `distance_m`, `seller_reasons`
+- Phase 4 plan
+
+Not done yet:
+- `api.product` and `api.search` do not use the filters yet; no UI for them
+- `api.py` still has its own copy of `INSTALLMENT_PROVIDERS` (move to `filters.py` when wiring)
+
+Next change idea:
+- Wire `Filters` into `api.product` (filter, sort by price/distance, reasons), then into search, then the context bar UI
