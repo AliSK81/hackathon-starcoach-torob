@@ -5,7 +5,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from starcoach import __version__, api
@@ -37,6 +37,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "db": settings.db_path.exists(),
             "llm": settings.llm_enabled,
         }
+
+    @app.get("/ready")
+    def ready() -> JSONResponse:
+        ok = settings.db_path.exists()
+        return JSONResponse({"ready": ok}, status_code=200 if ok else 503)
 
     @app.get("/api/meta")
     def meta(conn: sqlite3.Connection = Depends(db)) -> dict:

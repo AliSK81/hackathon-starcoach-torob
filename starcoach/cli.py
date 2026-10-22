@@ -56,6 +56,35 @@ def cmd_search(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_pack_db(args: argparse.Namespace) -> int:
+    import gzip
+    import hashlib
+    import shutil
+
+    settings = get_settings()
+    src = Path(args.db) if args.db else settings.db_path
+    out = Path(str(src) + ".gz")
+    with open(src, "rb") as f_in, gzip.open(out, "wb", compresslevel=6) as f_out:
+        shutil.copyfileobj(f_in, f_out, length=1 << 20)
+    digest = hashlib.sha256(out.read_bytes()).hexdigest()
+    info = {"file": str(out), "mb": round(out.stat().st_size / 2**20, 1), "sha256": digest}
+    print(json.dumps(info, indent=2))
+    log_event(settings.log_dir, "runs", "pack_db", **info)
+    return 0
+
+
+def cmd_smoke(args: argparse.Namespace) -> int:
+    from starcoach.smoke import run
+
+    settings = get_settings()
+    result = run(args.url, timeout=args.timeout)
+    for c in result["checks"]:
+        print(f"{'OK ' if c['ok'] else 'FAIL'} {c['name']:<8} status={c['status']} {c['ms']:>5} ms  {c['detail']}")
+    print("SMOKE PASSED" if result["ok"] else "SMOKE FAILED")
+    log_event(settings.log_dir, "smoke", "smoke", **result)
+    return 0 if result["ok"] else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="starcoach", description="Persian in-store shopping assistant")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -74,6 +103,15 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("stats", help="print counts from the built DB")
     p.add_argument("--db", default=None)
     p.set_defaults(func=cmd_stats)
+
+    p = sub.add_parser("pack-db", help="gzip the DB and print its SHA256, for upload to a server")
+    p.add_argument("--db", default=None)
+    p.set_defaults(func=cmd_pack_db)
+
+    p = sub.add_parser("smoke", help="smoke test a running instance over HTTP")
+    p.add_argument("--url", default="http://127.0.0.1:8000")
+    p.add_argument("--timeout", type=float, default=15.0)
+    p.set_defaults(func=cmd_smoke)
 
     p = sub.add_parser("serve", help="run the web app and API")
     p.add_argument("--host", default=None)

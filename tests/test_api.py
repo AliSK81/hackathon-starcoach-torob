@@ -41,6 +41,9 @@ def test_not_found_and_missing_db(client, tmp_path):
     assert client.get("/api/shops/nope").status_code == 404
     missing = TestClient(create_app(replace(get_settings(), db_path=tmp_path / "none.db")))
     assert missing.get("/api/search", params={"q": "x"}).status_code == 503
+    assert missing.get("/ready").status_code == 503
+    assert missing.get("/health").status_code == 200
+    assert client.get("/ready").status_code == 200
 
 
 def test_price_labels_are_separate(mini_db):

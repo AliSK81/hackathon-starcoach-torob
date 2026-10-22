@@ -1,0 +1,12 @@
+data/
+.venv/
+.git/
+logs/
+results/
+tests/
+docs/
+.claude/
+**/__pycache__/
+*.db
+*.db-*
+.env

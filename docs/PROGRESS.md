@@ -4,7 +4,7 @@
 
 - **Current phase:** 3 — Docker and first deploy
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page.
-- **Last change:** Change 8
+- **Last change:** Change 9
 
 ### What we need from the user
 
@@ -12,7 +12,7 @@
 |---|---|---|
 | The four steps and pain points from the challenge video (D5 is a guess) | 5 | asked |
 | LLM provider, base URL and key (D4) | 5 (app works without it) | asked |
-| Deploy host: VPS, Iranian PaaS, or none (D7) | 3 | asked |
+| Deploy host: VPS, Iranian PaaS (Liara is a sponsor, F23), or none (D7); and whether judges test from inside Iran | 3 | asked — Docker image ready, waiting |
 | OK on stack (D2), data out of git (D3), simulated seller replies (D6) | 1 | asked |
 | Public download URL for the dataset, if any | 3 | asked |
 
@@ -202,7 +202,7 @@ Proof it works: checked in the browser at 375 × 812:
 - search shows 41 cards with image, category, seller count and «از ۱٫۳ میلیون تومان»;
 - the product page lists 59 seller cards with open status, passage/floor/unit, recorded price, «آخرین تغییر قیمت: ۹ ماه پیش — شاید قدیمی باشد», warranty, TorobPay chip, Neshan link;
 - the shop page shows the parsed location, «ساعت کاری ثبت نشده؛ قبل از رفتن تماس بگیرید», payment with channel, Kalabarg «اطلاعاتی در داده نیست», phone marked «شماره نمایشی».
-36 tests pass.
+35 tests pass.
 
 Research: 02 (TorobPay is 4-installment BNPL → F22, now counted as installments), 05 (Intl fa-IR, Neshan links). Research index `docs/research/00-index.md` written.
 Questions: none new
@@ -221,3 +221,29 @@ Not done yet:
 
 Next change idea:
 - Dockerfile + compose, then deploy (Phase 3)
+
+### Change 9 — Docker image, smoke-test command, packed DB download — 2026-10-22
+Phase: 3, steps 1–5
+How to see it: `uv run starcoach build-db && docker compose up -d --build && uv run starcoach smoke --url http://127.0.0.1:8000`
+Proof it works:
+- `docker compose up` → container `healthy`; `starcoach smoke --url http://127.0.0.1:8010` → 6/6 OK (health 82 ms, ready 15, search 34, product 36 (59 sellers), shop 91, web 27), SMOKE PASSED.
+- Empty volume + `DB_URL` pointing at `starcoach.db.gz` (served locally) + `DB_SHA256` → entrypoint downloaded, checked and unpacked the DB; container healthy; smoke passed.
+- `pack-db`: 382 MB → 97.9 MB gzip, sha256 `0fdcc8d8…f1318`.
+- The smoke test also caught a stale server (old build had no `/ready` → FAIL), so it does its job.
+35 tests pass.
+
+Research: 06 (DB as a file on a volume, health + ready, mirrors for Iran) used. Not yet checked against a real Iranian host.
+Questions: deploy host → still waiting (asked once).
+Decisions: none new
+
+Shipped:
+- `Dockerfile` (python:3.12-slim, non-root, healthcheck on `/ready`, base image and PyPI index as build args), `docker-entrypoint.sh`, `docker-compose.yml`, `.dockerignore`
+- `/ready` (503 until the DB exists)
+- `starcoach smoke --url` (stdlib only; logs to `logs/smoke.jsonl`), `starcoach pack-db`
+
+Not done yet:
+- Not deployed on a public server (blocked on the host answer)
+- The DB file still needs a download location the server can reach
+
+Next change idea:
+- Phase 4 filters while waiting for the host
