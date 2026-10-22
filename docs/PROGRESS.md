@@ -4,7 +4,7 @@
 
 - **Current phase:** 1 — Data import
 - **Live / working:** `uv run starcoach serve` starts the app; `/health` answers. No data yet.
-- **Last change:** Change 3
+- **Last change:** Change 4
 
 ### What we need from the user
 
@@ -112,3 +112,22 @@ Not done yet:
 
 Next change idea:
 - Address parser (passage, floor, unit, plaque)
+
+### Change 4 — Shop addresses parsed into passage, floor, unit and plaque — 2026-10-22
+Phase: 1, step 3
+How to see it: `uv run starcoach build-db && uv run starcoach stats` (fields `shops_with_passage`, `shops_with_floor`, …)
+Proof it works: on all 6,476 shops: passage 4,056 (62.6%), floor 4,227 (65.3%), unit or plaque 5,881 (90.8%); 563 distinct passages. Top: علاءالدین 312, بوشهری 177, چارسو 171, علاءالدین 2 127. Floors range −4…14; the typo floor 111 is dropped. 22 tests pass.
+
+Research: 01 §2 parser reused. It was wrong on 2 cases («طبقه بالای همکف», «طبقه منفی (زیرزمین)»); both fixed and tested.
+Questions: none
+Decisions: none
+
+Shipped:
+- `starcoach/address.py`: `parse_address`, `canonical_passage` (9 Alaeddin spellings → علاءالدین; چهارسو → چارسو; …), `floor_label`
+- New shop columns: passage, passage_kind, floor, unit, plaque; index on passage
+
+Not done yet:
+- ~10% of messy addresses stay unparsed; the raw address is always shown
+
+Next change idea:
+- Hours parser with open / closed / unknown

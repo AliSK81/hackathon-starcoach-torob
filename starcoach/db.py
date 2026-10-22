@@ -11,6 +11,11 @@ CREATE TABLE shops (
     name TEXT,
     name_is_real INTEGER NOT NULL,     -- 1 only for the 112 shops with Instagram or website
     address TEXT,
+    passage TEXT,                      -- parsed from address, canonical name (e.g. علاءالدین 2)
+    passage_kind TEXT,                 -- پاساژ / مجتمع / بازار / ساختمان ...
+    floor INTEGER,                     -- 0 = همکف, negative = below ground
+    unit TEXT,
+    plaque TEXT,
     area TEXT,                         -- location_label: neighbourhood derived from coordinates
     lat REAL,
     lon REAL,
@@ -55,6 +60,7 @@ CREATE TABLE offers (
 );
 CREATE INDEX offers_product ON offers(product_id);
 CREATE INDEX offers_shop ON offers(shop_id);
+CREATE INDEX shops_passage ON shops(passage);
 """
 
 

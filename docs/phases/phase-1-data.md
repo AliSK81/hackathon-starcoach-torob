@@ -15,7 +15,7 @@
 ## Checklist
 - [x] Normalizer `starcoach/textnorm.py` with tests
 - [x] `build-db`: shops, products, offers tables with cleaned prices and warranty
-- [ ] Address parser (passage, floor, unit, plaque) with tests
+- [x] Address parser (passage, floor, unit, plaque) with tests
 - [ ] Hours parser and `is_open_at` (open / closed / unknown) with tests
 - [ ] FTS5 index and `starcoach search "<query>"`
 - [x] `starcoach stats` prints counts that match F1

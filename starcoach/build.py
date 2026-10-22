@@ -12,6 +12,7 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
+from starcoach.address import parse_address
 from starcoach.db import SCHEMA, connect
 from starcoach.logs import log_event
 from starcoach.textnorm import to_ascii_digits
@@ -102,8 +103,11 @@ def build(data_dir: Path, db_path: Path, log_dir: Path) -> dict:
             website = _null(r["website_url"])
             fast = _null(r["supports_fast_delivery"])
             hours = _json(r["weekly_hours"])
+            address = _null(r["address"])
+            addr = parse_address(address)
             shops.append((
-                r["shop_id"], _null(r["name"]), 1 if (insta or website) else 0, _null(r["address"]),
+                r["shop_id"], _null(r["name"]), 1 if (insta or website) else 0, address,
+                addr["passage"], addr["passage_kind"], addr["floor"], addr["unit"], addr["plaque"],
                 _null(r["location_label"]), float(r["lat"]) if _null(r["lat"]) else None,
                 float(r["lon"]) if _null(r["lon"]) else None,
                 json.dumps(_json(r["category_names"]) or [], ensure_ascii=False),
@@ -115,7 +119,7 @@ def build(data_dir: Path, db_path: Path, log_dir: Path) -> dict:
             ))
         except Exception as e:  # noqa: BLE001 - one bad row must not stop the build
             bad("shops", i, e)
-    conn.executemany("INSERT INTO shops VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)", shops)
+    conn.executemany("INSERT INTO shops VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)", shops)
     counts["shops"] = len(shops)
 
     # products
@@ -214,6 +218,10 @@ def stats(db_path: Path) -> dict:
         "shops": q("SELECT COUNT(*) FROM shops"),
         "shops_with_offers": q("SELECT COUNT(*) FROM shops WHERE n_offers > 0"),
         "shops_real_name": q("SELECT COUNT(*) FROM shops WHERE name_is_real = 1"),
+        "shops_with_passage": q("SELECT COUNT(*) FROM shops WHERE passage IS NOT NULL"),
+        "shops_with_floor": q("SELECT COUNT(*) FROM shops WHERE floor IS NOT NULL"),
+        "shops_with_unit_or_plaque": q("SELECT COUNT(*) FROM shops WHERE unit IS NOT NULL OR plaque IS NOT NULL"),
+        "passages": q("SELECT COUNT(DISTINCT passage) FROM shops"),
         "products": q("SELECT COUNT(*) FROM products"),
         "products_multi_shop": q("SELECT COUNT(*) FROM products WHERE n_shops >= 2"),
         "products_redacted": q("SELECT COUNT(*) FROM products WHERE title_redacted = 1"),
