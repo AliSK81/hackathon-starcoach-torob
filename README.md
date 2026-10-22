@@ -20,11 +20,14 @@ Optional: copy `.env.example` to `.env` and edit it. The app needs no keys.
 
 | Command | What it does |
 |---|---|
+| `uv run starcoach build-db` | Builds `data/starcoach.db` from the CSVs (about 1 minute) |
+| `uv run starcoach stats` | Prints counts from the built DB |
 | `uv run starcoach serve` | Runs the web app and API on http://127.0.0.1:8000 |
 
 ## Tests
 
-All tests run offline.
+All tests run offline. They use a small real sample of the dataset in `tests/fixtures/mini/`
+(made by `tests/fixtures/make_mini.py`).
 
 ```bash
 uv run pytest

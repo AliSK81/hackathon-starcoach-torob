@@ -4,7 +4,7 @@
 
 - **Current phase:** 1 — Data import
 - **Live / working:** `uv run starcoach serve` starts the app; `/health` answers. No data yet.
-- **Last change:** Change 2
+- **Last change:** Change 3
 
 ### What we need from the user
 
@@ -90,3 +90,25 @@ Not done yet:
 
 Next change idea:
 - `build-db` with clean price status and warranty
+
+### Change 3 — `build-db` and `stats`: CSVs become one clean SQLite DB — 2026-10-22
+Phase: 1, steps 2 and 6
+How to see it: `uv run starcoach build-db && uv run starcoach stats`
+Proof it works: full build in 49.5 s, DB 352.9 MB. `stats`: shops 6,476, products 225,903, offers 331,506 (= F1); shops with offers 3,792 (= F13); real-named shops 112 (= requirements); products with ≥ 2 shops 35,254 (research said ~35k); price status ok 312,868 / suspicious 2,698 / call 15,729 / invalid 211 (F15 predicted 211 ≥ 1e10). Snapshot 2026-10-13T00:02:35Z (= F14). 12 tests pass offline.
+
+Research: 01 §1, §5, §8 used. Suspicious count is 2,698, not research's 2,223: we compare each offer (not each shop minimum) to the per-shop-minimum median. Kept; it only adds a badge.
+Questions: none
+Decisions: F15 cutoffs used as is.
+
+Shipped:
+- `starcoach/db.py` schema; `starcoach/build.py` with price status, warranty kind (yes / none / unknown), payment list, product min and median price, shop offer counts, `meta.snapshot`
+- Atomic build (temp file + rename); bad rows go to `logs/build.jsonl` and are skipped
+- `tests/fixtures/mini/`: 383 real offers of the research demo products plus edge cases (1 Toman, null, garbage price, redacted title)
+
+Not done yet:
+- Address and hours are stored raw; not parsed yet
+- No search index
+- DB is large (353 MB), mostly specs JSON; check size before deploy
+
+Next change idea:
+- Address parser (passage, floor, unit, plaque)
