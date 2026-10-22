@@ -57,7 +57,9 @@ _SPACES = re.compile(r"\s+")
 _TOKEN = re.compile(r"[^\W_]+")
 
 # Query-side words that carry no product meaning.
-STOPWORDS = frozenset("ها های ی مدل برای با و از به در که این یک میخوام میخواهم لطفا".split())
+STOPWORDS = frozenset(
+    "ها های ی مدل برای با و از به در که این یک میخوام میخواهم لطفا ارزان ارزون قیمت خرید بهترین".split()
+)
 
 
 def normalize(text: str | None, split_alnum: bool = True) -> str:

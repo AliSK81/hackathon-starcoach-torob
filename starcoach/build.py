@@ -16,6 +16,7 @@ from starcoach.address import parse_address
 from starcoach.db import SCHEMA, connect
 from starcoach.hours import clean_hours
 from starcoach.logs import log_event
+from starcoach.search import build_index
 from starcoach.textnorm import to_ascii_digits
 
 csv.field_size_limit(10**9)
@@ -194,6 +195,7 @@ def build(data_dir: Path, db_path: Path, log_dir: Path) -> dict:
         "UPDATE products SET median_price = ? WHERE product_id = ?",
         [(int(statistics.median(v)), pid) for pid, v in prices.items()],
     )
+    counts["indexed_products"] = build_index(conn)
     snapshot = conn.execute("SELECT MAX(price_changed_at) FROM offers").fetchone()[0]
     conn.executemany("INSERT INTO meta VALUES (?,?)", [
         ("snapshot", snapshot),

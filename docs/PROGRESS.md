@@ -2,9 +2,9 @@
 
 ## Status board
 
-- **Current phase:** 1 — Data import
-- **Live / working:** `uv run starcoach serve` starts the app; `/health` answers. No data yet.
-- **Last change:** Change 5
+- **Current phase:** 2 — Thin end-to-end
+- **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs a placeholder page.
+- **Last change:** Change 6
 
 ### What we need from the user
 
@@ -150,3 +150,27 @@ Not done yet:
 
 Next change idea:
 - FTS5 index and `starcoach search`
+
+### Change 6 — Phase 1 done: Persian product search with aliases and re-ranking — 2026-10-22
+Phase: 1, steps 5 and 7
+How to see it: `uv run starcoach search "گوشی سامسونگ"`
+Proof it works: 225,052 products indexed (851 redacted titles left out). 12 demo queries in `results/search-demo-queries.txt`: all 12 have a sensible top 3 (e.g. «آیفون ۱۳ ۱۲۸» → 4 iPhone 13 128 GB phones; «جی بی ال» → JBL speaker; «شیامی ردمی» → Redmi phones, not batteries). Mean query time 10.3 ms over 50 runs. Build 48.4 s, DB 382 MB (`results/build-db.json`). 32 tests pass.
+
+Research: 03 §2 confirmed: AND + prefix, fallback to OR, aliases needed. Two things the research did not cover and that failed on real queries:
+- multi-word Persian aliases (جی بی ال) matched unrelated LED titles → now collapsed to `jbl` in the query;
+- the head-word boost also boosted brand-first titles («Redmi 4A - باتری») → now only product-type head words that also name the category get the boost, and accessory categories get a penalty unless asked.
+Questions: none
+Decisions: D8 (below)
+
+Shipped:
+- `starcoach/search.py`: contentless FTS5 (title, alias, brand, category; bm25 4/2/2/1), alias expansion at index time, alias collapse at query time, Python re-rank (head boost, accessory penalty, log popularity)
+- `starcoach/data/aliases.json`: 376 alias groups (hand groups + mined brands filtered)
+- `starcoach search` CLI; `products.head`
+
+Not done yet:
+- No typo correction (سامسنگ → 0 hits)
+- Seller titles are not indexed
+- Prices in queries («زیر ۲۰ میلیون») not parsed yet (Phase 5)
+
+Next change idea:
+- Phase 2 plan; JSON API for search, product and shop

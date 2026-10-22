@@ -17,6 +17,6 @@
 - [x] `build-db`: shops, products, offers tables with cleaned prices and warranty
 - [x] Address parser (passage, floor, unit, plaque) with tests
 - [x] Hours parser and `is_open_at` (open / closed / unknown) with tests
-- [ ] FTS5 index and `starcoach search "<query>"`
+- [x] FTS5 index and `starcoach search "<query>"`
 - [x] `starcoach stats` prints counts that match F1
-- [ ] Check real output: 10 demo queries give sensible top results
+- [x] Check real output: 10 demo queries give sensible top results

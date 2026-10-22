@@ -1,0 +1,12 @@
+{
+  "shops": 6476,
+  "products": 225903,
+  "offers": 331506,
+  "price_ok": 312868,
+  "price_suspicious": 2698,
+  "price_call": 15729,
+  "price_invalid": 211,
+  "indexed_products": 225052,
+  "seconds": 48.4,
+  "db_mb": 382.2
+}

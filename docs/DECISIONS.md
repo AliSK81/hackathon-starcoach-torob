@@ -14,6 +14,7 @@ Rules:
 | D4 | LLM access goes through one OpenAI-compatible client set by `.env` (`LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`). The app works fully without a key, using a rule-based Persian parser. | 2026-10-22 | Claude (pending reply) |
 | D5 | Working guess for the four-step flow (video not available to Claude): 1) state the need, 2) find and compare products, 3) pick a seller by area, hours and purchase terms, and plan the visit, 4) follow up with the seller. | 2026-10-22 | Claude (pending reply) |
 | D6 | Store phones are fake, so seller follow-up drafts real messages but simulates replies, clearly labeled as a demo. | 2026-10-22 | Claude (pending reply) |
+| D8 | Search ranking = FTS5 bm25 + head-word boost (only when the head word also names the category) + accessory-category penalty + log(1+shops). Aliases: 376 groups in `starcoach/data/aliases.json`, mined brands filtered by count ≥ 5, share ≥ 4%, ASCII, minus a hand drop-list. | 2026-10-22 | Claude |
 | D7 | Deploy target: a Docker image that runs anywhere. The host is chosen when the user answers. | 2026-10-22 | Claude (pending reply) |
 
 ## Checked facts

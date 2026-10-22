@@ -34,6 +34,7 @@ CREATE TABLE products (
     product_id TEXT UNIQUE NOT NULL,
     title TEXT NOT NULL,
     title_redacted INTEGER NOT NULL,
+    head TEXT,                         -- first normalized title word (product type), for ranking
     brand TEXT,
     category TEXT,
     model TEXT,

@@ -42,6 +42,20 @@ def cmd_stats(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_search(args: argparse.Namespace) -> int:
+    from starcoach.db import connect
+    from starcoach.search import search_products
+
+    settings = get_settings()
+    conn = connect(Path(args.db) if args.db else settings.db_path, readonly=True)
+    result = search_products(conn, args.query, limit=args.limit)
+    print(f"words={result['words']} mode={result['mode']} total={result.get('total', 0)}")
+    for item in result["items"]:
+        price = f"{item['min_price']:,}" if item["min_price"] else "-"
+        print(f"{item['score']:7.2f}  shops={item['n_shops']:<3} min={price:>14}  {item['title']}  [{item['category']}]")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="starcoach", description="Persian in-store shopping assistant")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -50,6 +64,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--data", default=None, help="folder with shops.csv, products.csv, offers.csv")
     p.add_argument("--db", default=None, help="output DB path")
     p.set_defaults(func=cmd_build_db)
+
+    p = sub.add_parser("search", help="search products by a Persian query")
+    p.add_argument("query")
+    p.add_argument("--limit", type=int, default=10)
+    p.add_argument("--db", default=None)
+    p.set_defaults(func=cmd_search)
 
     p = sub.add_parser("stats", help="print counts from the built DB")
     p.add_argument("--db", default=None)
