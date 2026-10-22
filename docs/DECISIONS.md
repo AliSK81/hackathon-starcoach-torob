@@ -32,3 +32,12 @@ Rules:
 | F10 | Price-change dates | newest 2026-10-13; 769 null; oldest 2020-12-03 | 2026-10-22 | `python docs/research/scripts/profile.py data/torob-dataset` |
 | F11 | Sellers per product | 187,004 products have 1 offer; max 105 offers for one product | 2026-10-22 | `python docs/research/scripts/profile.py data/torob-dataset` |
 | F12 | Local tooling | Python 3.14.2, SQLite 3.50.4, uv 0.5.9, Docker 29.6.2 | 2026-10-22 | `python --version`, `python -c "import sqlite3;print(sqlite3.sqlite_version)"`, `uv --version`, `docker --version` |
+| F13 | Join integrity | 0 orphan offers; 0 duplicate IDs; 2,684 shops have no offers; max 300 distinct products per shop; 9,557 repeated (shop, product) pairs are variants | 2026-10-22 | `docs/research/scripts/01-dataset/p1_joins.py`, `p1b_dups.py` (research 01 §1) |
+| F14 | Snapshot time | newest `last_price_changed_at` = 2026-10-13 00:02 UTC; timestamps are UTC | 2026-10-22 | `docs/research/scripts/01-dataset/p6_ts.py` (research 01 §6) |
+| F15 | Price junk | 635 offers at 1 Toman ("call for price"); 211 offers ≥ 1e10; real prices go down to ~420 and up to ~1.65e10 for industrial gear; 188 offers ≈ 10× product median (Rial typed as Toman) | 2026-10-22 | `p5_price.py`, `p5b_spread.py` (research 01 §5) |
+| F16 | Hours format | shifts padded with `00:00–00:00`; 24h written as `00:00–23:59`; no overnight shifts; `unsupported` days have start == end | 2026-10-22 | `p4_hours.py`, `p4b_hours.py` (research 01 §4) |
+| F17 | Time zone | Asia/Tehran is UTC+03:30 all year (DST abolished 2022-09-21) | 2026-10-22 | `p4d_tz.py` with Python tzdata; Wikipedia "Iran Standard Time" |
+| F18 | Kalabarg | the word کالابرگ appears 0 times in any column | 2026-10-22 | `p8_pay.py` (research 01 §8) |
+| F19 | Requirement fields missing from data | store images, business type/description, presence history, licenses, messenger contacts, English title, product description, price unit, stock, Kalabarg | 2026-10-22 | research 01 §8 table |
+| F20 | FTS5 unicode61 over normalized titles | build 3.2 s, 86.5 MiB, queries 0.5–6.4 ms; needs brand aliases (آیفون↔iphone) and a category boost | 2026-10-22 | `docs/research/scripts/03-search/fts_bench.py`, `fts_bench2.py` (research 03 §2) |
+| F21 | Redacted titles | 849 products titled «عنوان حذف‌شده برای انتشار» | 2026-10-22 | `p7_text.py` (research 01 §7) |

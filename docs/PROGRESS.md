@@ -4,7 +4,7 @@
 
 - **Current phase:** 1 — Data import
 - **Live / working:** `uv run starcoach serve` starts the app; `/health` answers. No data yet.
-- **Last change:** Change 1
+- **Last change:** Change 2
 
 ### What we need from the user
 
@@ -71,3 +71,22 @@ Not done yet:
 
 Next change idea:
 - `starcoach build-db`: CSV → SQLite with normalized text and FTS5
+
+### Change 2 — Persian normalizer for search keys — 2026-10-22
+Phase: 1, step 1
+How to see it: `uv run pytest tests/test_textnorm.py`
+Proof it works: 5 new tests pass (7 total). Normalized all 225,903 product titles in 2.8 s; 90,089 titles change under folding (Arabic letters, digits, ZWNJ, آ).
+
+Research: 03 §1.4 character map, used as is. Checked on the real titles.
+Questions: none
+Decisions: F13–F21 added from research 01 and 03.
+
+Shipped:
+- `starcoach/textnorm.py`: `normalize`, `tokens`, `to_ascii_digits`, query stopwords
+- Phase 1 plan: `docs/phases/phase-1-data.md`
+
+Not done yet:
+- Not used by any index yet
+
+Next change idea:
+- `build-db` with clean price status and warranty
