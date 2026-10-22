@@ -14,8 +14,8 @@
 
 ## Checklist
 - [x] API: search, product with offers grouped by shop, shop with its products
-- [ ] Search page with product cards
-- [ ] Product page with seller list
-- [ ] Shop page: address parts, hours, payment, contact, map link
-- [ ] Transparency labels and «نامشخص» everywhere a value is missing
-- [ ] Check at 375 px width in the browser
+- [x] Search page with product cards
+- [x] Product page with seller list
+- [x] Shop page: address parts, hours, payment, contact, map link
+- [x] Transparency labels and «نامشخص» everywhere a value is missing
+- [x] Check at 375 px width in the browser

@@ -24,8 +24,10 @@ def test_search_then_product_then_shop(client):
 
     p = client.get(f"/api/products/{first['product_id']}").json()
     assert len(p["sellers"]) == first["n_shops"]
-    prices = [s["best_price"] for s in p["sellers"] if s["best_price"] is not None]
-    assert prices == sorted(prices)  # cheapest first, unknown prices last
+    prices = [s["best_price"] for s in p["sellers"] if s["best_status"] == "ok"]
+    assert prices == sorted(prices)  # cheapest normal price first
+    ranks = [s["best_status"] for s in p["sellers"]]
+    assert ranks == sorted(ranks, key=api.OFFER_RANK.get)  # suspicious and unknown prices after
     seller = p["sellers"][0]
     assert {"open_now", "hours_status", "location_short"} <= seller["shop"].keys()
 

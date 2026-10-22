@@ -12,7 +12,7 @@ from starcoach.address import floor_label
 from starcoach.hours import is_open_at, now_tehran, status_text, week_table
 from starcoach.search import search_products
 
-INSTALLMENT_PROVIDERS = {"اسنپ‌پی", "دیجی پی", "تارا", "ازکی‌وام"}  # buy-now-pay-later / credit; TorobPay listed apart
+INSTALLMENT_PROVIDERS = {"ترب‌پی", "اسنپ‌پی", "دیجی پی", "تارا", "ازکی‌وام"}  # BNPL / credit (F22)
 CHANNEL_FA = {"in_person": "پرداخت حضوری در فروشگاه", "unknown": "نحوه پرداخت اعلام نشده"}
 PRICE_STATUS_FA = {
     "ok": None,
@@ -20,6 +20,9 @@ PRICE_STATUS_FA = {
     "call": "قیمت ثبت نشده؛ استعلام تلفنی",
     "invalid": "قیمت ثبت‌شده نامعتبر است",
 }
+
+
+OFFER_RANK = {"ok": 0, "suspicious": 1, "call": 2, "invalid": 3}
 
 
 def _loads(value: str | None, default):
@@ -116,12 +119,14 @@ def product(conn: sqlite3.Connection, product_id: str, at: datetime | None = Non
         entry["offers"].append(offer_view(r))
     sellers = []
     for entry in by_shop.values():
-        priced = [o["price"] for o in entry["offers"] if o["price"] is not None]
-        entry["best_price"] = min(priced) if priced else None
+        # normal prices first, then far-off ("suspicious") ones, then no price
+        entry["offers"].sort(key=lambda o: (OFFER_RANK[o["price_status"]], o["price"] or 0))
+        best = entry["offers"][0]
+        entry["best_price"] = best["price"]
+        entry["best_status"] = best["price_status"]
         entry["last_change"] = max((o["price_changed_at"] or "" for o in entry["offers"]), default=None) or None
-        entry["offers"].sort(key=lambda o: (o["price"] is None, o["price"] or 0))
         sellers.append(entry)
-    sellers.sort(key=lambda e: (e["best_price"] is None, e["best_price"] or 0))
+    sellers.sort(key=lambda e: (OFFER_RANK[e["best_status"]], e["best_price"] or 0))
     return {
         "product_id": p["product_id"],
         "title": p["title"],

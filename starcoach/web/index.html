@@ -2,14 +2,21 @@
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f766e">
   <title>استارکوچ — دستیار خرید حضوری</title>
   <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
-  <main class="page">
-    <h1>دستیار خرید حضوری</h1>
-    <p>به‌زودی: جست‌وجوی کالا، مقایسه فروشنده‌ها و برنامه‌ریزی بازدید از فروشگاه‌های تهران.</p>
-  </main>
+  <header class="topbar">
+    <a class="brand" href="#/">استارکوچ</a>
+    <form class="searchbox" id="searchForm" role="search">
+      <input id="q" name="q" type="search" placeholder="چه می‌خواهید بخرید؟ مثلاً «شارژر اپل ۲۰ وات»" autocomplete="off" enterkeyhint="search">
+      <button type="submit" aria-label="جست‌وجو">جست‌وجو</button>
+    </form>
+  </header>
+  <main id="view" class="page" aria-live="polite"></main>
+  <footer class="foot" id="foot"></footer>
+  <script src="/static/app.js"></script>
 </body>
 </html>

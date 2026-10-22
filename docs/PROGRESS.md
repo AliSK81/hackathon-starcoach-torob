@@ -2,9 +2,9 @@
 
 ## Status board
 
-- **Current phase:** 2 — Thin end-to-end
-- **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs a placeholder page.
-- **Last change:** Change 7
+- **Current phase:** 3 — Docker and first deploy
+- **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page.
+- **Last change:** Change 8
 
 ### What we need from the user
 
@@ -194,3 +194,30 @@ Not done yet:
 
 Next change idea:
 - Search page and product cards in the web app
+
+### Change 8 — Phase 2 done: mobile RTL web app for search → sellers → shop — 2026-10-22
+Phase: 2, steps 2–6
+How to see it: `uv run starcoach serve`, open http://127.0.0.1:8000 on a phone-width window, search «شارژر اپل ۲۰ وات»
+Proof it works: checked in the browser at 375 × 812:
+- search shows 41 cards with image, category, seller count and «از ۱٫۳ میلیون تومان»;
+- the product page lists 59 seller cards with open status, passage/floor/unit, recorded price, «آخرین تغییر قیمت: ۹ ماه پیش — شاید قدیمی باشد», warranty, TorobPay chip, Neshan link;
+- the shop page shows the parsed location, «ساعت کاری ثبت نشده؛ قبل از رفتن تماس بگیرید», payment with channel, Kalabarg «اطلاعاتی در داده نیست», phone marked «شماره نمایشی».
+36 tests pass.
+
+Research: 02 (TorobPay is 4-installment BNPL → F22, now counted as installments), 05 (Intl fa-IR, Neshan links). Research index `docs/research/00-index.md` written.
+Questions: none new
+Decisions: F22, F23, F24
+
+Shipped:
+- `starcoach/web/`: `index.html`, `app.css`, `app.js` (hash router, all values escaped, Persian number/Toman/relative-time formatting)
+- Product sellers order: normal prices first, then «suspicious», then no price. Bug found in the browser: a mismatched 480k adapter offer was first.
+- `canonical_passage` splits glued numbers («علاالدین3» → «علاءالدین 3»). Bug found in the browser.
+- `.claude/launch.json` for the preview server
+
+Not done yet:
+- No filters (area, budget, open now, payment) — Phase 4
+- System font only (Vazirmatn not self-hosted)
+- No map view, only links
+
+Next change idea:
+- Dockerfile + compose, then deploy (Phase 3)

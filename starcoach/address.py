@@ -52,6 +52,7 @@ _CANON = [
 
 
 def canonical_passage(name: str) -> str:
+    name = re.sub(r"(?<=[^\W\d_])(?=\d)", " ", name)  # علاالدین3 -> علاالدین 3
     name = re.sub(r"\s+", " ", name).strip()
     for pattern, repl in _CANON:
         name = pattern.sub(repl, name)

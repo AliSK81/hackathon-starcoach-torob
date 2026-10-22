@@ -42,3 +42,6 @@ Rules:
 | F19 | Requirement fields missing from data | store images, business type/description, presence history, licenses, messenger contacts, English title, product description, price unit, stock, Kalabarg | 2026-10-22 | research 01 §8 table |
 | F20 | FTS5 unicode61 over normalized titles | build 3.2 s, 86.5 MiB, queries 0.5–6.4 ms; needs brand aliases (آیفون↔iphone) and a category boost | 2026-10-22 | `docs/research/scripts/03-search/fts_bench.py`, `fts_bench2.py` (research 03 §2) |
 | F21 | Redacted titles | 849 products titled «عنوان حذف‌شده برای انتشار» | 2026-10-22 | `p7_text.py` (research 01 §7) |
+| F22 | TorobPay (ترب‌پی) | a buy-now-pay-later service: 4 fee-free installments; public sources describe it as online, while the data marks 50 shops `in_person` | 2026-10-22 | research 02 §2 (URLs there); `p8_pay.py` |
+| F23 | The event | StarCoach Agentic AI Hackathon, Torob is the main sponsor, Liara a sponsor; started 2026-10-21 | 2026-10-22 | https://starcoach.ir/hackathon/agentic-ai (research 02 §1) |
+| F24 | Docker Hub from Iran | returns 403 to Iranian IPs; Liara runs a Docker mirror and a PyPI mirror | 2026-10-22 | research 06 §1 (URLs there) |

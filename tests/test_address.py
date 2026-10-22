@@ -25,6 +25,7 @@ def test_canonical_passage_variants():
     for raw in ["علاالدین", "علاءالدین", "علائدین", "علادین"]:
         assert canonical_passage(raw) == "علاءالدین"
     assert canonical_passage("چهارسو") == "چارسو"
+    assert canonical_passage("علاالدین3") == "علاءالدین 3"
     assert canonical_passage("فراز لاله زار") == "فراز"
 
 
