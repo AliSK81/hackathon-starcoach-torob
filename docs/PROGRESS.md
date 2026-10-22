@@ -2,9 +2,9 @@
 
 ## Status board
 
-- **Current phase:** 0 — The project runs
-- **Live / working:** nothing yet
-- **Last change:** —
+- **Current phase:** 1 — Data import
+- **Live / working:** `uv run starcoach serve` starts the app; `/health` answers. No data yet.
+- **Last change:** Change 1
 
 ### What we need from the user
 
@@ -49,3 +49,25 @@ Next change idea:
 ```
 
 ## Entries
+
+### Change 1 — The project runs with one command — 2026-10-22
+Phase: 0, steps 1–6
+How to see it: `uv sync && uv run starcoach serve`, then open http://127.0.0.1:8000/health
+Proof it works: `uv run pytest` → 2 passed. Started `starcoach serve --port 8765`; `curl /health` → `{"status":"ok","version":"0.1.0","db":false,"llm":false}`; `/` returns the RTL page; `logs/runs.jsonl` got one `serve` event.
+
+Research: 01, 03, 04, 05 written (02 and 06 still running). Local SQLite in the uv Python 3.12 is 3.47.1 (FTS5 trigram needs ≥3.34, so fine).
+Questions: the 7 questions on flow, LLM, deploy, stack, data, follow-up, push → no reply yet; working on the recommended answers (D2–D7).
+Decisions: D2, D3, D4, D7
+
+Shipped:
+- `pyproject.toml` (fastapi, uvicorn; dev: pytest, httpx), `.python-version` 3.12
+- `starcoach` CLI with `serve`; FastAPI app with `/health` and a placeholder RTL page
+- `.env` loader with no extra library; `.env.example` lists every setting
+- Append-only JSONL log with secret redaction (`starcoach/logs.py`)
+- README in UTF-8 (the old one was UTF-16)
+
+Not done yet:
+- No data, no search, no UI
+
+Next change idea:
+- `starcoach build-db`: CSV → SQLite with normalized text and FTS5

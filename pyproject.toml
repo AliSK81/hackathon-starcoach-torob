@@ -1,0 +1,28 @@
+[project]
+name = "starcoach"
+version = "0.1.0"
+description = "Persian in-store shopping assistant for Tehran, built on the Torob dataset"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+]
+
+[project.scripts]
+starcoach = "starcoach.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "httpx>=0.27",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["starcoach"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

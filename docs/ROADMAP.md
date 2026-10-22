@@ -25,7 +25,7 @@
 
 | Phase | Name | Status | Plan |
 |---|---|---|---|
-| 0 | The project runs | not started | [phase-0](phases/phase-0-runs.md) |
+| 0 | The project runs | done | [phase-0](phases/phase-0-runs.md) |
 | 1 | Data import | not started | — |
 | 2 | Thin end-to-end: search → product → sellers → store | not started | — |
 | 3 | Docker and first deploy | not started | — |

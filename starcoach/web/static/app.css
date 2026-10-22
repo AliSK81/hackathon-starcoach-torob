@@ -1,0 +1,17 @@
+:root {
+  --bg: #f7f7f8;
+  --fg: #1d1d22;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: Tahoma, sans-serif;
+}
+
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px;
+}
