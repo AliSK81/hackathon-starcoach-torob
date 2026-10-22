@@ -14,6 +14,7 @@ from pathlib import Path
 
 from starcoach.address import parse_address
 from starcoach.db import SCHEMA, connect
+from starcoach.hours import clean_hours
 from starcoach.logs import log_event
 from starcoach.textnorm import to_ascii_digits
 
@@ -102,7 +103,7 @@ def build(data_dir: Path, db_path: Path, log_dir: Path) -> dict:
             insta = _json(r["instagram"])
             website = _null(r["website_url"])
             fast = _null(r["supports_fast_delivery"])
-            hours = _json(r["weekly_hours"])
+            hours = clean_hours(_json(r["weekly_hours"]))
             address = _null(r["address"])
             addr = parse_address(address)
             shops.append((
@@ -222,6 +223,7 @@ def stats(db_path: Path) -> dict:
         "shops_with_floor": q("SELECT COUNT(*) FROM shops WHERE floor IS NOT NULL"),
         "shops_with_unit_or_plaque": q("SELECT COUNT(*) FROM shops WHERE unit IS NOT NULL OR plaque IS NOT NULL"),
         "passages": q("SELECT COUNT(DISTINCT passage) FROM shops"),
+        "shops_with_hours": q("SELECT COUNT(*) FROM shops WHERE hours IS NOT NULL"),
         "products": q("SELECT COUNT(*) FROM products"),
         "products_multi_shop": q("SELECT COUNT(*) FROM products WHERE n_shops >= 2"),
         "products_redacted": q("SELECT COUNT(*) FROM products WHERE title_redacted = 1"),

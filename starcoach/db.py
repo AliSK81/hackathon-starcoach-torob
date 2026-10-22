@@ -23,7 +23,7 @@ CREATE TABLE shops (
     phone TEXT,                        -- ASCII digits; all phones in the dataset are fake
     instagram TEXT,
     website TEXT,
-    weekly_hours TEXT,                 -- raw JSON; NULL when not registered
+    hours TEXT,                        -- cleaned JSON (starcoach.hours); NULL when not registered
     fast_delivery INTEGER,             -- 1 / 0 / NULL (unknown)
     payment TEXT NOT NULL,             -- JSON list of {provider, channel}
     n_offers INTEGER NOT NULL DEFAULT 0

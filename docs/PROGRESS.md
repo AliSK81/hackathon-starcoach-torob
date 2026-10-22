@@ -4,7 +4,7 @@
 
 - **Current phase:** 1 — Data import
 - **Live / working:** `uv run starcoach serve` starts the app; `/health` answers. No data yet.
-- **Last change:** Change 4
+- **Last change:** Change 5
 
 ### What we need from the user
 
@@ -131,3 +131,22 @@ Not done yet:
 
 Next change idea:
 - Hours parser with open / closed / unknown
+
+### Change 5 — Opening hours: cleaned, with open / closed / unknown answers — 2026-10-22
+Phase: 1, step 4
+How to see it: `uv run pytest tests/test_hours.py`; hours are stored cleaned in `shops.hours`
+Proof it works: of 3,792 shops with offers, 3,011 have hours (= research 01 §4). Open counts on the real DB: Sat 11:00 → open 2,846 / closed 162 / unknown 784; Sat 21:30 → open 122; Thu 16:00 → open 1,535 / closed 1,472; Fri 12:00 → open 592 / closed 2,367. This matches the Iranian week. 27 tests pass.
+
+Research: 01 §4 rules used. One bug found while testing: a 00:00–23:59 shift was dropped as "too short" by the modulo rule; fixed and tested.
+Questions: none
+Decisions: fixed UTC+03:30 offset instead of a tz database (F17), so no `tzdata` dependency on Windows.
+
+Shipped:
+- `starcoach/hours.py`: `clean_hours`, `is_open_at` (True / False / None), `status_text` («باز است · تا 19:00», «بسته · باز می‌شود فردا 09:00»), `week_table` in Iranian week order
+- `shops.hours` holds cleaned JSON; `stats` shows `shops_with_hours`
+
+Not done yet:
+- Official holidays are not in the data; not handled
+
+Next change idea:
+- FTS5 index and `starcoach search`
