@@ -1,0 +1,62 @@
+vocab terms (non-numeric): 45700 in 87 ms
+correct(سامسنگ) -> [('سامسونگ', 0.965), ('سامسنوگ', 0.707), ('سامسون', 0.666)]  [1.3 ms]
+correct(شیامی) -> [('شیامی', 1.0)]  [0.0 ms]
+correct(هندزفیری) -> [('هندزفری', 0.978), ('هندفری', 0.596), ('هندایی', 0.491)]  [1.6 ms]
+correct(بلوتوت) -> [('بلوتوث', 0.862), ('بلوتوثی', 0.809), ('بلوتی', 0.634)]  [2.4 ms]
+correct(ایفن) -> [('ایفن', 1.0)]  [0.0 ms]
+correct(کاسیوو) -> [('کاسیو', 0.964), ('کاسی', 0.669), ('عکاسی', 0.627)]  [2.7 ms]
+correct(یخچل) -> [('یخچال', 0.767), ('یخچالی', 0.599), ('میخچی', 0.498)]  [0.1 ms]
+correct(هدفن) -> [('هدفن', 1.0)]  [0.0 ms]
+
+آیفون ۱۳ ۱۲۸ => ("ایفون" OR "iphone") AND ("13") AND ("128"*): 4 hits 0.8 ms
+   - ('گوشی اپل (استوک) iPhone 13 | حافظه 128 گیگابایت', 'گوشی موبایل')
+   - ('گوشی اپل iPhone 13 (Not Active) | حافظه 128 گیگابایت', 'گوشی موبایل')
+   - ('گوشی اپل دو سیم (استوک) iPhone 13 | حافظه 128 گیگابایت', 'گوشی موبایل')
+  with category boost ('گوشی موبایل'): 0.4 ms
+   - ('گوشی اپل (استوک) iPhone 13 | حافظه 128 گیگابایت', 'گوشی موبایل')
+   - ('گوشی اپل iPhone 13 (Not Active) | حافظه 128 گیگابایت', 'گوشی موبایل')
+   - ('گوشی اپل دو سیم (استوک) iPhone 13 | حافظه 128 گیگابایت', 'گوشی موبایل')
+
+شیامی ردمی => ("شیامی" OR "شیائومی" OR "xiaomi") AND ("ردمی"*): 43 hits 0.4 ms
+   - ('شیشه دوربین شیائومی ردمی 13 سی | Xiaomi Redmi 13c', 'شیشه دوربین گوشی و تبلت')
+   - ('بند سیلیکونی ساعت شیائومی Xiaomi Mi Watch Lite ردمی واچ لایت', 'لوازم جانبی ساعت معمولی و هوشمند')
+   - ('فلت پاور ولوم ردمی 4 ایکس شیاومی - FLAT POWER VOLUME REDMI 4X XIAOMI', 'فلت و برد گوشی')
+  with category boost ('گوشی موبایل'): 0.2 ms
+   - ('شیشه دوربین شیائومی ردمی 13 سی | Xiaomi Redmi 13c', 'شیشه دوربین گوشی و تبلت')
+   - ('بند سیلیکونی ساعت شیائومی Xiaomi Mi Watch Lite ردمی واچ لایت', 'لوازم جانبی ساعت معمولی و هوشمند')
+   - ('فلت پاور ولوم ردمی 4 ایکس شیاومی - FLAT POWER VOLUME REDMI 4X XIAOMI', 'فلت و برد گوشی')
+
+گوشی سامسونگ => ("گوشی") AND ("سامسونگ"* OR "samsung"*): 2425 hits 4.7 ms
+   - ('گلس Z فولد 7 سامسونگ گوشی Samsung', 'محافظ صفحه نمایش گوشی')
+   - ('باتری اصلی گوشی سامسونگ Samsung Galaxy Mini - S5570', 'باتری گوشی موبایل')
+   - ('درب پشت گوشی سامسونگ Samsung Galaxy Mega', 'قاب, شاسی و درب گوشی')
+  with category boost ('گوشی موبایل'): 10.3 ms
+   - ('باتری اصلی گوشی سامسونگ Samsung Galaxy Mini - S5570', 'باتری گوشی موبایل')
+   - ('باتری اصلی گوشی سامسونگ Samsung Galaxy S22 S901', 'باتری گوشی موبایل')
+   - ('باتری سامسونگ Samsung Galaxy A10', 'باتری گوشی موبایل')
+
+offers: 331506 seller titles, read+normalize 3.3s, contentless FTS build 3.4s, size 65.5 MiB
+Traceback (most recent call last):
+  File "C:\Users\alieb\AppData\Local\Temp\claude\D--hackathon-hackathon-starcoach-torob\f75154cc-9c8d-427c-be5d-9a3e20881ec3\scratchpad\fts_bench2.py", line 92, in <module>
+    res = con.execute("SELECT product_id, count(*) c, min(bm25(o)) FROM o WHERE o MATCH ? GROUP BY product_id ORDER BY 3 LIMIT 5", (e,)).fetchall()
+          ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: unable to use function bm25 in the requested context
+Traceback (most recent call last):
+  File "<string>", line 11, in <module>
+    res=con.execute('SELECT product_id, count(*) c, min(s) FROM (SELECT product_id, bm25(o) s FROM o WHERE o MATCH ?) GROUP BY product_id ORDER BY 3 LIMIT 5',(q,)).fetchall()
+        ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: unable to use function bm25 in the requested context
+exact-category boost 11.1 ms
+  - ('گوشی سامسونگ Samsung Galaxy Z Flip 8 5G حافظه 256 و رم 12 گیگابایت', 'گوشی موبایل')
+  - ('گوشی سامسونگ Samsung GALAXY S22 ULTRA 5G 256GB Ram 12GB (کارکرده)', 'گوشی موبایل')
+  - ('گوشی سامسونگ گلکسی S25 اولترا', 'گوشی موبایل')
+offers "گوشی" AND "سامسونگ" 1472 hits, top-500 grouped 4.5 ms
+   - ('گوشی سامسونگ B311 V | حافظه 64 مگابایت رم 32 مگابایت',) 1
+   - ('باتری سامسونگ مدل گلکسی A12',) 4
+   - ('باتری سامسونگ مدل گلکسی A72',) 1
+offers "ایفون" AND "13" AND "128" 3 hits, top-500 grouped 0.7 ms
+   - ('گوشی اپل دو سیم (استوک) iPhone 13 | حافظه 128 گیگابایت',) 3
+offers "iphone" AND "13" AND "128" 9 hits, top-500 grouped 0.8 ms
+   - ('گوشی اپل (استوک) iPhone 13 | حافظه 128 گیگابایت',) 1
+   - ('گوشی اپل دو سیم (استوک) iPhone 13 | حافظه 128 گیگابایت',) 6
+   - ('گوشی اپل دو سیم iPhone 13 (Not Active) | حافظه 128 گیگابایت',) 1

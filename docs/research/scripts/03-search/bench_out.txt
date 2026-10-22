@@ -1,0 +1,113 @@
+sqlite 3.50.4
+read+normalize 225903 products: 3.8s
+[plain table, no index] size 47.3 MiB
+[uni] tokenize='unicode61 remove_diacritics 2', prefix='2 3': build 3.2s, size 86.5 MiB
+[tri] tokenize='trigram': build 4.4s, size 109.8 MiB
+
+### گوشی سامسونگ
+ unicode61 [AND] '"گوشی" AND "سامسونگ"*': 2409 hits, 4.7 ms
+   - باتری گوشی سامسونگ E250
+   - گوشی سامسونگ گلکسی S25 اولترا
+   - باتری گوشی سامسونگ S10 PLUS
+ trigram: 519 hits, 6.0 ms
+   - فلت گوشی سامسونگ A31
+   - فلت گوشی سامسونگ A30S
+   - کاور گوشی یویو مناسب گوشی سامسونگ A71 - نقره ای
+
+### آیفون ۱۳ ۱۲۸
+ unicode61 [OR] '"ایفون" OR "13" OR "128"*': 4876 hits, 4.8 ms
+   - منبع تغذیه آیفون تصویری الکتروپیک مدل 1286
+   - مانیتور آیفون تصویری الکتروپیک 1286
+   - گوشی اپل (استوک) iPhone 13 | حافظه 128 گیگابایت
+ trigram: 0 hits, 0.9 ms
+
+### هندزفری بلوتوث ارزون
+ unicode61 [AND] '"هندزفری" AND "بلوتوث"*': 300 hits, 0.9 ms
+   - هندزفری بلوتوثی مدل k2
+   - هندزفری بلوتوثی مدل Y80
+   - هندزفری بلوتوثی مدل Ultrapods Pro
+ trigram: 113 hits, 2.4 ms
+   - هندزفری بلوتوثی مدل k2
+   - هندزفری بلوتوثی مدل Y80
+   - هندزفری بلوتوثی انکر ار ۵۰ آی
+
+### iphone 13
+ unicode61 [AND] '"iphone" AND "13"*': 169 hits, 0.7 ms
+   - دوربین جلو آیفون ۱۳ (iPhone 13)
+   - دوربین اصلی iphone 13
+   - محافظ صفحه نمایش شیشه ای اورجینال XMART - Magic Glass Box مدل Apple iPhone 13 / iPhone 13 Pro / iPhone 14 / 16e (پک دار)
+ trigram: 170 hits, 7.1 ms
+   - قاب سیلیکونی Copybara استندشو Apple iPhone 15 / Apple iPhone 14 / Apple iPhone 13 - (پک دار)
+   - قاب AG Glass Magsafe تبدیلی iPhone 13 Pro Max به iPhone 17 Pro Max
+   - فلت شارژ آیفون iPhone 13
+
+### لنز دوربین سونی
+ unicode61 [AND] '"لنز" AND "دوربین" AND "سونی"*': 142 hits, 1.3 ms
+   - لنز دوربین سونی Tamron 80-210
+   - لنز دوربین سونی ۷۵-۳۰۰ میلیمتر دست دوم
+   - لنز دوربین سونی مدل Batis 25mm f/2
+ trigram: 61 hits, 3.5 ms
+   - لنز دوربین سونی Tamron 80-210
+   - لنز دوربین سونی FE 50mm f/2.5 G
+   - لنز دوربین سونی FE 85mm f/1.4 GM
+
+### کابل افشان ۱۶×۵
+ unicode61 [AND] '"کابل" AND "افشان" AND "16" AND "x" AND "5"*': 9 hits, 6.4 ms
+   - کابل افشان 5 در 16 (5x16) کرمان کابل ابهر
+   - کابل افشان 5 در 16 (5x16) هادی کابل البرز
+   - کابل ۵×۱۶ افشان ویام
+ trigram: 18 hits, 11.4 ms
+   - کابل ۵×۱۶ افشان ویام
+   - کابل افشان 16x5 مغان
+   - کابل افشان 5 در 16 (5x16) کرمان کابل ابهر
+
+### شیامی ردمی
+ unicode61 [OR] '"شیامی" OR "ردمی"*': 123 hits, 0.5 ms
+   - گلس شیامی 11 تی
+   - گلس شیامی 11 تی پرو
+   - گلس شیامی نوت 9 اس
+ trigram: 0 hits, 0.4 ms
+
+### هدفون بی‌سیم
+ unicode61 [AND] '"هدفون" AND "بی" AND "سیم"*': 685 hits, 2.3 ms
+   - هدفون بی سیم بی دبلیو مدل HF14
+   - هدفون بی سیم M19
+   - هدفون بی سیم AKZ55
+ trigram: 585 hits, 6.8 ms
+   - هدفون بی سیم M19
+   - هدفون بی سیم K98
+   - هدفون بی سیم AKZ55
+
+### samsung a54
+ unicode61 [AND] '"samsung" AND "a" AND "54"*': 9 hits, 0.7 ms
+   - فلت مین سامسونگ Samsung Galaxy A54 A546
+   - فلت پاور و صدا سامسونگ Samsung Galaxy A54 A546
+   - فلت سنسور اثر انگشت سامسونگ Samsung A54
+ trigram: 9 hits, 4.9 ms
+   - فلت سنسور اثر انگشت سامسونگ Samsung A54
+   - فلت مین سامسونگ Samsung Galaxy A54 A546
+   - فلت پاور و صدا سامسونگ Samsung Galaxy A54 A546
+
+### ساعت کاسیو
+ unicode61 [AND] '"ساعت" AND "کاسیو"*': 401 hits, 1.2 ms
+   - ساعت کاسیو اصل
+   - ساعت مچی کاسیو GA
+   - ساعت مچی کاسیو اصل
+ trigram: 391 hits, 2.4 ms
+   - ساعت کاسیو اصل
+   - ساعت مچی کاسیو GA
+   - ساعت مچی کاسیو اصل
+
+### ایرپاد
+ unicode61 [AND] '"ایرپاد"*': 250 hits, 0.7 ms
+   - ایرپاد برند کینگ پلاس طرح ایرپاد 2 مدل KING+ HK-70
+   - کیس شارژ ایرپاد ۱
+   - ایرپاد مونستر
+ trigram: 222 hits, 1.0 ms
+   - ایرپاد برند کینگ پلاس طرح ایرپاد 2 مدل KING+ HK-70
+   - ایرپاد مونستر
+   - ایرپاد 5 اپل
+
+### سامسنگ
+ unicode61 [OR] '"سامسنگ"*': 0 hits, 0.1 ms
+ trigram: 0 hits, 0.2 ms
