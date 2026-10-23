@@ -30,3 +30,10 @@ def test_no_match_and_empty(mini_db):
     conn = connect(mini_db, readonly=True)
     assert search_products(conn, "")["mode"] == "none"
     assert search_products(conn, "زززز")["items"] == []
+
+
+def test_typo_is_corrected_only_when_nothing_matches(mini_db):
+    conn = connect(mini_db, readonly=True)
+    r = search_products(conn, "گوشی سامسنگ")
+    assert r["corrected"] == {"سامسنگ": "سامسونگ"} and r["items"]
+    assert search_products(conn, "شارژر اپل")["corrected"] == {}

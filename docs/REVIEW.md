@@ -15,7 +15,7 @@ It follows the four steps of the challenge video: **choose the product → find 
 uv sync
 uv run starcoach build-db        # CSVs in data/torob-dataset/ -> data/starcoach.db (~50 s)
 uv run starcoach serve           # http://127.0.0.1:8000 — open it at phone width
-uv run pytest                    # 62 offline tests
+uv run pytest                    # 64 offline tests
 uv run starcoach results         # regenerates results/*.txt|json from the DB (~2 s)
 uv run starcoach smoke --url http://127.0.0.1:8000
 ```
@@ -60,7 +60,7 @@ Optional LLM: set `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` in `.env` (any Open
 | R21 | Unknown shown clearly | «نامشخص», «ساعت کاری ثبت نشده», «قیمت ثبت نشده؛ استعلام تلفنی» |
 | R22 | Persian, RTL, mobile | `dir="rtl"`, `fa-IR` numbers and dates, checked at 375 × 812 |
 | R23 | Deployed and stable | Docker image, `/health`, `/ready`, healthcheck, `starcoach smoke`; public deploy parked by the team (D11) |
-| R24 | Code structure, tools, performance | one module per capability, one CLI command per capability, 62 tests, ruff clean; timings below |
+| R24 | Code structure, tools, performance | one module per capability, one CLI command per capability, 64 tests, ruff clean; timings below |
 | R25 | Demo-ready | §8 demo script |
 
 ## 4. Architecture
@@ -131,7 +131,7 @@ The LLM *replacing* the rules scored 0.423 on hard (F29); that is why the LLM on
 - Hours are as declared by shops; public holidays are not in the data.
 - No store images, licences, stock, Kalabarg or price unit in the dataset (F19); shown as unknown.
 - Labeled requests were written by the same team as the parser; the held-out test is small. The "hard" split is the most realistic and is where the numbers are lower.
-- Search has no typo correction yet («سامسنگ» finds nothing).
+- Typo correction covers words of 3+ letters missing from the index; very short typos are left alone.
 - Public deployment is parked (D11); the Docker image and smoke test are ready.
 
 ## 8. Demo script (about 5 minutes)

@@ -112,12 +112,19 @@ def search_products(conn: sqlite3.Connection, query: str, limit: int = 20) -> di
     if not words:
         return {"words": [], "mode": "none", "items": []}
     mode = "and"
+    corrected: dict[str, str] = {}
     hits = _fts(conn, _match_expr(words, "AND"))
+    if not hits:
+        fixed, corrected = _spell_fix(conn, words)
+        if corrected:
+            hits = _fts(conn, _match_expr(fixed, "AND"))
+            words = fixed if hits else words
+            corrected = corrected if hits else {}
     if not hits:
         mode = "or"
         hits = _fts(conn, _match_expr(words, "OR"))
     if not hits:
-        return {"words": words, "mode": "none", "items": []}
+        return {"words": words, "mode": "none", "items": [], "corrected": {}}
     want = set(words) | set(alias_tokens(words))
     ids = [rowid for rowid, _ in hits]
     rows = {
@@ -144,7 +151,22 @@ def search_products(conn: sqlite3.Connection, query: str, limit: int = 20) -> di
         item.pop("rowid")
         items.append(item)
     items.sort(key=lambda x: -x["score"])
-    return {"words": words, "mode": mode, "total": len(hits), "items": items[:limit]}
+    return {"words": words, "mode": mode, "total": len(hits), "items": items[:limit], "corrected": corrected}
+
+
+def _spell_fix(conn: sqlite3.Connection, words: list[str]) -> tuple[list[str], dict[str, str]]:
+    """Replace words missing from the index vocabulary with their closest vocabulary word (typos)."""
+    from starcoach.spell import correct, vocabulary
+
+    key = next((row[2] for row in conn.execute("PRAGMA database_list") if row[1] == "main"), "") or "main"
+    terms, index = vocabulary(conn, key)
+    fixed, changes = [], {}
+    for w in words:
+        c = correct(w, terms, index)
+        fixed.append(c or w)
+        if c:
+            changes[w] = c
+    return fixed, changes
 
 
 def _fts(conn: sqlite3.Connection, expr: str) -> list[tuple[int, float]]:

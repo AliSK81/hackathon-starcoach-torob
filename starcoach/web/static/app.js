@@ -732,7 +732,10 @@ async function viewSearch(q) {
         <div class="actions">${data.relax.map((r) => `<button class="btn" data-relax="${esc(r.filter)}">بدون «${esc(r.label)}»: ${num(r.products)} کالا</button>`).join("")}</div></div>` : "";
   const guideLink = !(lastAsk && lastAsk.query === q && lastAsk.intent === "choose")
     ? `<p class="small"><a href="#/guide?q=${encodeURIComponent(q)}">مدلش را نمی‌دانید؟ با چند سؤال کمکتان می‌کنم ←</a></p>` : "";
-  $view.innerHTML = understoodBanner(q) + loose + focus + few + guideLink + `<p class="muted small">مرتب‌شده بر اساس شباهت و تعداد فروشنده${scope}</p>` +
+  const fixedWords = Object.entries(data.corrected || {});
+  const typo = fixedWords.length
+    ? `<p class="small">نتایج برای ${fixedWords.map(([a, b]) => `«${esc(b)}» (به‌جای «${esc(a)}»)`).join("، ")}</p>` : "";
+  $view.innerHTML = understoodBanner(q) + typo + loose + focus + few + guideLink + `<p class="muted small">مرتب‌شده بر اساس شباهت و تعداد فروشنده${scope}</p>` +
     data.items.map((p) => productCard(p, data.filters_active)).join("");
 }
 

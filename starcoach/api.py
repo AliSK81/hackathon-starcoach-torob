@@ -179,7 +179,8 @@ def search(conn: sqlite3.Connection, q: str, limit: int = 20, f: Filters | None 
                 relax.append({"filter": name, "label": RELAXABLE[name], "products": len(alt["items"])})
         relax.sort(key=lambda r: -r["products"])
     return {"query": q, "words": result["words"], "mode": result["mode"], "total": result.get("total", 0),
-            "filters_active": f.active, "focus_category": focus, "relax": relax, "items": items}
+            "filters_active": f.active, "focus_category": focus, "relax": relax, "items": items,
+            "corrected": result.get("corrected", {})}
 
 
 PRICE_UNIT_SPREAD = 3.0  # max/min normal price above this usually means different units (metre vs coil)

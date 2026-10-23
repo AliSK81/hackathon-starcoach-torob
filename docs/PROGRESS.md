@@ -4,7 +4,7 @@
 
 - **Current phase:** 8 — Release (audit passed except the parked public deploy, D11); improving weakest items
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page, with filters (area / near me, budget, visit time, installments, TorobPay, …), reasons, relax buttons and a 3-product compare.
-- **Last change:** Change 27 (release audit)
+- **Last change:** Change 28
 
 ### What we need from the user
 
@@ -662,3 +662,15 @@ Decisions: none
 
 Next change idea:
 - Tag the audited version; then improve the weakest score item (Deploy is blocked by D11 → next weakest: Intelligence/UX details such as typo correction and "cheap" phrasings)
+
+### Change 28 — Typo correction in search («سامسنگ» → سامسونگ) — 2026-10-23
+Phase: 8, improving the weakest items (Product / UX; Deploy is parked, D11)
+How to see it: search «هندزفیری بلوتوت» → «نتایج برای «هندزفری» (به‌جای «هندزفیری»)، «بلوتوث» (به‌جای «بلوتوت»)»
+Proof it works (full DB): «سامسنگ» → سامسونگ (phones); «هندزفیری بلوتوت» → هندزفری بلوتوث (Soundcore R50i first); «کاسیوو» → کاسیو; «یخچل» → یخچال. Correct queries are untouched («گوشی سامسونگ» corrected = {}). The vocabulary loads once per process (~170 ms), then corrections take a few ms. 64 tests pass; ruff clean.
+
+Research: 03 §5.1 recipe (trigram over the index vocabulary, Jaccard + difflib, df boost) implemented in memory; no extra index on disk.
+Questions: none
+Decisions: corrections only for words missing from the vocabulary, only when the AND query finds nothing, and shown to the user.
+
+Shipped:
+- `starcoach/spell.py`; `search_products` returns `corrected`; API passes it; search page says what was corrected
