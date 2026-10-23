@@ -2,6 +2,7 @@
 
 Sources:
 - **[Text]** the written challenge text (the original content of this file).
+- **[Q&A]** organizers' answers in the hackathon group (§9).
 - **[Video]** the challenge announcement video by the StarCoach / Torob product owner (transcript provided by the user, 2026-10-23; transcription typos fixed).
 
 The video and the text together define the task. Where they overlap, both are cited.
@@ -115,7 +116,20 @@ The ranking and scores are based entirely on these criteria; read them closely. 
 | Dataset | 20 | Product and store information are used correctly and shown transparently and understandably. |
 | **Total** | **300** | |
 
-## 9. Requirement checklist
+## 9. Organizer clarifications [Q&A]
+
+Source: organizers' answers in the hackathon group, 2026-10-21 … 2026-10-23 (pasted by the user; typos fixed).
+
+1. **The goal is an *in-person* shopping assistant.** A few shops have a website or Instagram in the dataset; they can be used to test special scenarios.
+2. **Both halves matter:** choosing the product (model) *and* choosing the store for an in-person visit. A user normally needs both to finish a purchase.
+3. **When the user can't find the product,** the agent should know which shopping centre or area sells what, even using knowledge beyond the dataset (a good model may know where each item's «بورس» (trade hub) is in Tehran). It should advise going to that hub and send the user a **location widget**.
+4. **Seller contact may be simulated (mock).** Voice call, SMS or WhatsApp is the team's choice; a polished one helps. What matters is that it is **efficient and easy for both seller and buyer**, ideally without bothering the seller (like "Let Google Call"). It is a plus, not the main criterion.
+5. **Sources outside the dataset are welcome,** but **if something relevant is in the dataset and is not suggested, that counts as a fault.**
+6. **There is no reviews dataset.** Showing users a good review of products is important; creative ideas are welcome.
+7. **All products must be covered (baseline).** Extra, category-specific components (e.g. for clothing) that improve the experience earn points. Clothing is only an example.
+8. Questions go to the group, not private messages (process note, no product requirement).
+
+## 10. Requirement checklist
 
 Each line is one checkable requirement. `docs/ROADMAP.md` maps each ID to a phase.
 
@@ -146,3 +160,9 @@ Each line is one checkable requirement. `docs/ROADMAP.md` maps each ID to a phas
 | R23 | Deployed and stable on a server (Liara suggested) | Text 6; Video |
 | R24 | Good code structure, tools, performance | Text 8 |
 | R25 | Demo-ready product for a ~5-minute demo video showing the full flow | Text 7 |
+| R26 | Know which shopping centre / area sells what (Tehran «بورس»), suggest going there when the product isn't found, with a location widget | Q&A 3 |
+| R27 | Seller contact that is easy for both sides (mock allowed): the seller answers with minimal effort; the buyer gets the answer in the app | Q&A 4 |
+| R28 | Dataset first: never skip a relevant dataset result; outside knowledge is extra and labeled | Q&A 5 |
+| R29 | A useful product review for the user, honestly sourced (no reviews dataset) | Q&A 6 |
+| R30 | All categories covered; category-specific components where they help (e.g. clothing) | Q&A 7 |
+| R31 | Use the website / Instagram of the shops that have them for special scenarios | Q&A 1 |

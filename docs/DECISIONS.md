@@ -20,6 +20,7 @@ Rules:
 | D10 | LLM = the user's OpenAI-compatible gateway from `.env` (F25). Thinking is off by default (`chat_template_kwargs.enable_thinking=false`, F27) for mobile latency. The rule-based path stays the default answer; the LLM refines it. Replaces the open part of D4 (provider). | 2026-10-23 | user (.env) + Claude |
 | D11 | Public deploy is parked: keep developing features first. The Docker image stays ready; deploy comes back in Phase 8. | 2026-10-23 | user |
 | D12 | The LLM never replaces the rules. Rules win on every slot they found; the LLM fills gaps and names the product only when the rules' query is a long description (> 4 words) or finds nothing. The UI shows the rules' answer at once and updates when the LLM answers (background). Based on F29. | 2026-10-23 | Claude |
+| D13 | Organizer Q&A (2026-10-21…23) added to `docs/requirements.md` §9 as R26–R31; Phase 9 covers them. Seller contact stays a mock (allowed), now made two-sided. Reviews are summaries labeled with their source, never presented as real user reviews. | 2026-10-23 | user (pasted Q&A) + Claude |
 
 ## Checked facts
 

@@ -34,6 +34,7 @@
 | 6 | Visit plan, substitution and seller follow-up | done | [phase-6](phases/phase-6-visit.md) |
 | 7 | Evaluation and reviewer doc | done | [phase-7](phases/phase-7-review.md) |
 | 8 | Release: audit, final deploy, tag | in progress: audit passed, tagged v1.0.0; public deploy parked (D11) | — |
+| 9 | Organizer clarifications (R26–R31) | in progress | [phase-9](phases/phase-9-clarifications.md) |
 
 ## Requirement → phase
 
@@ -66,6 +67,12 @@ IDs are from `docs/requirements.md` §9. Nothing is left without a phase.
 | R23 | Deployed and stable (Liara suggested) | 3, 8 |
 | R24 | Code structure, tools, performance | 0–8, 7 |
 | R25 | Demo-ready for a ~5-minute video of the full flow | 7, 8 |
+| R26 | Which bazaar sells what; go there; location widget | 9 |
+| R27 | Seller contact easy for both sides (seller panel, one-tap replies) | 9 |
+| R28 | Dataset first; outside knowledge labeled | 9 (check in every change) |
+| R29 | Honest product review summary | 9 |
+| R30 | Category-specific components | 9 |
+| R31 | Website / Instagram shops | 2 (links, done), 9 |
 
 Score items: Product 75 → R1–R9, R14; UX 75 → R17–R22; Intelligence 50 → R1, R6, R7, R4; Deploy 40 → R23; Technical 40 → R24; Dataset 20 → R10–R16, R20, R21.
 
@@ -115,6 +122,11 @@ Score items: Product 75 → R1–R9, R14; UX 75 → R17–R22; Intelligence 50 �
 - **Why:** the submitted version must be tagged and stable.
 - **Done when:** the line-by-line audit against `docs/requirements.md` passes; a fresh clone runs from the README; all tests pass offline; the deployed version is tagged.
 - **Not yet:** —
+
+### Phase 9 — Organizer clarifications
+- **Why:** the organizers' Q&A adds scored expectations: bazaar knowledge, an easy two-sided seller contact, reviews, category-specific UX.
+- **Done when:** a product that isn't found leads to the right Tehran hub with a map widget (dataset areas first, outside knowledge labeled); a seller panel answers buyer questions in one tap and the buyer sees it; each product shows an honest review summary; at least two categories get their own components; the audit is rerun for R26–R31.
+- **Not yet:** real messaging or calls.
 
 ## Later
 - Semantic search with embeddings.

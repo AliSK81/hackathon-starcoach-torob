@@ -2,9 +2,9 @@
 
 ## Status board
 
-- **Current phase:** 8 — Release (audit passed except the parked public deploy, D11); improving weakest items
+- **Current phase:** 9 — Organizer clarifications (R26–R31); release v1.0.0 audited, public deploy parked (D11)
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page, with filters (area / near me, budget, visit time, installments, TorobPay, …), reasons, relax buttons and a 3-product compare.
-- **Last change:** Change 32
+- **Last change:** Change 33
 
 ### What we need from the user
 
@@ -732,3 +732,12 @@ Questions: none
 Decisions: none
 
 Shipped: `visit.category_shops`; `alternatives` returns `category_shops` when fewer than 3 sellers remain; UI section in the alternatives box.
+
+### Change 33 — Organizer Q&A folded into the requirements (R26–R31) and Phase 9 — 2026-10-23
+Phase: docs
+How to see it: `docs/requirements.md` §9–§10; `docs/ROADMAP.md` Phase 9; `docs/phases/phase-9-clarifications.md`
+Proof it works: requirements now list R1–R31; every new ID has a phase.
+
+Research: 02 §4 (Balad list of Tehran trade hubs) will back R26.
+Questions: the pasted Q&A answers: product choice and store choice both matter; the agent should know Tehran's trade hubs and send a location widget; seller contact may be mocked but should be easy for both sides; outside sources are welcome but skipping relevant dataset results is a fault; reviews are important (no dataset); category-specific components earn points.
+Decisions: D13
