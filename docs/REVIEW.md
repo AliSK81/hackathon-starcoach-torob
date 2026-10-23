@@ -15,7 +15,7 @@ It follows the four steps of the challenge video: **choose the product → find 
 uv sync
 uv run starcoach build-db        # CSVs in data/torob-dataset/ -> data/starcoach.db (~50 s)
 uv run starcoach serve           # http://127.0.0.1:8000 — open it at phone width
-uv run pytest                    # 66 offline tests
+uv run pytest                    # 67 offline tests
 uv run starcoach results         # regenerates results/*.txt|json from the DB (~2 s)
 uv run starcoach smoke --url http://127.0.0.1:8000
 ```
@@ -31,6 +31,7 @@ Optional LLM: set `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` in `.env` (any Open
 | 2. Find stores that have it, near you | Product page: sellers with passage / floor / unit, distance, open status | Only shops with an offer for the product are listed (category alone ≠ in stock). Area, passage or "near me" + radius. |
 | 3. Compare stores | «⭐ پیشنهاد دستیار» picks one seller and says why (and why not the cheapest); sellers sorted by price or distance; "why" chips; filters for budget, visit time, installments, TorobPay, in-person payment, fast delivery, warranty | All reasons come from data (cheapest, open at visit time, distance, installments, warranty, price freshness). Empty results offer one-tap "drop this filter" fixes. |
 | 4. Contact stores | «از فروشنده بپرس» or «🤖 از ۳ فروشنده‌ی اول بپرس» | The agent drafts the message from chosen questions and reports replies: in stock, today's price, closing time, hold. Phones in the data are fake, so replies are **simulated and labeled**. No answer / out of stock / closed → alternatives at once. |
+| + Browse a passage | type «پاساژ علاءالدین» or tap a passage name | Floor-by-floor list of shops: unit, what they sell, open at the visit time. |
 | + Plan the visit | «🗺 برنامه‌ی بازدید» | Orders stops into a walk, checks each is open on arrival, warns early, and shows where the shop is inside the passage. |
 
 ## 3. Requirement → evidence
@@ -44,7 +45,7 @@ Optional LLM: set `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` in `.env` (any Open
 | R5 | Help contact stores | contact sheet; `tel:` link marked as demo number |
 | R6 | Agent contacts stores, reports back | `POST /api/contact`, «از ۳ فروشنده‌ی اول بپرس»; `results/visit-demo.txt` |
 | R7 | No answer / closed → alternatives fast | `/api/alternatives` (same passage first, open at visit time, then substitutes); relax hints for empty filters |
-| R8 | Precise location inside the passage | address parser (passage 62.6%, floor 65.3%, unit/plaque 90.8% of shops); «کجای پاساژ؟» with floor neighbours |
+| R8 | Precise location inside the passage | passage page (floor by floor); address parser (passage 62.6%, floor 65.3%, unit/plaque 90.8% of shops); «کجای پاساژ؟» with floor neighbours |
 | R9 | Installment-only filter | `installments=1` (TorobPay, Snapp Pay, Digipay, Tara, Azki Vam); charger 11/59 sellers, S25 FE 2/34 |
 | R10 | Use the dataset correctly | `starcoach stats` = 6,476 / 225,903 / 331,506 rows; joins checked (F13) |
 | R11 | Store info, missing shown as missing | shop page; missing fields listed in F19 shown as «نامشخص» |
@@ -60,7 +61,7 @@ Optional LLM: set `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` in `.env` (any Open
 | R21 | Unknown shown clearly | «نامشخص», «ساعت کاری ثبت نشده», «قیمت ثبت نشده؛ استعلام تلفنی» |
 | R22 | Persian, RTL, mobile | `dir="rtl"`, `fa-IR` numbers and dates, checked at 375 × 812 |
 | R23 | Deployed and stable | Docker image, `/health`, `/ready`, healthcheck, `starcoach smoke`; public deploy parked by the team (D11) |
-| R24 | Code structure, tools, performance | one module per capability, one CLI command per capability, 66 tests, ruff clean; timings below |
+| R24 | Code structure, tools, performance | one module per capability, one CLI command per capability, 67 tests, ruff clean; timings below |
 | R25 | Demo-ready | §8 demo script |
 
 ## 4. Architecture

@@ -134,6 +134,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         start = (lat, lon) if lat is not None and lon is not None else None
         return visit.plan(conn, [x for x in shops.split(",") if x], parse_filters({"at": at}).at, start)
 
+    @app.get("/api/passages/{name}")
+    def passage(name: str, at: str | None = None, conn: sqlite3.Connection = Depends(db)) -> dict:
+        """Shops inside a passage, floor by floor, with what they sell and whether they are open at `at`."""
+        page = visit.passage_page(conn, name, parse_filters({"at": at}).at)
+        if page is None:
+            raise HTTPException(404, "passage not found")
+        return page
+
     @app.get("/api/areas")
     def areas(conn: sqlite3.Connection = Depends(db)) -> dict:
         return api.areas(conn)

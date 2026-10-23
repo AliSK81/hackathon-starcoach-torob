@@ -4,7 +4,7 @@
 
 - **Current phase:** 8 — Release (audit passed except the parked public deploy, D11); improving weakest items
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page, with filters (area / near me, budget, visit time, installments, TorobPay, …), reasons, relax buttons and a 3-product compare.
-- **Last change:** Change 30
+- **Last change:** Change 31
 
 ### What we need from the user
 
@@ -709,3 +709,15 @@ Shipped:
 - `intent.py`: casual cheap phrases («پول زیادی ندارم», «زیاد گرون نباشه», «بودجم کمه», «کم قیمت», …), «…میلیونه/…تومنه», punctuation stripped before parsing, the amount with a budget word wins
 - `api.ask`: implausible budgets go back into the product words
 - `eval-intents --split hard2`; `starcoach results` scores hard2 too
+
+### Change 31 — Passage page: what is inside, floor by floor — 2026-10-23
+Phase: 8, improving weakest items (Product, UX; R8)
+How to see it: type «پاساژ علاءالدین», or tap the passage name on any shop page; API `/api/passages/<name>?at=…`
+Proof it works (browser 375 px, Saturday 11:00): «پاساژ علاءالدین — ۳۱۵ فروشگاه · ۱۹۸ باز · محله شیخ هادی», top categories (گوشی موبایل، لوازم جانبی، هدفون…), floors −2 … 7 plus «طبقه نامشخص» (33), each shop with unit, what it sells, items listed on Torob, and open status; «جست‌وجو فقط در این پاساژ» sets the area chip; no horizontal overflow. 67 tests pass; ruff clean.
+
+Research: 02 §3 ("finding the unit in a 9-floor passage") and 01 §2 (floor/unit parse).
+Questions: none
+Decisions: none
+
+Shipped:
+- `visit.passage_page`, `/api/passages/{name}`; passage page in the web app; a sentence that names only a passage opens it; passage links on shop pages

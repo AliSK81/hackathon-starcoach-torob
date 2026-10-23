@@ -67,3 +67,10 @@ def test_where_lists_floor_neighbours(client, conn):
     sid = conn.execute("SELECT shop_id FROM shops WHERE passage IS NOT NULL AND floor IS NOT NULL LIMIT 1").fetchone()[0]
     w = client.get(f"/api/shops/{sid}/where").json()
     assert w["passage"] and w["floor_label"] and w["passage_shops"] >= 1
+
+
+def test_passage_page_groups_shops_by_floor(client, conn):
+    name = conn.execute("SELECT passage FROM shops WHERE passage IS NOT NULL GROUP BY passage ORDER BY COUNT(*) DESC").fetchone()[0]
+    p = client.get(f"/api/passages/{name}").json()
+    assert p["shops"] == sum(len(f["shops"]) for f in p["floors"])
+    assert client.get("/api/passages/nope").status_code == 404

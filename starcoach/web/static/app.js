@@ -331,6 +331,7 @@ async function ask(text) {
   renderCtxBar();
   lastAsk = { text, query: r.query || text, understood: r.understood, ambiguous: r.ambiguous, patch, intent: r.intent,
     category: r.category, source: r.source, thinking: Boolean(r.rules_struggled && r.llm_available) };
+  if (!r.query && patch.place?.kind === "passage") { location.hash = `#/passage/${encodeURIComponent(patch.place.name)}`; return; }
   const target = `#/search?q=${encodeURIComponent(lastAsk.query)}`;
   if (location.hash === target) route(); else location.hash = target;
   if (lastAsk.thinking) smartAsk(text, patch);
@@ -682,6 +683,46 @@ async function viewPlan() {
     ${warn}${stops}`;
 }
 
+// ---------- passage page: what is inside, floor by floor ----------
+async function viewPassage(name) {
+  loading();
+  let p;
+  const at = visitISO();
+  try { p = await getJSON(`/api/passages/${encodeURIComponent(name)}${at ? "?at=" + at : ""}`); } catch (e) { return failed(e); }
+  const when = ctx.day == null ? "الان" : `${DAYS_FA[ctx.day]} ساعت ${num(ctx.hour ?? 11)}`;
+  const floors = p.floors.map((f, i) => `
+    <details class="card" ${i < 2 ? "open" : ""}>
+      <summary><strong>${esc(faDigits(f.label))}</strong> <span class="muted small">(${num(f.shops.length)} فروشگاه)</span></summary>
+      ${f.shops.map((s) => `
+        <a class="alt" href="#/s/${esc(s.shop_id)}" style="display:block;color:inherit">
+          <div class="between"><span><strong>${esc(s.unit ? faDigits(s.unit) : "واحد نامشخص")}</strong> · ${esc(s.name || "")}</span>${openPill(s.open_now, s.hours_status)}</div>
+          <div class="muted small">${s.categories.length ? esc(s.categories.join("، ")) : "زمینه‌ی فعالیت ثبت نشده"}${s.n_offers ? ` · ${num(s.n_offers)} کالا در ترب` : " · کالایی ثبت نکرده"}</div>
+        </a>`).join("")}
+    </details>`).join("");
+  $view.innerHTML = `
+    <section class="card">
+      <h1 style="margin-top:0">${esc(p.kind || "پاساژ")} ${esc(p.name)}</h1>
+      <p class="muted small" style="margin:0">${num(p.shops)} فروشگاه در داده‌ی ترب · ${num(p.open_now)} باز در ${esc(when)}${p.area ? ` · محله ${esc(p.area)}` : ""}</p>
+      <div class="chips" style="margin-top:8px">${p.top_categories.slice(0, 8).map((c) => `<span class="chip">${esc(c)}</span>`).join("")}</div>
+      <div class="actions">
+        <button type="button" class="btn primary" data-search-in="${esc(p.name)}" data-lat="${p.lat ?? ""}" data-lon="${p.lon ?? ""}">جست‌وجو فقط در این پاساژ</button>
+        ${p.lat ? `<a class="btn" target="_blank" rel="noopener" href="${neshan(p.lat, p.lon)}">مسیر تا پاساژ</a>` : ""}
+      </div>
+    </section>
+    ${floors}`;
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-search-in]");
+  if (b) {
+    ctx = { ...ctx, place: { kind: "passage", name: b.dataset.searchIn, lat: Number(b.dataset.lat) || null, lon: Number(b.dataset.lon) || null } };
+    saveCtx();
+    renderCtxBar();
+    $q.value = "";
+    $q.placeholder = `در ${b.dataset.searchIn} دنبال چه هستید؟`;
+    $q.focus();
+  }
+});
+
 // ---------- data ----------
 async function getJSON(url) {
   const r = await fetch(url);
@@ -891,7 +932,7 @@ async function viewShop(id) {
       <div class="between"><h1>${esc(s.name || "بدون نام")}</h1>${openPill(s.open_now, s.hours_status)}</div>
       ${nameBadge(s)}
       <dl class="facts">
-        <dt>پاساژ/ساختمان</dt><dd>${s.passage ? esc(`${s.passage_kind} ${s.passage}`) : unknown()}</dd>
+        <dt>پاساژ/ساختمان</dt><dd>${s.passage ? `<a href="#/passage/${encodeURIComponent(s.passage)}">${esc(`${s.passage_kind} ${s.passage}`)}</a> <span class="muted small">(همه‌ی فروشگاه‌های این پاساژ)</span>` : unknown()}</dd>
         <dt>طبقه</dt><dd>${s.location_short && s.floor != null ? esc(s.location_short.split("، ").find((x) => x.includes("طبقه") || x === "همکف") || "") : unknown()}</dd>
         <dt>واحد/پلاک</dt><dd>${s.unit ? "واحد " + esc(s.unit) : s.plaque ? "پلاک " + esc(s.plaque) : unknown()}</dd>
         <dt>محله</dt><dd>${s.area ? esc(s.area) : unknown()}</dd>
@@ -945,6 +986,7 @@ function route() {
   if (path.startsWith("/compare")) return viewCompare();
   if (path.startsWith("/guide")) return viewGuide(params);
   if (path.startsWith("/plan")) return viewPlan();
+  if (path.startsWith("/passage/")) return viewPassage(decodeURIComponent(path.slice(9)));
   return viewHome();
 }
 

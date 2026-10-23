@@ -206,3 +206,37 @@ def plan(conn: sqlite3.Connection, shop_ids: list[str], start_at: datetime | Non
 
 def filters_at(f: Filters | None) -> datetime:
     return f.at if f else now_tehran()
+
+
+def passage_page(conn: sqlite3.Connection, name: str, at: datetime | None = None) -> dict | None:
+    """What is inside a passage, floor by floor: shops, units, what they sell, open at `at`."""
+    at = at or now_tehran()
+    rows = conn.execute("SELECT * FROM shops WHERE passage = ? ORDER BY floor, unit, plaque", (name,)).fetchall()
+    if not rows:
+        return None
+    floors: dict = {}
+    cats: dict[str, int] = {}
+    open_count = 0
+    for r in rows:
+        hours = _loads(r["hours"], None)
+        open_ = is_open_at(hours, at)
+        open_count += open_ is True
+        shop_cats = _loads(r["categories"], [])
+        for c in shop_cats[:5]:
+            cats[c] = cats.get(c, 0) + 1
+        key = r["floor"] if r["floor"] is not None else "unknown"
+        floors.setdefault(key, []).append({
+            "shop_id": r["shop_id"], "name": r["name"], "unit": r["unit"] or (f"پلاک {r['plaque']}" if r["plaque"] else None),
+            "categories": shop_cats[:3], "n_offers": r["n_offers"], "open_now": open_,
+            "hours_status": status_text(hours, at)["text"],
+        })
+    ordered = sorted(floors.items(), key=lambda kv: (kv[0] == "unknown", kv[0] if kv[0] != "unknown" else 0))
+    lat = [r["lat"] for r in rows if r["lat"]]
+    lon = [r["lon"] for r in rows if r["lon"]]
+    return {
+        "name": name, "kind": rows[0]["passage_kind"], "area": rows[0]["area"], "shops": len(rows),
+        "open_now": open_count, "lat": sum(lat) / len(lat) if lat else None, "lon": sum(lon) / len(lon) if lon else None,
+        "top_categories": [c for c, _ in sorted(cats.items(), key=lambda kv: -kv[1])[:10]],
+        "floors": [{"floor": None if k == "unknown" else k,
+                    "label": "طبقه نامشخص" if k == "unknown" else floor_label(k), "shops": v} for k, v in ordered],
+    }
