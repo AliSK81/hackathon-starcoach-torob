@@ -175,3 +175,10 @@ def test_guide_asks_data_questions_and_narrows(client):
 def test_ask_without_llm_config_stays_on_rules(client):
     r = client.get("/api/ask", params={"text": "یه چیزی میخوام تو مترو آهنگ گوش بدم سیم نداشته باشه", "llm": "1"}).json()
     assert r["source"] == "rules" and r["rules_struggled"] is True
+
+
+def test_product_reports_price_spread_and_english_name(client):
+    pid = client.get("/api/search", params={"q": "شارژر اپل ۲۰ وات"}).json()["items"][0]["product_id"]
+    p = client.get(f"/api/products/{pid}").json()
+    assert p["price_spread"] is None or p["price_spread"] >= 1
+    assert "english_name" in p

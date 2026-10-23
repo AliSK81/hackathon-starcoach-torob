@@ -22,6 +22,7 @@ from starcoach.filters import (
 )
 from starcoach.hours import is_open_at, now_tehran, status_text, week_table
 from starcoach.search import search_products
+from starcoach.textnorm import tokens
 
 CHANNEL_FA = {"in_person": "پرداخت حضوری در فروشگاه", "unknown": "نحوه پرداخت اعلام نشده"}
 PRICE_STATUS_FA = {
@@ -181,6 +182,29 @@ def search(conn: sqlite3.Connection, q: str, limit: int = 20, f: Filters | None 
             "filters_active": f.active, "focus_category": focus, "relax": relax, "items": items}
 
 
+PRICE_UNIT_SPREAD = 3.0  # max/min normal price above this usually means different units (metre vs coil)
+
+
+def _price_spread(conn: sqlite3.Connection, product_id: str) -> float | None:
+    """Ratio of the highest to the lowest normal price across shops (per-shop minimum)."""
+    rows = [r[0] for r in conn.execute(
+        "SELECT MIN(price) FROM offers WHERE product_id = ? AND price_status = 'ok' GROUP BY shop_id", (product_id,))]
+    if len(rows) < 2 or min(rows) <= 0:
+        return None
+    return round(max(rows) / min(rows), 2)
+
+
+def _english_name(p: sqlite3.Row) -> str | None:
+    """No English title field in the data (F19); use `model` or a Latin «نام محصول» spec when present."""
+    # `model` is sometimes a junk slug («authentic-base-10189»); trust it only if it shares a word with the title
+    if p["model"] and set(tokens(p["model"])) & set(tokens(p["title"])):
+        return p["model"]
+    for s in _loads(p["specs"], []):
+        if s.get("key") == "نام محصول" and s.get("value") and s["value"].isascii():
+            return s["value"]
+    return None
+
+
 def _age_days(later: str | None, earlier: str | None) -> float | None:
     if not later or not earlier:
         return None
@@ -259,6 +283,8 @@ def product(conn: sqlite3.Connection, product_id: str, f: Filters | None = None,
         "n_shops": p["n_shops"],
         "min_price": p["min_price"],
         "median_price": p["median_price"],
+        "price_spread": _price_spread(conn, product_id),
+        "english_name": _english_name(p),
         "filters_active": f.active,
         "sellers_total": total,
         "sellers_hidden": total - len(sellers),

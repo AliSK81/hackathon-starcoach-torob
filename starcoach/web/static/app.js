@@ -777,10 +777,12 @@ async function viewProduct(id) {
       <div class="chips">
         ${p.category ? `<span class="chip">${esc(p.category)}</span>` : ""}
         <span class="chip">برند: ${p.brand ? esc(p.brand) : "نامشخص"}</span>
+        <span class="chip">نام انگلیسی/مدل: ${p.english_name ? esc(p.english_name) : "ثبت نشده"}</span>
       </div>
       <div class="between" style="margin-top:8px"><span class="muted small">${esc(summary)}</span>${compareBtn(p.product_id, p.title)}</div>
     </section>
     <div class="notice">موجودی تأیید نشده است: هر فروشنده این کالا را در ترب ثبت کرده، اما موجود بودن آن امروز معلوم نیست. قیمت‌ها «قیمت ثبت‌شده» با زمان آخرین تغییر هستند.</div>
+    ${p.price_spread && p.price_spread > 3 ? `<div class="notice">قیمت‌ها تا ${num(Math.round(p.price_spread))} برابر با هم فرق دارند. ممکن است واحد فروش (عدد، متر، حلقه، بسته) یا اصل/غیراصل بودن کالا فرق کند؛ واحد فروش در داده ثبت نشده. قبل از خرید بپرسید.</div>` : ""}
     <h2>فروشنده‌ها (${ctx.sort === "distance" && ctx.place ? "نزدیک‌ترین اول" : "ارزان‌ترین اول"})</h2>
     ${filterSummary(p)}
     ${p.sellers.length ? `<div class="actions" style="margin-bottom:10px"><button type="button" class="btn primary" id="askTop">🤖 از ${num(Math.min(3, p.sellers.length))} فروشنده‌ی اول بپرس</button></div><div id="agentBox"></div>` : ""}
@@ -889,6 +891,9 @@ async function viewShop(id) {
       <dl class="facts">
         <dt>ارسال فوری</dt><dd>${esc(fast)}</dd>
         <dt>کالابرگ</dt><dd>${unknown("اطلاعاتی در داده نیست")}</dd>
+        <dt>پیام‌رسان (واتساپ، بله)</dt><dd>${unknown("ثبت نشده؛ فقط تلفن")}</dd>
+        <dt>سابقه در ترب، مجوزها</dt><dd>${unknown("در داده نیست")}</dd>
+        <dt>تصویر و معرفی فروشگاه</dt><dd>${unknown("در داده نیست")}</dd>
       </dl>
     </section>
     ${s.categories.length ? `<section class="card"><h2 style="margin-top:0">زمینه‌ی فعالیت</h2><div class="chips">${s.categories.slice(0, 30).map((c) => `<span class="chip">${esc(c)}</span>`).join("")}</div>

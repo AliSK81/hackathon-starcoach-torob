@@ -4,7 +4,7 @@
 
 - **Current phase:** 7 — Evaluation and reviewer doc (3's public deploy parked, D11)
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page, with filters (area / near me, budget, visit time, installments, TorobPay, …), reasons, relax buttons and a 3-product compare.
-- **Last change:** Change 25
+- **Last change:** Change 27
 
 ### What we need from the user
 
@@ -608,3 +608,16 @@ Not done yet:
 
 Next change idea:
 - Release audit against `docs/requirements.md`, then tag; then improve the weakest score item
+
+### Change 26 — Release fixes found by the audit: missing files in git; fields the data lacks are now named — 2026-10-23
+Phase: 8, step 1 (R10, R11, R12, R13, R14, R21, R24)
+How to see it: fresh clone → `uv sync && uv run pytest`; product page notices; shop page «شرایط خرید» list
+Proof it works:
+- **Bug:** `.gitignore` had `data/`, which also ignored `starcoach/data/aliases.json` and `tests/data/intents.jsonl`. A fresh clone failed 32 tests and search would crash. Now only `/data/` is ignored. Fresh clone of `origin/main`: 62 → 63 tests pass; `build-db` gives the same counts (6,476 / 225,903 / 331,506, 49.6 s); `serve` + `smoke` passed; Docker image built from the fresh clone → healthy, smoke 6/6 OK.
+- Shop page now names what the data doesn't have: messengers («ثبت نشده؛ فقط تلفن»), Torob history and licences, store image and introduction (R11, R12).
+- Product page: «نام انگلیسی/مدل» from `model` (only when it shares a word with the title: 257 of the first 300 models kept; junk like «authentic-base-10189» dropped) or a Latin «نام محصول» spec (R13); when normal prices differ by more than 3× across shops, a notice says the sale unit or original/copy may differ and that the unit is not in the data (R14). Apple 20W charger: 6.8×.
+63 tests pass; ruff clean.
+
+Research: 01 §5 (no price-unit field; per-metre vs coil) and §8 (missing fields table) applied.
+Questions: none
+Decisions: none
