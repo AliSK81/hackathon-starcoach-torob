@@ -4,7 +4,7 @@
 
 - **Current phase:** 5 — Assistant: understand the need (3's public deploy parked, D11)
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page, with filters (area / near me, budget, visit time, installments, TorobPay, …), reasons, relax buttons and a 3-product compare.
-- **Last change:** Change 17
+- **Last change:** Change 18
 
 ### What we need from the user
 
@@ -428,3 +428,27 @@ Not done yet:
 
 Next change idea:
 - `/api/ask` and an assistant box that shows the "understood" chips
+
+### Change 18 — Type a sentence, get filters you can see and undo; filtered search stays on topic — 2026-10-23
+Phase: 5, step 3 (R17, R18, R19; R9)
+How to see it: type «گوشی سامسونگ زیر ۲۰۰ میلیون قسطی تو علاءالدین» in the search box (or tap an example on the home page); API `/api/ask?text=…`
+Proof it works (browser 375 px, full DB):
+- the sentence becomes chips «📍 علاءالدین», «💰 تا ۲۰۰ میلیون تومان», and a banner «از جمله‌ی شما فهمیدم — کالا: «گوشی سامسونگ»» with removable items (بودجه، فقط اقساطی، علاءالدین);
+- results stay in «گوشی موبایل» (before this fix, phone cases and screen protectors filled the filtered list); 1 phone matches all conditions, and the page offers «بدون پاساژ: ۲۰ کالا», «بدون فقط اقساطی: ۲۰ کالا»;
+- bare «تومن» is resolved by the category: «گوشی سامسونگ تا ۲۰۰ تومن» → 200 million; «شارژر اپل تا ۸۰۰ تومن» → 800 thousand; the banner offers the other reading.
+54 tests pass.
+
+Research: 03 §3.1 (resolve «تومن» by the category median) implemented. 04 §3.1 (chips edit the same filters with no LLM) followed.
+Questions: none
+Decisions: none
+
+Shipped:
+- `api.ask` + `/api/ask` (rules; logged to `logs/ask.jsonl`): product words, filters, understood items, category, ambiguity, and a `ctx_patch` for the web app
+- Search: `focus_category` (the category the top 10 unfiltered results agree on, ≥ 60%), `all_cats=1` to show all; `relax` hints when fewer than 3 products match
+- Web app: the search box sends sentences to the assistant; "understood" banner with ✕ per item and a "did you mean thousand/million" button; home page examples are full sentences
+
+Not done yet:
+- LLM refine step; guided model choice («کمکم کن مدل مناسب را انتخاب کنم» links to `#/guide`, not built yet)
+
+Next change idea:
+- Guided model choice (R1), then the LLM step

@@ -131,3 +131,32 @@ def test_compare_aligns_specs_and_prices(client):
     assert c["products"][0]["sellers_match"] == c["products"][0]["sellers_total"]
     f = client.get("/api/compare", params={"ids": ids, "installments": "1"}).json()
     assert all(p["sellers_match"] <= p["sellers_total"] for p in f["products"])
+
+
+def test_ask_turns_a_sentence_into_a_filter_patch(client):
+    r = client.get("/api/ask", params={"text": "شارژر اپل ۲۰ وات زیر ۵ میلیون قسطی فردا عصر"}).json()
+    assert r["query"] == "شارژر اپل 20 وات"
+    assert r["ctx_patch"]["max_price"] == 5_000_000 and r["ctx_patch"]["installments"] is True
+    assert r["ctx_patch"]["hour"] == 17 and 0 <= r["ctx_patch"]["day"] <= 6
+    assert {u["key"] for u in r["understood"]} >= {"budget", "installments", "at"}
+
+
+def test_ask_resolves_bare_toman_by_category(client):
+    phone = client.get("/api/ask", params={"text": "گوشی سامسونگ تا ۲۰۰ تومن"}).json()
+    charger = client.get("/api/ask", params={"text": "شارژر اپل تا ۸۰۰ تومن"}).json()
+    assert phone["filters"]["max_price"] == 200_000_000  # phones: million
+    assert charger["filters"]["max_price"] == 800_000  # chargers: thousand
+    assert phone["ambiguous"] and charger["ambiguous"]
+
+
+def test_filtered_search_stays_in_the_category_the_query_means(client):
+    r = client.get("/api/search", params={"q": "شارژر اپل", "installments": "1"}).json()
+    if r["focus_category"]:
+        assert all(i["category"] == r["focus_category"] for i in r["items"])
+    every = client.get("/api/search", params={"q": "شارژر اپل", "installments": "1", "all_cats": "1"}).json()
+    assert every["focus_category"] is None and len(every["items"]) >= len(r["items"])
+
+
+def test_search_suggests_relaxing_when_results_are_few(client):
+    r = client.get("/api/search", params={"q": "شارژر اپل", "max_price": "1000"}).json()
+    assert r["items"] == [] and r["relax"] and r["relax"][0]["filter"] == "max_price"

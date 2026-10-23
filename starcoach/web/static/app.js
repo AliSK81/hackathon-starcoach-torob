@@ -7,12 +7,12 @@ const $q = document.getElementById("q");
 const $foot = document.getElementById("foot");
 
 const EXAMPLES = [
-  "گوشی سامسونگ S25 FE",
-  "شارژر اپل ۲۰ وات",
-  "هندزفری بلوتوث",
-  "دزدگیر اماکن",
-  "محافظ برق کولر",
-  "اسپیکر جی بی ال",
+  "گوشی سامسونگ زیر ۲۰۰ میلیون قسطی تو علاءالدین",
+  "شارژر اپل ۲۰ وات اصل که الان باز باشه",
+  "هندزفری بلوتوث ارزون نزدیک جمهوری",
+  "دزدگیر اماکن بین ۱۰ تا ۱۵ میلیون",
+  "محافظ برق کولر لاله زار فردا عصر",
+  "نمیدونم چه مدلی هندزفری بخرم",
 ];
 
 // ---------- formatting ----------
@@ -73,7 +73,7 @@ const BUDGETS = [2e6, 5e6, 20e6, 50e6, 100e6, 200e6];
 const RADII = [[300, "۳۰۰ متر"], [1000, "۱ کیلومتر"], [3000, "۳ کیلومتر"]];
 const DEFAULT_CTX = {
   place: null, // {kind: "area" | "passage" | "me", name, lat, lon}
-  radius_m: null, max_price: null, day: null, hour: null, sort: "price",
+  radius_m: null, max_price: null, min_price: null, day: null, hour: null, sort: "price",
   open: false, installments: false, torobpay: false, in_person_pay: false, fast: false, warranty: false,
 };
 let ctx = loadCtx();
@@ -104,6 +104,7 @@ function filterParams() {
   if (pl?.lat != null) { p.set("lat", pl.lat); p.set("lon", pl.lon); }
   if (ctx.radius_m && pl?.lat != null) p.set("radius_m", ctx.radius_m);
   if (ctx.max_price) p.set("max_price", ctx.max_price);
+  if (ctx.min_price) p.set("min_price", ctx.min_price);
   const at = visitISO();
   if (at) p.set("at", at);
   for (const [k] of CONDITIONS) if (ctx[k]) p.set(k, "1");
@@ -111,11 +112,11 @@ function filterParams() {
   return p.toString();
 }
 function filtersActive() {
-  return Boolean(ctx.place || ctx.max_price || CONDITIONS.some(([k]) => ctx[k]));
+  return Boolean(ctx.place || ctx.max_price || ctx.min_price || CONDITIONS.some(([k]) => ctx[k]));
 }
 // API filter name → how to switch it off in ctx (for "relax" suggestions)
 const RELAX_CTX = {
-  max_price: { max_price: null }, min_price: {}, area: { place: null }, passage: { place: null },
+  max_price: { max_price: null }, min_price: { min_price: null }, area: { place: null }, passage: { place: null },
   radius_m: { radius_m: null }, open_only: { open: false }, installments: { installments: false },
   torobpay: { torobpay: false }, in_person_pay: { in_person_pay: false }, fast_delivery: { fast: false },
   warranty: { warranty: false },
@@ -124,12 +125,13 @@ const RELAX_CTX = {
 function renderCtxBar() {
   const pl = ctx.place;
   const place = pl ? (pl.kind === "me" ? "نزدیک من" : pl.name) + (ctx.radius_m ? ` · ${RADII.find((r) => r[0] === ctx.radius_m)?.[1] || ""}` : "") : "همه‌ی محله‌ها";
-  const budget = ctx.max_price ? `تا ${tomanShort(ctx.max_price)}` : "هر بودجه";
+  const budget = ctx.min_price && ctx.max_price ? `${tomanShort(ctx.min_price)} تا ${tomanShort(ctx.max_price)}`
+    : ctx.max_price ? `تا ${tomanShort(ctx.max_price)}` : ctx.min_price ? `از ${tomanShort(ctx.min_price)} به بالا` : "هر بودجه";
   const when = ctx.day == null ? "الان" : `${DAYS_FA[ctx.day]} ساعت ${num(ctx.hour ?? 11)}`;
   const conds = CONDITIONS.filter(([k]) => ctx[k]).map(([, l]) => l);
   const chip = (on, text) => `<button type="button" class="ctxchip ${on ? "on" : ""}" data-open-sheet>${esc(text)}</button>`;
   document.getElementById("ctxbar").innerHTML =
-    chip(Boolean(pl), "📍 " + place) + chip(Boolean(ctx.max_price), "💰 " + budget) +
+    chip(Boolean(pl), "📍 " + place) + chip(Boolean(ctx.max_price || ctx.min_price), "💰 " + budget) +
     chip(ctx.day != null, "🕒 " + when) + chip(conds.length > 0, "💳 " + (conds.length ? conds.join("، ") : "شرایط خرید"));
 }
 
@@ -189,6 +191,7 @@ async function openSheet() {
     }
     next.radius_m = Number(fd.get("radius")) || null;
     next.max_price = Number(fd.get("budget")) || null;
+    next.min_price = null;
     next.day = fd.get("day") === "" ? null : Number(fd.get("day"));
     next.hour = Number(fd.get("hour")) || 11;
     next.sort = fd.get("sort") || "price";
@@ -217,6 +220,8 @@ function applyCtx() {
 }
 
 document.addEventListener("click", (e) => {
+  const a = e.target.closest("[data-ask]");
+  if (a) { $q.value = a.dataset.ask; ask(a.dataset.ask); }
   if (e.target.closest("[data-open-sheet]")) openSheet();
   const relax = e.target.closest("[data-relax]");
   if (relax) { ctx = { ...ctx, ...(RELAX_CTX[relax.dataset.relax] || {}) }; applyCtx(); }
@@ -307,6 +312,60 @@ async function viewCompare() {
   document.getElementById("diffOnly").onchange = (e) => document.querySelector(".cmp-table").classList.toggle("diff-only", e.target.checked);
 }
 
+// ---------- assistant: a sentence becomes filters (rules; /api/ask) ----------
+let lastAsk = null; // {text, query, understood, ambiguous, patch, intent}
+const UNDO = { // understood item -> how to take it back in ctx
+  budget: { max_price: null, min_price: null }, installments: { installments: false }, torobpay: { torobpay: false },
+  in_person_pay: { in_person_pay: false }, fast: { fast: false }, warranty: { warranty: false }, open: { open: false },
+  passage: { place: null }, area: { place: null }, at: { day: null }, cheap: {},
+};
+
+async function ask(text) {
+  let r;
+  try { r = await getJSON(`/api/ask?text=${encodeURIComponent(text)}`); } catch { location.hash = `#/search?q=${encodeURIComponent(text)}`; return; }
+  const patch = r.ctx_patch || {};
+  if ("max_price" in patch || "min_price" in patch) { ctx.max_price = null; ctx.min_price = null; }
+  ctx = { ...ctx, ...patch };
+  saveCtx();
+  renderCtxBar();
+  lastAsk = { text, query: r.query || text, understood: r.understood, ambiguous: r.ambiguous, patch, intent: r.intent, category: r.category };
+  const target = `#/search?q=${encodeURIComponent(lastAsk.query)}`;
+  if (location.hash === target) route(); else location.hash = target;
+}
+
+function understoodBanner(q) {
+  if (!lastAsk || lastAsk.query !== q || (!lastAsk.understood.length && lastAsk.intent === "search")) return "";
+  const items = lastAsk.understood.map((u) =>
+    `<button type="button" class="chip reason-good" data-undo="${esc(u.key)}" title="برداشتن">${esc(u.label === "بودجه" ? "بودجه: " + u.text : u.label)} ✕</button>`).join("");
+  let amb = "";
+  if (lastAsk.ambiguous?.budget_unit && (ctx.max_price || ctx.min_price)) {
+    const v = ctx.max_price || ctx.min_price;
+    const other = v >= 1e6 ? v / 1000 : v * 1000;
+    amb = `<div class="small" style="margin-top:6px">«تومن» را ${esc(tomanShort(v))} در نظر گرفتیم.
+      <button type="button" class="chip cmp" data-budget-alt="${other}">منظورم ${esc(tomanShort(other))} بود</button></div>`;
+  }
+  const guide = lastAsk.intent === "choose"
+    ? `<div class="actions"><a class="btn primary" href="#/guide?q=${encodeURIComponent(q)}">کمکم کن مدل مناسب را انتخاب کنم</a></div>` : "";
+  return `<div class="card small"><div class="muted">از جمله‌ی شما فهمیدم${lastAsk.query ? ` — کالا: «${esc(lastAsk.query)}»` : ""}:</div>
+    <div class="reasons">${items || '<span class="muted">شرط خاصی نبود</span>'}</div>${amb}${guide}</div>`;
+}
+
+document.addEventListener("click", (e) => {
+  const u = e.target.closest("[data-undo]");
+  if (u) {
+    ctx = { ...ctx, ...(UNDO[u.dataset.undo] || {}) };
+    if (lastAsk) lastAsk.understood = lastAsk.understood.filter((x) => x.key !== u.dataset.undo);
+    applyCtx();
+  }
+  const alt = e.target.closest("[data-budget-alt]");
+  if (alt) {
+    const v = Number(alt.dataset.budgetAlt);
+    if (ctx.max_price) ctx.max_price = v; else ctx.min_price = v;
+    if (lastAsk) lastAsk.ambiguous = {};
+    applyCtx();
+  }
+});
+
 // ---------- data ----------
 async function getJSON(url) {
   const r = await fetch(url);
@@ -325,7 +384,8 @@ function viewHome() {
     <section class="card">
       <h1>دستیار خرید حضوری در تهران</h1>
       <p class="muted">کالا را پیدا کنید، فروشنده‌ها را مقایسه کنید، فروشگاهِ باز و نزدیک را انتخاب کنید و بعد بروید.</p>
-      <div class="chips">${EXAMPLES.map((e) => `<a class="chip" href="#/search?q=${encodeURIComponent(e)}">${esc(e)}</a>`).join("")}</div>
+      <p class="small" style="margin:0 0 6px">مثل یک فروشنده با من حرف بزنید؛ بودجه، محله، زمان و شرط پرداخت را از جمله‌تان برمی‌دارم:</p>
+      <div class="chips">${EXAMPLES.map((e) => `<button type="button" class="chip" data-ask="${esc(e)}">${esc(e)}</button>`).join("")}</div>
     </section>
     <section class="notice info">
       قیمت‌ها همان قیمتی است که فروشنده در ترب ثبت کرده، با زمان آخرین تغییر. موجودی کالا را هیچ‌جا تأیید شده نشان نمی‌دهیم؛ قبل از رفتن بپرسید.
@@ -333,21 +393,29 @@ function viewHome() {
 }
 
 async function viewSearch(q) {
-  $q.value = q;
+  $q.value = lastAsk && lastAsk.query === q ? lastAsk.text : q;
   if (!q.trim()) return viewHome();
   loading();
   let data;
-  try { data = await getJSON(`/api/search?q=${encodeURIComponent(q)}&${filterParams()}`); } catch (e) { return failed(e); }
+  const allCats = new URLSearchParams(location.hash.split("?")[1] || "").get("all") === "1";
+  try { data = await getJSON(`/api/search?q=${encodeURIComponent(q)}&${filterParams()}${allCats ? "&all_cats=1" : ""}`); } catch (e) { return failed(e); }
   if (!data.items.length) {
     const hint = data.filters_active
-      ? `<p>با شرایطی که انتخاب کرده‌اید فروشنده‌ای پیدا نشد.</p><button class="btn primary" data-open-sheet>تغییر شرایط</button>`
+      ? `<p>با شرایطی که انتخاب کرده‌اید فروشنده‌ای پیدا نشد.</p>
+         <div class="actions" style="justify-content:center">${(data.relax || []).map((r) => `<button class="btn" data-relax="${esc(r.filter)}">بدون «${esc(r.label)}»: ${num(r.products)} کالا</button>`).join("")}</div>
+         <button class="btn primary" data-open-sheet>تغییر شرایط</button>`
       : "<p>کلمه‌ی کوتاه‌تر یا نام دیگری امتحان کنید.</p>";
-    $view.innerHTML = `<div class="card empty-state">برای «${esc(q)}» چیزی پیدا نشد.${hint}</div>`;
+    $view.innerHTML = understoodBanner(q) + `<div class="card empty-state">برای «${esc(q)}» چیزی پیدا نشد.${hint}</div>`;
     return;
   }
   const loose = data.mode === "or" ? `<div class="notice">همه‌ی کلمه‌ها با هم پیدا نشد؛ نتایج نزدیک را نشان می‌دهیم.</div>` : "";
   const scope = data.filters_active ? " · فقط کالاهایی که فروشنده‌ای با شرایط شما دارند" : "";
-  $view.innerHTML = loose + `<p class="muted small">مرتب‌شده بر اساس شباهت و تعداد فروشنده${scope}</p>` +
+  const focus = data.focus_category
+    ? `<p class="small">فقط دسته‌ی «${esc(data.focus_category)}» · <a href="#/search?q=${encodeURIComponent(q)}&all=1">همه‌ی دسته‌ها</a></p>` : "";
+  const few = (data.relax || []).length
+    ? `<div class="card small">فقط ${num(data.items.length)} کالا با همه‌ی شرایط شما. با برداشتن یکی:
+        <div class="actions">${data.relax.map((r) => `<button class="btn" data-relax="${esc(r.filter)}">بدون «${esc(r.label)}»: ${num(r.products)} کالا</button>`).join("")}</div></div>` : "";
+  $view.innerHTML = understoodBanner(q) + loose + focus + few + `<p class="muted small">مرتب‌شده بر اساس شباهت و تعداد فروشنده${scope}</p>` +
     data.items.map((p) => productCard(p, data.filters_active)).join("");
 }
 
@@ -528,7 +596,7 @@ function route() {
 document.getElementById("searchForm").addEventListener("submit", (e) => {
   e.preventDefault();
   const q = $q.value.trim();
-  if (q) location.hash = `#/search?q=${encodeURIComponent(q)}`;
+  if (q) ask(q);
 });
 window.addEventListener("hashchange", route);
 

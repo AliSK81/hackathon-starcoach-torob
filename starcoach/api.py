@@ -123,16 +123,37 @@ def _seller_stats(conn: sqlite3.Connection, product_ids: list[str], f: Filters) 
     return stats
 
 
-def search(conn: sqlite3.Connection, q: str, limit: int = 20, f: Filters | None = None) -> dict:
-    """Ranked products. With active filters, only products with at least one matching seller are kept."""
+FOCUS_TOP = 10
+FOCUS_SHARE = 0.6
+
+
+def focus_category(items: list[dict]) -> str | None:
+    """The category the top results agree on (e.g. «گوشی سامسونگ» -> گوشی موبایل), if they clearly do."""
+    top = [it["category"] for it in items[:FOCUS_TOP] if it.get("category")]
+    if len(top) < 3:
+        return None
+    best = max(set(top), key=top.count)
+    return best if top.count(best) / len(top) >= FOCUS_SHARE else None
+
+
+RELAX_BELOW = 3  # with fewer results than this, suggest which filter to drop
+
+
+def search(conn: sqlite3.Connection, q: str, limit: int = 20, f: Filters | None = None,
+           all_categories: bool = False, _relaxing: bool = False) -> dict:
+    """Ranked products. With active filters, only products with at least one matching seller are kept,
+    and only in the category the unfiltered top results agree on (so filters don't surface accessories)."""
     f = f or Filters()
     result = search_products(conn, q, limit=400 if f.active else limit)
     candidates = result["items"]
+    focus = None if all_categories or not f.active else focus_category(candidates)
     stats = _seller_stats(conn, [it["product_id"] for it in candidates], f)
     items = []
     for it in candidates:
         st = stats[it["product_id"]]
         if f.active and not st["match"]:
+            continue
+        if focus and it["category"] != focus:
             continue
         items.append({
             "product_id": it["product_id"],
@@ -149,8 +170,15 @@ def search(conn: sqlite3.Connection, q: str, limit: int = 20, f: Filters | None 
         })
         if len(items) >= limit:
             break
+    relax = []
+    if f.active and len(items) < RELAX_BELOW and not _relaxing:
+        for name in active_names(f):
+            alt = search(conn, q, limit=limit, f=without(f, name), all_categories=all_categories, _relaxing=True)
+            if len(alt["items"]) > len(items):
+                relax.append({"filter": name, "label": RELAXABLE[name], "products": len(alt["items"])})
+        relax.sort(key=lambda r: -r["products"])
     return {"query": q, "words": result["words"], "mode": result["mode"], "total": result.get("total", 0),
-            "filters_active": f.active, "items": items}
+            "filters_active": f.active, "focus_category": focus, "relax": relax, "items": items}
 
 
 def _age_days(later: str | None, earlier: str | None) -> float | None:
@@ -334,6 +362,64 @@ def compare(conn: sqlite3.Connection, product_ids: list[str], f: Filters | None 
     for c in cols:
         c.pop("specs")
     return {"products": cols, "spec_rows": rows, "filters_active": f.active}
+
+
+def category_median(conn: sqlite3.Connection, category: str) -> float | None:
+    rows = [r[0] for r in conn.execute(
+        "SELECT median_price FROM products WHERE category = ? AND median_price IS NOT NULL", (category,))]
+    if not rows:
+        return None
+    rows.sort()
+    return float(rows[len(rows) // 2])
+
+
+def place_center(conn: sqlite3.Connection, kind: str, name: str) -> tuple[float, float] | None:
+    col = "area" if kind == "area" else "passage"
+    r = conn.execute(f"SELECT AVG(lat), AVG(lon) FROM shops WHERE {col} = ? AND lat IS NOT NULL", (name,)).fetchone()
+    return (round(r[0], 6), round(r[1], 6)) if r and r[0] is not None else None
+
+
+def ask(conn: sqlite3.Connection, text: str, gazetteer, now: datetime | None = None) -> dict:
+    """A Persian sentence -> product words + a patch for the user's filter context + what was understood."""
+    from starcoach.intent import DEFAULT_MEDIAN, parse_request
+
+    now = now or now_tehran()
+    parsed = parse_request(text, gazetteer, now=now)
+    category = None
+    if parsed["query"]:
+        top = search_products(conn, parsed["query"], limit=5)["items"]
+        if top:
+            category = top[0]["category"]
+    if parsed["ambiguous"] and category:
+        # bare «تومن»: thousand or million? pick what fits this category's prices (research 03 §3.1)
+        median = category_median(conn, category) or DEFAULT_MEDIAN
+        parsed = parse_request(text, gazetteer, now=now, median=median)
+    return {"text": text, "category": category, **parsed, "ctx_patch": ctx_patch(conn, parsed)}
+
+
+def ctx_patch(conn: sqlite3.Connection, parsed: dict) -> dict:
+    """Translate parsed filters into the web app's context fields (the same ones the chips edit)."""
+    f = parsed["filters"]
+    patch: dict = {}
+    if "max_price" in f:
+        patch["max_price"] = f["max_price"]
+    if "min_price" in f:
+        patch["min_price"] = f["min_price"]
+    for kind in ("passage", "area"):
+        if kind in f:
+            center = place_center(conn, kind, f[kind])
+            patch["place"] = {"kind": kind, "name": f[kind], "lat": center[0] if center else None,
+                              "lon": center[1] if center else None}
+    if "at" in f:
+        when = datetime.fromisoformat(f["at"])
+        patch["day"] = (when.weekday() + 2) % 7  # Iranian week, Saturday = 0
+        patch["hour"] = when.hour
+    for key in ("open", "installments", "torobpay", "in_person_pay", "fast", "warranty"):
+        if f.get(key):
+            patch[key] = True
+    if parsed.get("cheap"):
+        patch["sort"] = "price"
+    return patch
 
 
 def areas(conn: sqlite3.Connection, passages: int = 40) -> dict:

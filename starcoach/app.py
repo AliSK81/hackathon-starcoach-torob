@@ -12,6 +12,7 @@ from starcoach import __version__, api
 from starcoach.config import Settings, get_settings
 from starcoach.db import connect
 from starcoach.filters import parse_filters
+from starcoach.logs import log_event
 
 WEB_DIR = Path(__file__).resolve().parent / "web"
 
@@ -54,6 +55,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         """ids: comma-separated product ids (2-3). Same filter params as /api/products/{id}."""
         return api.compare(conn, [i for i in ids.split(",") if i], parse_filters(dict(request.query_params)))
 
+    gazetteer_cache: dict = {}
+
+    @app.get("/api/ask")
+    def ask(text: str = Query(..., min_length=1, max_length=300), conn: sqlite3.Connection = Depends(db)) -> dict:
+        """A Persian sentence -> product words + filter patch + what was understood (rules; no LLM)."""
+        from starcoach.intent import Gazetteer
+
+        if "g" not in gazetteer_cache:
+            gazetteer_cache["g"] = Gazetteer.from_db(conn)
+        result = api.ask(conn, text, gazetteer_cache["g"])
+        log_event(settings.log_dir, "ask", "ask", text=text, query=result["query"], filters=result["filters"],
+                  intent=result["intent"])
+        return result
+
     @app.get("/api/areas")
     def areas(conn: sqlite3.Connection = Depends(db)) -> dict:
         return api.areas(conn)
@@ -62,7 +77,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def search(request: Request, q: str = Query("", max_length=200), limit: int = Query(20, ge=1, le=50),
                conn: sqlite3.Connection = Depends(db)) -> dict:
         """Same filter params as /api/products/{id}."""
-        return api.search(conn, q, limit=limit, f=parse_filters(dict(request.query_params)))
+        params = dict(request.query_params)
+        return api.search(conn, q, limit=limit, f=parse_filters(params), all_categories=params.get("all_cats") == "1")
 
     @app.get("/api/products/{product_id}")
     def product(product_id: str, request: Request, conn: sqlite3.Connection = Depends(db)) -> dict:

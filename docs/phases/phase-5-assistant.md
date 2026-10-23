@@ -16,7 +16,7 @@
 ## Checklist
 - [x] Rule parser: budget, area/passage, time, conditions, product words
 - [x] Eval set + `starcoach eval-intents` with baseline and held-out split
-- [ ] `/api/ask` + assistant box in the UI with "understood" chips
+- [x] `/api/ask` + assistant box in the UI with "understood" chips
 - [ ] LLM client + refine step with fallback; logged
 - [ ] Guided model choice (R1)
 - [ ] Check real output on the demo scenarios
