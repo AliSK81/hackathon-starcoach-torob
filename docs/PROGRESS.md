@@ -769,7 +769,7 @@ Proof it works (browser 375 px, full DB):
 - seller panel: question card with the recorded price and the questions; one tap «✅ موجود، همان قیمت» → «جواب داده شد · جواب شما: موجود»;
 - a second buyer asking the same item within 3 hours gets the stored answer («دوباره مزاحمش نشدیم») — the seller is not asked twice;
 - no seller answer in 30 s → the automatic simulated reply, labeled.
-73 tests pass (round trip, dedupe by request id, first answer wins, inbox replayed after restart); ruff clean.
+71 tests pass (round trip, dedupe by request id, first answer wins, inbox replayed after restart); ruff clean.
 Found in the browser and fixed: the panel redrew every 4 s and removed the button under the finger (and would wipe a typed price); it now redraws only when the list changes and never while an input is focused. Prices under 10 M now show two decimals («۱٫۴۵ میلیون», not «۱٫۵»).
 
 Research: 05 §4 ("Let Google Call") and the organizers' Q&A §9.4.

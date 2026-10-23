@@ -15,7 +15,7 @@ It follows the four steps of the challenge video: **choose the product → find 
 uv sync
 uv run starcoach build-db        # CSVs in data/torob-dataset/ -> data/starcoach.db (~50 s)
 uv run starcoach serve           # http://127.0.0.1:8000 — open it at phone width
-uv run pytest                    # 73 offline tests
+uv run pytest                    # 71 offline tests
 uv run starcoach results         # regenerates results/*.txt|json from the DB (~2 s)
 uv run starcoach smoke --url http://127.0.0.1:8000
 ```
@@ -61,7 +61,7 @@ Optional LLM: set `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` in `.env` (any Open
 | R21 | Unknown shown clearly | «نامشخص», «ساعت کاری ثبت نشده», «قیمت ثبت نشده؛ استعلام تلفنی» |
 | R22 | Persian, RTL, mobile | `dir="rtl"`, `fa-IR` numbers and dates, checked at 375 × 812 |
 | R23 | Deployed and stable | Docker image, `/health`, `/ready`, healthcheck, `starcoach smoke`; public deploy parked by the team (D11) |
-| R24 | Code structure, tools, performance | one module per capability, one CLI command per capability, 73 tests, ruff clean; timings below |
+| R24 | Code structure, tools, performance | one module per capability, one CLI command per capability, 71 tests, ruff clean; timings below |
 | R25 | Demo-ready | §8 demo script |
 | R26 | Which bazaar sells what + location widget | `/api/hubs`: dataset hubs first, then a cited Balad list, then the LLM (labeled); hubs card on product pages and empty searches; self-drawn mini-map |
 | R27 | Seller contact easy for both sides | buyer question → seller panel (`#/seller/<id>`, one-tap answers) → buyer's chat updates; answers reused for 3 h so the seller isn't asked twice; automatic simulated reply as fallback |
@@ -146,6 +146,6 @@ The LLM *replacing* the rules scored 0.423 on hard (F29); that is why the LLM on
 4. **Sellers (50 s).** Open S25 FE; set area to علاءالدین and Saturday 11:00 in the sheet; read the «⭐ پیشنهاد دستیار» card and its reasons; show seller cards: price + «آخرین تغییر قیمت», open status, passage / floor / unit, reasons; switch sort to «نزدیک‌ترین».
 5. **Seller panel (30 s).** On a seller card tap «از فروشنده بپرس» → «بپرس»; open «پنل فروشنده (نمایشی)» in a second tab and tap «✅ موجود، با این قیمت»; the buyer's chat updates.
 6. **The agent asks (40 s).** «🤖 از ۳ فروشنده‌ی اول بپرس» → replies arrive (labeled simulated) → «ارزان‌ترینِ تأییدشده». Open one seller that didn't answer → alternatives in the same passage.
-6. **Plan (40 s).** Add 2–3 stops → «🗺 برنامه‌ی بازدید»: walk order, arrival times, a warning for a shop without hours; «کجای پاساژ؟» shows floor and neighbouring units.
-7. **Free description with the LLM (20 s).** «برای کولر گازی خونه یه چیزی میخوام که برق رفت و اومد خراب نشه» → ⏳ → ✨ «محافظ برق».
-8. **Close (10 s).** Mention the tests, the evaluation numbers and the Docker smoke test.
+7. **Plan (30 s).** Add 2–3 stops → «🗺 برنامه‌ی بازدید»: walk order, arrival times, a warning for a shop without hours; «کجای پاساژ؟» shows floor and neighbouring units.
+8. **Where it is sold + free description with the LLM (20 s).** «برای کولر گازی خونه یه چیزی میخوام که برق رفت و اومد خراب نشه» → ⏳ → ✨ «محافظ برق»; on a product page show «بورس … در تهران» and its mini-map.
+9. **Close (10 s).** Mention the tests, the evaluation numbers and the Docker smoke test.
