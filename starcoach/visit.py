@@ -66,7 +66,8 @@ def alternatives(conn: sqlite3.Connection, product_id: str, from_shop_id: str | 
                     (format_distance(s["distance_m"]) + " از فروشگاه قبلی" if s["distance_m"] is not None else "فاصله نامشخص"))
     return {"product_id": product_id, "from_shop_id": from_shop_id, "reason": reason,
             "sellers": sellers[:MAX_ALTERNATIVES], "sellers_total": len(sellers),
-            "substitutes": substitutes(conn, product_id, origin, at) if len(sellers) < 3 else []}
+            "substitutes": substitutes(conn, product_id, origin, at) if len(sellers) < 3 else [],
+            "category_shops": category_shops(conn, product_id, origin, at) if len(sellers) < 3 else []}
 
 
 def substitutes(conn: sqlite3.Connection, product_id: str, origin: sqlite3.Row | None, at: datetime) -> list[dict]:
@@ -240,3 +241,31 @@ def passage_page(conn: sqlite3.Connection, name: str, at: datetime | None = None
         "floors": [{"floor": None if k == "unknown" else k,
                     "label": "طبقه نامشخص" if k == "unknown" else floor_label(k), "shops": v} for k, v in ordered],
     }
+
+
+MAX_CATEGORY_SHOPS = 5
+
+
+def category_shops(conn: sqlite3.Connection, product_id: str, origin: sqlite3.Row | None, at: datetime) -> list[dict]:
+    """Shops whose declared activity includes the product's category but that did not list this product.
+    The category alone does not mean the item is in stock (requirements §4.4), so they are labeled so."""
+    p = conn.execute("SELECT category FROM products WHERE product_id = ?", (product_id,)).fetchone()
+    if not p or not p["category"]:
+        return []
+    listed = {r[0] for r in conn.execute("SELECT DISTINCT shop_id FROM offers WHERE product_id = ?", (product_id,))}
+    rows = conn.execute("SELECT * FROM shops WHERE categories LIKE ?", (f'%"{p["category"]}"%',)).fetchall()
+    out = []
+    for r in rows:
+        if r["shop_id"] in listed:
+            continue
+        hours = _loads(r["hours"], None)
+        open_ = is_open_at(hours, at)
+        if open_ is False:
+            continue
+        d = distance_m(origin["lat"], origin["lon"], r["lat"], r["lon"]) if origin and origin["lat"] and r["lat"] else None
+        out.append({"shop_id": r["shop_id"], "name": r["name"], "where": _where(r), "area": r["area"],
+                    "open_now": open_, "hours_status": status_text(hours, at)["text"],
+                    "distance_m": round(d) if d is not None else None,
+                    "note": "فقط زمینه‌ی فعالیت معلوم است؛ این کالا را ثبت نکرده و موجودی‌اش نامعلوم است"})
+    out.sort(key=lambda x: (x["open_now"] is not True, x["distance_m"] if x["distance_m"] is not None else 1e9))
+    return out[:MAX_CATEGORY_SHOPS]

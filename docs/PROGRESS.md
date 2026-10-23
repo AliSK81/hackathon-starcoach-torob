@@ -4,7 +4,7 @@
 
 - **Current phase:** 8 — Release (audit passed except the parked public deploy, D11); improving weakest items
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page, with filters (area / near me, budget, visit time, installments, TorobPay, …), reasons, relax buttons and a 3-product compare.
-- **Last change:** Change 31
+- **Last change:** Change 32
 
 ### What we need from the user
 
@@ -721,3 +721,14 @@ Decisions: none
 
 Shipped:
 - `visit.passage_page`, `/api/passages/{name}`; passage page in the web app; a sentence that names only a passage opens it; passage links on shop pages
+
+### Change 32 — When few sellers have the item: nearby shops of the same category, clearly marked "stock unknown" — 2026-10-23
+Phase: 8, improving weakest items (Intelligence: substitution; R7, R15)
+How to see it: «از فروشنده بپرس» on a product with one seller → no answer → alternatives box
+Proof it works (full DB, Saturday 11:00): «هندزفری گردنی بلوتوثی CT-202» (1 seller) → if that seller doesn't answer: 0 other sellers, 4 substitute products, and 5 open shops in the same category 2–24 m away (e.g. «پاساژ علاءالدین 3، طبقه 1، پلاک 161 — باز است · تا 20:00»), each labeled «این کالا را ثبت نکرده‌اند؛ موجودی نامعلوم است — بپرسید». 68 tests pass (listed sellers are never in this list); ruff clean.
+
+Research: requirements §4.4 (category alone ≠ in stock) kept explicit.
+Questions: none
+Decisions: none
+
+Shipped: `visit.category_shops`; `alternatives` returns `category_shops` when fewer than 3 sellers remain; UI section in the alternatives box.

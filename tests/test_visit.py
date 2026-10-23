@@ -74,3 +74,10 @@ def test_passage_page_groups_shops_by_floor(client, conn):
     p = client.get(f"/api/passages/{name}").json()
     assert p["shops"] == sum(len(f["shops"]) for f in p["floors"])
     assert client.get("/api/passages/nope").status_code == 404
+
+
+def test_category_shops_never_include_listed_sellers(conn):
+    pid = conn.execute("SELECT product_id FROM products ORDER BY n_shops ASC LIMIT 1").fetchone()[0]
+    listed = {r[0] for r in conn.execute("SELECT shop_id FROM offers WHERE product_id = ?", (pid,))}
+    shops = visit.category_shops(conn, pid, None, SAT_11)
+    assert all(s["shop_id"] not in listed and s["note"] for s in shops)

@@ -15,7 +15,7 @@ It follows the four steps of the challenge video: **choose the product → find 
 uv sync
 uv run starcoach build-db        # CSVs in data/torob-dataset/ -> data/starcoach.db (~50 s)
 uv run starcoach serve           # http://127.0.0.1:8000 — open it at phone width
-uv run pytest                    # 67 offline tests
+uv run pytest                    # 68 offline tests
 uv run starcoach results         # regenerates results/*.txt|json from the DB (~2 s)
 uv run starcoach smoke --url http://127.0.0.1:8000
 ```
@@ -44,7 +44,7 @@ Optional LLM: set `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` in `.env` (any Open
 | R4 | Compare stores by price, distance, hours | seller sort + reasons; compare page; visit plan arrival checks |
 | R5 | Help contact stores | contact sheet; `tel:` link marked as demo number |
 | R6 | Agent contacts stores, reports back | `POST /api/contact`, «از ۳ فروشنده‌ی اول بپرس»; `results/visit-demo.txt` |
-| R7 | No answer / closed → alternatives fast | `/api/alternatives` (same passage first, open at visit time, then substitutes); relax hints for empty filters |
+| R7 | No answer / closed → alternatives fast | `/api/alternatives` (same passage first, open at visit time, then substitutes, then same-category shops marked stock-unknown); relax hints for empty filters |
 | R8 | Precise location inside the passage | passage page (floor by floor); address parser (passage 62.6%, floor 65.3%, unit/plaque 90.8% of shops); «کجای پاساژ؟» with floor neighbours |
 | R9 | Installment-only filter | `installments=1` (TorobPay, Snapp Pay, Digipay, Tara, Azki Vam); charger 11/59 sellers, S25 FE 2/34 |
 | R10 | Use the dataset correctly | `starcoach stats` = 6,476 / 225,903 / 331,506 rows; joins checked (F13) |
@@ -61,7 +61,7 @@ Optional LLM: set `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` in `.env` (any Open
 | R21 | Unknown shown clearly | «نامشخص», «ساعت کاری ثبت نشده», «قیمت ثبت نشده؛ استعلام تلفنی» |
 | R22 | Persian, RTL, mobile | `dir="rtl"`, `fa-IR` numbers and dates, checked at 375 × 812 |
 | R23 | Deployed and stable | Docker image, `/health`, `/ready`, healthcheck, `starcoach smoke`; public deploy parked by the team (D11) |
-| R24 | Code structure, tools, performance | one module per capability, one CLI command per capability, 67 tests, ruff clean; timings below |
+| R24 | Code structure, tools, performance | one module per capability, one CLI command per capability, 68 tests, ruff clean; timings below |
 | R25 | Demo-ready | §8 demo script |
 
 ## 4. Architecture

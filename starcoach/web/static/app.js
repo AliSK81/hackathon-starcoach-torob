@@ -544,6 +544,10 @@ async function alternativesHTML(productId, shopId, reason) {
       <strong>${esc(title)}</strong> <span class="muted">(${num(a.sellers_total)} فروشنده‌ی باز)</span>
       ${sellers || `<p class="muted">فروشنده‌ی باز دیگری برای همین کالا نیست.</p>`}
       ${subs ? `<p style="margin:8px 0 4px"><strong>کالاهای مشابه:</strong></p>${subs}` : ""}
+      ${(a.category_shops || []).length ? `<p style="margin:8px 0 4px"><strong>فروشگاه‌هایی که در همین دسته کار می‌کنند:</strong></p>
+        <p class="muted small" style="margin:0">این کالا را ثبت نکرده‌اند؛ موجودی نامعلوم است — بپرسید.</p>
+        ${a.category_shops.map((s) => `<div class="alt"><div class="between"><a href="#/s/${esc(s.shop_id)}"><strong>${esc(s.name)}</strong></a>${openPill(s.open_now, s.hours_status)}</div>
+          <div class="muted small">${esc(s.where || s.area || "")}${s.distance_m != null ? " · " + esc(faDigits(fmtDistance(s.distance_m))) : ""}</div></div>`).join("")}` : ""}
     </div>`;
 }
 
