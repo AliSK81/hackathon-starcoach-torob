@@ -85,7 +85,7 @@ def cmd_eval_intents(args: argparse.Namespace) -> int:
     if args.with_llm:
         from starcoach.llm import refine_request
 
-        parsers["rules+llm"] = lambda t: refine_request(t, parse_request(t, g, now=EVAL_NOW), settings, now=EVAL_NOW)
+        parsers["rules+llm"] = lambda t: refine_request(t, parse_request(t, g, now=EVAL_NOW), settings, g, now=EVAL_NOW)
     report = {}
     for name, parse in parsers.items():
         report[name] = run_eval(Path(args.cases), parse, args.split)
@@ -136,7 +136,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("eval-intents", help="score request parsing on labeled Persian requests")
     p.add_argument("--cases", default="tests/data/intents.jsonl")
-    p.add_argument("--split", default="dev", choices=["dev", "test", "all"])
+    p.add_argument("--split", default="dev", choices=["dev", "test", "hard", "all"])
     p.add_argument("--with-llm", action="store_true", help="also score rules + LLM (needs LLM_* in .env)")
     p.add_argument("--out", default=None, help="write the full report as JSON")
     p.add_argument("--db", default=None)

@@ -1,4 +1,5 @@
 import json
+from dataclasses import replace
 
 from fastapi.testclient import TestClient
 
@@ -8,7 +9,7 @@ from starcoach.logs import log_event
 
 
 def test_health_and_index():
-    client = TestClient(create_app(get_settings()))
+    client = TestClient(create_app(replace(get_settings(), llm_base_url="", llm_api_key="", llm_model="")))
     r = client.get("/health")
     assert r.status_code == 200
     assert r.json()["status"] == "ok"

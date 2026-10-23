@@ -418,5 +418,41 @@
       "time": "3/3"
     },
     "failures": []
+  },
+  "rules+llm": {
+    "split": "dev",
+    "cases": 30,
+    "exact_match": 0.967,
+    "slot_accuracy": 0.984,
+    "per_slot": {
+      "ambiguous": "1/1",
+      "area": "4/4",
+      "cheap": "2/2",
+      "conditions": "7/7",
+      "intent": "2/2",
+      "max_price": "8/8",
+      "min_price": "5/5",
+      "passage": "2/2",
+      "query": "29/30",
+      "time": "3/3"
+    },
+    "failures": [
+      {
+        "text": "پاوربانک ۲۰ هزار میلی آمپر",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "query",
+            "ok": false,
+            "want": [
+              "پاوربانک",
+              "20",
+              "هزار"
+            ],
+            "got": "پاوربانک 20000 میلی امپر"
+          }
+        ]
+      }
+    ]
   }
 }

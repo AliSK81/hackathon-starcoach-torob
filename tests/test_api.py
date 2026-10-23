@@ -14,7 +14,8 @@ from starcoach.hours import TEHRAN
 
 @pytest.fixture()
 def client(mini_db):
-    return TestClient(create_app(replace(get_settings(), db_path=mini_db)))
+    # offline: never use the LLM configured in a developer's .env
+    return TestClient(create_app(replace(get_settings(), db_path=mini_db, llm_base_url="", llm_api_key="", llm_model="")))
 
 
 def test_search_then_product_then_shop(client):
@@ -169,3 +170,8 @@ def test_guide_asks_data_questions_and_narrows(client):
     first = budget["options"][0]
     narrowed = client.get("/api/guide", params={"q": "شارژر", "a.budget": first["value"]}).json()
     assert narrowed["matching"] == first["count"] <= g["matching"]
+
+
+def test_ask_without_llm_config_stays_on_rules(client):
+    r = client.get("/api/ask", params={"text": "یه چیزی میخوام تو مترو آهنگ گوش بدم سیم نداشته باشه", "llm": "1"}).json()
+    assert r["source"] == "rules" and r["rules_struggled"] is True

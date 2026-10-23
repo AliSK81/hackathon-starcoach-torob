@@ -19,6 +19,7 @@ Rules:
 | D9 | The four-step flow is now known from the challenge video (`docs/requirements.md` §2): 1) help choose the product/model, 2) find stores that have it near the user, 3) compare stores by price, distance and hours, 4) contact stores (the agent itself asks about price/stock). Replaces D5. Requirements are now numbered R1–R25. | 2026-10-23 | user (video transcript) |
 | D10 | LLM = the user's OpenAI-compatible gateway from `.env` (F25). Thinking is off by default (`chat_template_kwargs.enable_thinking=false`, F27) for mobile latency. The rule-based path stays the default answer; the LLM refines it. Replaces the open part of D4 (provider). | 2026-10-23 | user (.env) + Claude |
 | D11 | Public deploy is parked: keep developing features first. The Docker image stays ready; deploy comes back in Phase 8. | 2026-10-23 | user |
+| D12 | The LLM never replaces the rules. Rules win on every slot they found; the LLM fills gaps and names the product only when the rules' query is a long description (> 4 words) or finds nothing. The UI shows the rules' answer at once and updates when the LLM answers (background). Based on F29. | 2026-10-23 | Claude |
 
 ## Checked facts
 
@@ -51,3 +52,5 @@ Rules:
 | F25 | LLM gateway | OpenAI-compatible `/chat/completions` at `ai-gateway.mohaymen.ir`, model `mohaymen/qwen3.8-27b`; key in `.env` only | 2026-10-23 | live call from `uv run python` (Change 13), HTTP 200 |
 | F26 | LLM tool calling | works with `tools` + `tool_choice:"auto"`: «یه گوشی سامسونگ زیر ۲۰۰ میلیون میخوام» → `search_products{"query":"Samsung phone","max_price":200000000}` in 2.6 s | 2026-10-23 | live call (Change 13) |
 | F27 | LLM is a reasoning model | default: 138 reasoning tokens, 7.2 s; with `chat_template_kwargs:{"enable_thinking":false}`: 0 reasoning tokens, 0.9 s, good Persian; `/no_think` 1.7 s; `reasoning_effort:"low"` 2.6 s. With `max_tokens` 20 the default mode returned no text at all | 2026-10-23 | live calls (Change 13) |
+| F28 | Gateway tool_choice quirk | a forced `{"type":"function","function":{"name":"set_filters"}}` makes the model fill only required fields; `"required"` and `"auto"` fill all fields (budget, installments came back) | 2026-10-23 | live calls, Change 20 |
+| F29 | LLM vs rules on requests (slot accuracy) | dev: rules 1.0, rules+LLM 0.984; test: 1.0 / 1.0; hard (10 free descriptions): baseline 0.28, rules 0.72, LLM replacing rules 0.423, rules+LLM merged 0.769. The LLM alone often leaves out budget, conditions and time | 2026-10-23 | `starcoach eval-intents --split <s> --with-llm`; `results/intent-eval-*.json` |

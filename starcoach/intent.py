@@ -137,7 +137,7 @@ def parse_time(text: str, now: datetime) -> tuple[datetime | None, str | None]:
     """«فردا عصر», «پنجشنبه ساعت ۵», «امروز ساعت 18» -> Tehran datetime and the matched words."""
     for m in _TIME_RE.finditer(text):
         rel, day, part, h = m.group("rel"), m.group("day"), m.group("part"), m.group("h")
-        if not (rel or day or part or h):
+        if not (rel or day or h):
             continue
         base = now.astimezone(TEHRAN)
         today_idx = (base.weekday() + 2) % 7  # Python Mon=0 -> Iranian Sat=0
@@ -164,6 +164,7 @@ def parse_time(text: str, now: datetime) -> tuple[datetime | None, str | None]:
 
 
 # ---------- places ----------
+_END = r"(?![^\s,،.؟?!;:)(])"  # end of a word: space, punctuation or end of text
 NEAR_WORDS = r"(?:نزدیک|نزدیکی|حوالی|اطراف|سمت|توی|تو|در|داخل)"
 LANDMARKS = {  # common names people say -> a passage or area in the data
     "جمهوری": ("area", "شیخ هادی"),
@@ -199,12 +200,12 @@ def find_place(text: str, g: Gazetteer) -> tuple[dict | None, str | None]:
     best = None
     for kind, table in (("passage", g.passages), ("area", g.areas)):
         for key, name in table.items():
-            for m in re.finditer(rf"(?<!\S)(?:(?:پاساژ|مجتمع|بازار|سرای)\s+)?{re.escape(key)}(?!\S)", text):
+            for m in re.finditer(rf"(?<!\S)(?:(?:پاساژ|مجتمع|بازار|سرای)\s+)?{re.escape(key)}{_END}", text):
                 if best is None or len(m.group(0)) > len(best[2]):
                     best = (kind, name, m.group(0))
     for key, (kind, name) in LANDMARKS.items():
         k = normalize(key)
-        for m in re.finditer(rf"(?<!\S){re.escape(k)}(?!\S)", text):
+        for m in re.finditer(rf"(?<!\S){re.escape(k)}{_END}", text):
             # a street/landmark name wins over a same-named passage unless «پاساژ …» was said
             said_passage = best is not None and best[0] == "passage" and best[2] != normalize(best[1])
             if best is None or (not said_passage and len(m.group(0)) >= len(best[2])) or len(m.group(0)) > len(best[2]):

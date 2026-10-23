@@ -1,0 +1,375 @@
+{
+  "baseline": {
+    "split": "hard",
+    "cases": 10,
+    "exact_match": 0.0,
+    "slot_accuracy": 0.28,
+    "per_slot": {
+      "area": "0/1",
+      "cheap": "0/2",
+      "conditions": "0/4",
+      "intent": "0/2",
+      "max_price": "0/2",
+      "min_price": "0/1",
+      "passage": "0/1",
+      "query": "7/10",
+      "time": "0/2"
+    },
+    "failures": [
+      {
+        "text": "یه چیزی میخوام تو مترو آهنگ گوش بدم، سیم نداشته باشه، پول زیادی ندارم",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "query",
+            "ok": false,
+            "want": [
+              "هندزفری"
+            ],
+            "got": "یه چیزی میخوام تو مترو آهنگ گوش بدم، سیم نداشته باشه، پول زیادی ندارم"
+          },
+          {
+            "slot": "cheap",
+            "ok": false,
+            "want": true,
+            "got": false
+          }
+        ]
+      },
+      {
+        "text": "برای کولر گازی خونه یه چیزی میخوام که برق رفت و اومد خراب نشه",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "query",
+            "ok": false,
+            "want": [
+              "محافظ"
+            ],
+            "got": "برای کولر گازی خونه یه چیزی میخوام که برق رفت و اومد خراب نشه"
+          }
+        ]
+      },
+      {
+        "text": "گوشیم شارژ نمیشه، یه شارژر اصل آیفون میخوام همین امروز عصر برم بخرم",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "conditions",
+            "ok": false,
+            "want": [
+              "warranty"
+            ],
+            "got": []
+          },
+          {
+            "slot": "time",
+            "ok": false,
+            "want": "2026-10-22T17:00",
+            "got": null
+          }
+        ]
+      },
+      {
+        "text": "واسه مغازه‌ام دوربین میخوام که شب هم تصویر بده، بودجه‌ام حدود ده میلیونه",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "max_price",
+            "ok": false,
+            "want": 12000000,
+            "got": null
+          },
+          {
+            "slot": "min_price",
+            "ok": false,
+            "want": 8000000,
+            "got": null
+          }
+        ]
+      },
+      {
+        "text": "یه ساعت مچی مردونه شیک برای هدیه، نهایتا پونزده میلیون، قسطی هم باشه بهتره",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "max_price",
+            "ok": false,
+            "want": 15000000,
+            "got": null
+          },
+          {
+            "slot": "conditions",
+            "ok": false,
+            "want": [
+              "installments"
+            ],
+            "got": []
+          }
+        ]
+      },
+      {
+        "text": "نمیدونم لپتاپ چی بگیرم برای دانشگاه، زیاد گرون نباشه",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "query",
+            "ok": false,
+            "want": [
+              "لپ"
+            ],
+            "got": "نمیدونم لپتاپ چی بگیرم برای دانشگاه، زیاد گرون نباشه"
+          },
+          {
+            "slot": "cheap",
+            "ok": false,
+            "want": true,
+            "got": false
+          },
+          {
+            "slot": "intent",
+            "ok": false,
+            "want": "choose",
+            "got": "search"
+          }
+        ]
+      },
+      {
+        "text": "فردا ظهر میرم سمت جمهوری، یه پاوربانک خوب میخوام",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "area",
+            "ok": false,
+            "want": "شیخ هادی",
+            "got": null
+          },
+          {
+            "slot": "time",
+            "ok": false,
+            "want": "2026-10-23T13:00",
+            "got": null
+          }
+        ]
+      },
+      {
+        "text": "یه اسپیکر بلوتوثی برای مهمونی که صداش بلند باشه، با ترب پی بخرم",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "conditions",
+            "ok": false,
+            "want": [
+              "torobpay"
+            ],
+            "got": []
+          }
+        ]
+      },
+      {
+        "text": "دزدگیر خونه سیم‌کارتی، تو پاساژ علاءالدین ۲، الان باز باشن",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "passage",
+            "ok": false,
+            "want": "علاءالدین 2",
+            "got": null
+          },
+          {
+            "slot": "conditions",
+            "ok": false,
+            "want": [
+              "open"
+            ],
+            "got": []
+          }
+        ]
+      },
+      {
+        "text": "کفش کتونی میخوام برای پیاده‌روی ولی نمیدونم چه مدلی",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "intent",
+            "ok": false,
+            "want": "choose",
+            "got": "search"
+          }
+        ]
+      }
+    ]
+  },
+  "rules": {
+    "split": "hard",
+    "cases": 10,
+    "exact_match": 0.6,
+    "slot_accuracy": 0.72,
+    "per_slot": {
+      "area": "1/1",
+      "cheap": "0/2",
+      "conditions": "4/4",
+      "intent": "2/2",
+      "max_price": "1/2",
+      "min_price": "0/1",
+      "passage": "1/1",
+      "query": "7/10",
+      "time": "2/2"
+    },
+    "failures": [
+      {
+        "text": "یه چیزی میخوام تو مترو آهنگ گوش بدم، سیم نداشته باشه، پول زیادی ندارم",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "query",
+            "ok": false,
+            "want": [
+              "هندزفری"
+            ],
+            "got": "چیزی تو مترو اهنگ گوش بدم, سیم نداشته باشه, پول زیادی ندارم"
+          },
+          {
+            "slot": "cheap",
+            "ok": false,
+            "want": true,
+            "got": false
+          }
+        ]
+      },
+      {
+        "text": "برای کولر گازی خونه یه چیزی میخوام که برق رفت و اومد خراب نشه",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "query",
+            "ok": false,
+            "want": [
+              "محافظ"
+            ],
+            "got": "کولر گازی خونه چیزی برق رفت اومد خراب نشه"
+          }
+        ]
+      },
+      {
+        "text": "واسه مغازه‌ام دوربین میخوام که شب هم تصویر بده، بودجه‌ام حدود ده میلیونه",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "max_price",
+            "ok": false,
+            "want": 12000000,
+            "got": null
+          },
+          {
+            "slot": "min_price",
+            "ok": false,
+            "want": 8000000,
+            "got": null
+          }
+        ]
+      },
+      {
+        "text": "نمیدونم لپتاپ چی بگیرم برای دانشگاه، زیاد گرون نباشه",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "query",
+            "ok": false,
+            "want": [
+              "لپ"
+            ],
+            "got": "لپتاپ بگیرم دانشگاه, زیاد گرون نباشه"
+          },
+          {
+            "slot": "cheap",
+            "ok": false,
+            "want": true,
+            "got": false
+          }
+        ]
+      }
+    ]
+  },
+  "rules+llm": {
+    "split": "hard",
+    "cases": 10,
+    "exact_match": 0.6,
+    "slot_accuracy": 0.769,
+    "per_slot": {
+      "area": "1/1",
+      "cheap": "0/2",
+      "conditions": "4/4",
+      "intent": "2/2",
+      "max_price": "1/2",
+      "min_price": "0/1",
+      "passage": "1/1",
+      "query": "9/10",
+      "time": "2/3"
+    },
+    "failures": [
+      {
+        "text": "یه چیزی میخوام تو مترو آهنگ گوش بدم، سیم نداشته باشه، پول زیادی ندارم",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "cheap",
+            "ok": false,
+            "want": true,
+            "got": false
+          }
+        ]
+      },
+      {
+        "text": "واسه مغازه‌ام دوربین میخوام که شب هم تصویر بده، بودجه‌ام حدود ده میلیونه",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "max_price",
+            "ok": false,
+            "want": 12000000,
+            "got": null
+          },
+          {
+            "slot": "min_price",
+            "ok": false,
+            "want": 8000000,
+            "got": null
+          }
+        ]
+      },
+      {
+        "text": "نمیدونم لپتاپ چی بگیرم برای دانشگاه، زیاد گرون نباشه",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "query",
+            "ok": false,
+            "want": [
+              "لپ"
+            ],
+            "got": "لپتاپ"
+          },
+          {
+            "slot": "cheap",
+            "ok": false,
+            "want": true,
+            "got": false
+          }
+        ]
+      },
+      {
+        "text": "دزدگیر خونه سیم‌کارتی، تو پاساژ علاءالدین ۲، الان باز باشن",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "time",
+            "ok": false,
+            "want": null,
+            "got": "2026-10-22T12:00"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -248,5 +248,23 @@
       "time": "2/2"
     },
     "failures": []
+  },
+  "rules+llm": {
+    "split": "test",
+    "cases": 15,
+    "exact_match": 1.0,
+    "slot_accuracy": 1.0,
+    "per_slot": {
+      "area": "1/1",
+      "cheap": "1/1",
+      "conditions": "4/4",
+      "intent": "2/2",
+      "max_price": "6/6",
+      "min_price": "2/2",
+      "passage": "2/2",
+      "query": "15/15",
+      "time": "2/2"
+    },
+    "failures": []
   }
 }

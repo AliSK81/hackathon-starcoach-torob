@@ -2,9 +2,9 @@
 
 ## Status board
 
-- **Current phase:** 5 — Assistant: understand the need (3's public deploy parked, D11)
+- **Current phase:** 6 — Visit plan, substitution and seller follow-up (3's public deploy parked, D11)
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page, with filters (area / near me, budget, visit time, installments, TorobPay, …), reasons, relax buttons and a 3-product compare.
-- **Last change:** Change 19
+- **Last change:** Change 20
 
 ### What we need from the user
 
@@ -477,3 +477,36 @@ Not done yet:
 
 Next change idea:
 - LLM client + refine step with logging and fallback
+
+### Change 20 — Phase 5 done: the LLM refines free descriptions, measured against rules and a baseline — 2026-10-23
+Phase: 5, step 4 (R1, R17; Intelligence)
+How to see it: type «برای کولر گازی خونه یه چیزی میخوام که برق رفت و اومد خراب نشه، نزدیک لاله زار» → «⏳ دستیار هوشمند…» → «✨ با کمک دستیار هوشمند خوانده شد (نام کالا از توضیح شما)»; `uv run starcoach eval-intents --split hard --with-llm`
+Proof it works:
+
+| split | baseline | rules | LLM replacing rules | rules + LLM (merged) |
+|---|---|---|---|---|
+| dev (30) | 0.469 | 1.00 | — | 0.984 |
+| test (15, held out) | 0.429 | 1.00 | — | 1.00 |
+| hard (10 free descriptions) | 0.28 | 0.72 | 0.423 | 0.769 |
+
+(slot accuracy; `results/intent-eval-{dev,test,hard}.json`). LLM calls take 0.8–1.8 s; each is logged in `logs/llm_calls.jsonl` (no key). 56 tests pass, all offline (the test client now blanks the `.env` LLM settings; one test had been calling the live LLM).
+Honest notes:
+- The "hard" split was written before the LLM step; two rule bugs it exposed were then fixed (bare «شب» read as a visit time; «علاءالدین ۲،» lost its number because of the comma), so rules' 0.72 on hard is after that fix (0.615 before).
+- The one dev "regression" with the LLM is a label artifact: «پاوربانک 20000 میلی امپر» finds 180 products vs 10 for the labeled «20 هزار».
+- Still failing on hard: «پول زیادی ندارم», «زیاد گرون نباشه» are not read as "cheap"; «حدود ده میلیونه» budget missed.
+
+Research: 04 §3 (LLM amends filters, never writes prices; code checks every value) followed. New facts F28, F29.
+Questions: none
+Decisions: D12
+
+Shipped:
+- `starcoach/llm.py`: stdlib OpenAI-compatible client (thinking off, 12 s timeout, JSONL log), `set_filters` tool (areas as enum), validation against DB lists, `merge` (rules win; LLM fills gaps and names the product only for free descriptions), prompt examples that are not eval cases
+- `/api/ask?llm=1`; `eval-intents --with-llm`, `--split hard`
+- UI: rules answer at once; for free descriptions the LLM runs in the background and the banner shows ⏳ / ✨ / "not available"
+- Rules: punctuation counts as a word end; part-of-day words need a day or hour
+
+Not done yet:
+- "cheap" phrasings like «پول زیادی ندارم»; «۲۰ هزار میلی آمپر» → 20000 folding for search
+
+Next change idea:
+- Phase 6 plan: visit plan, alternatives when a store is closed or doesn't answer, simulated seller contact

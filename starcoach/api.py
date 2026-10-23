@@ -379,12 +379,22 @@ def place_center(conn: sqlite3.Connection, kind: str, name: str) -> tuple[float,
     return (round(r[0], 6), round(r[1], 6)) if r and r[0] is not None else None
 
 
-def ask(conn: sqlite3.Connection, text: str, gazetteer, now: datetime | None = None) -> dict:
-    """A Persian sentence -> product words + a patch for the user's filter context + what was understood."""
+def ask(conn: sqlite3.Connection, text: str, gazetteer, now: datetime | None = None, settings=None,
+        use_llm: bool = False) -> dict:
+    """A Persian sentence -> product words + a patch for the user's filter context + what was understood.
+
+    Rules always run. With use_llm (and a configured LLM) the LLM fills gaps and names the product when the
+    request was a free description (starcoach.llm.merge)."""
     from starcoach.intent import DEFAULT_MEDIAN, parse_request
+    from starcoach.llm import DESCRIPTION_WORDS, refine_request
 
     now = now or now_tehran()
     parsed = parse_request(text, gazetteer, now=now)
+    first = search_products(conn, parsed["query"], limit=1) if parsed["query"] else {"mode": "none"}
+    struggled = len(parsed["query"].split()) > DESCRIPTION_WORDS or first["mode"] != "and"
+    llm_ready = bool(settings and settings.llm_enabled)
+    if use_llm and llm_ready:
+        parsed = refine_request(text, parsed, settings, gazetteer, now=now)
     category = None
     if parsed["query"]:
         top = search_products(conn, parsed["query"], limit=5)["items"]
@@ -394,7 +404,9 @@ def ask(conn: sqlite3.Connection, text: str, gazetteer, now: datetime | None = N
         # bare «تومن»: thousand or million? pick what fits this category's prices (research 03 §3.1)
         median = category_median(conn, category) or DEFAULT_MEDIAN
         parsed = parse_request(text, gazetteer, now=now, median=median)
-    return {"text": text, "category": category, **parsed, "ctx_patch": ctx_patch(conn, parsed)}
+    parsed.setdefault("source", "rules")
+    return {"text": text, "category": category, **parsed, "ctx_patch": ctx_patch(conn, parsed),
+            "rules_struggled": struggled, "llm_available": llm_ready}
 
 
 def ctx_patch(conn: sqlite3.Connection, parsed: dict) -> dict:

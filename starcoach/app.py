@@ -66,15 +66,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     gazetteer_cache: dict = {}
 
     @app.get("/api/ask")
-    def ask(text: str = Query(..., min_length=1, max_length=300), conn: sqlite3.Connection = Depends(db)) -> dict:
-        """A Persian sentence -> product words + filter patch + what was understood (rules; no LLM)."""
+    def ask(text: str = Query(..., min_length=1, max_length=300), llm: bool = False,
+            conn: sqlite3.Connection = Depends(db)) -> dict:
+        """A Persian sentence -> product words + filter patch + what was understood.
+        Rules by default; llm=1 adds the LLM step (only if configured)."""
         from starcoach.intent import Gazetteer
 
         if "g" not in gazetteer_cache:
             gazetteer_cache["g"] = Gazetteer.from_db(conn)
-        result = api.ask(conn, text, gazetteer_cache["g"])
+        result = api.ask(conn, text, gazetteer_cache["g"], settings=settings, use_llm=llm)
         log_event(settings.log_dir, "ask", "ask", text=text, query=result["query"], filters=result["filters"],
-                  intent=result["intent"])
+                  intent=result["intent"], source=result["source"], llm_error=result.get("llm_error"))
         return result
 
     @app.get("/api/guide")

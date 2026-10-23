@@ -328,13 +328,31 @@ async function ask(text) {
   ctx = { ...ctx, ...patch };
   saveCtx();
   renderCtxBar();
-  lastAsk = { text, query: r.query || text, understood: r.understood, ambiguous: r.ambiguous, patch, intent: r.intent, category: r.category };
+  lastAsk = { text, query: r.query || text, understood: r.understood, ambiguous: r.ambiguous, patch, intent: r.intent,
+    category: r.category, source: r.source, thinking: Boolean(r.rules_struggled && r.llm_available) };
+  const target = `#/search?q=${encodeURIComponent(lastAsk.query)}`;
+  if (location.hash === target) route(); else location.hash = target;
+  if (lastAsk.thinking) smartAsk(text, patch);
+}
+
+// The rules answered at once; for a free description, ask the LLM in the background and update.
+async function smartAsk(text, rulesPatch) {
+  let r;
+  try { r = await getJSON(`/api/ask?llm=1&text=${encodeURIComponent(text)}`); } catch { r = null; }
+  if (!lastAsk || lastAsk.text !== text) return; // the user moved on
+  if (!r || r.source !== "rules+llm" || r.llm_error) { lastAsk.thinking = false; lastAsk.llmFailed = true; route(); return; }
+  for (const k of Object.keys(rulesPatch)) if (!(k in r.ctx_patch)) ctx[k] = DEFAULT_CTX[k];
+  ctx = { ...ctx, ...r.ctx_patch };
+  saveCtx();
+  renderCtxBar();
+  lastAsk = { ...lastAsk, query: r.query || lastAsk.query, understood: r.understood, intent: r.intent,
+    category: r.category, source: r.source, thinking: false, smart: true, llmAdded: r.llm_added || [] };
   const target = `#/search?q=${encodeURIComponent(lastAsk.query)}`;
   if (location.hash === target) route(); else location.hash = target;
 }
 
 function understoodBanner(q) {
-  if (!lastAsk || lastAsk.query !== q || (!lastAsk.understood.length && lastAsk.intent === "search")) return "";
+  if (!lastAsk || lastAsk.query !== q || (!lastAsk.understood.length && lastAsk.intent === "search" && !lastAsk.thinking && !lastAsk.smart)) return "";
   const items = lastAsk.understood.map((u) =>
     `<button type="button" class="chip reason-good" data-undo="${esc(u.key)}" title="برداشتن">${esc(u.label === "بودجه" ? "بودجه: " + u.text : u.label)} ✕</button>`).join("");
   let amb = "";
@@ -346,7 +364,10 @@ function understoodBanner(q) {
   }
   const guide = lastAsk.intent === "choose"
     ? `<div class="actions"><a class="btn primary" href="#/guide?q=${encodeURIComponent(q)}">کمکم کن مدل مناسب را انتخاب کنم</a></div>` : "";
-  return `<div class="card small"><div class="muted">از جمله‌ی شما فهمیدم${lastAsk.query ? ` — کالا: «${esc(lastAsk.query)}»` : ""}:</div>
+  const status = lastAsk.thinking ? `<div class="small" style="color:var(--primary)">⏳ دستیار هوشمند دارد جمله‌تان را دقیق‌تر می‌خواند…</div>`
+    : lastAsk.smart ? `<div class="small" style="color:var(--primary)">✨ با کمک دستیار هوشمند خوانده شد${(lastAsk.llmAdded || []).includes("query") ? " (نام کالا از توضیح شما)" : ""}</div>`
+    : lastAsk.llmFailed ? `<div class="small muted">دستیار هوشمند در دسترس نبود؛ خواندنِ قاعده‌مند نشان داده شده.</div>` : "";
+  return `<div class="card small">${status}<div class="muted">از جمله‌ی شما فهمیدم${lastAsk.query ? ` — کالا: «${esc(lastAsk.query)}»` : ""}:</div>
     <div class="reasons">${items || '<span class="muted">شرط خاصی نبود</span>'}</div>${amb}${guide}</div>`;
 }
 
