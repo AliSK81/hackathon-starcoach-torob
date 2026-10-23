@@ -1,0 +1,55 @@
+{"split":"dev","text":"گوشی سامسونگ زیر ۶۰ میلیون","query_has":["گوشی","سامسونگ"],"max_price":60000000}
+{"split":"dev","text":"یه هندزفری بلوتوث ارزون میخوام","query_has":["هندزفری","بلوتوث"],"cheap":true}
+{"split":"dev","text":"شارژر اپل ۲۰ وات تو پاساژ علاءالدین","query_has":["شارژر","اپل","20","وات"],"passage":"علاءالدین"}
+{"split":"dev","text":"دزدگیر اماکن بین ۱۰ تا ۱۵ میلیون","query_has":["دزدگیر","اماکن"],"min_price":10000000,"max_price":15000000}
+{"split":"dev","text":"آیفون ۱۳ ۱۲۸ با خرید اقساطی","query_has":["ایفون","13","128"],"conditions":["installments"]}
+{"split":"dev","text":"محافظ برق کولر گازی نزدیک لاله زار","query_has":["محافظ","برق","کولر"],"area":"فردوسی"}
+{"split":"dev","text":"هدفون بی سیم تا ۳ میلیون که الان باز باشه","query_has":["هدفون","بی","سیم"],"max_price":3000000,"conditions":["open"]}
+{"split":"dev","text":"دوربین مداربسته داهوا فردا عصر","query_has":["دوربین","داهوا"],"time":"tomorrow 17"}
+{"split":"dev","text":"اسپیکر جی بی ال با ترب پی","query_has":["اسپیکر","جی","بی","ال"],"conditions":["torobpay"]}
+{"split":"dev","text":"لپ تاپ ایسوس حدود ۴۰ میلیون","query_has":["لپ","تاپ","ایسوس"],"min_price":32000000,"max_price":48000000}
+{"split":"dev","text":"پاوربانک ۲۰ هزار میلی آمپر","query_has":["پاوربانک","20","هزار"]}
+{"split":"dev","text":"گوشی شیائومی بالای ۳۰ میلیون","query_has":["گوشی","شیائومی"],"min_price":30000000}
+{"split":"dev","text":"ساعت کاسیو اورجینال","query_has":["ساعت","کاسیو"],"conditions":["warranty"]}
+{"split":"dev","text":"کابل افشان ۲.۵ در شیخ هادی","query_has":["کابل","افشان"],"area":"شیخ هادی"}
+{"split":"dev","text":"قاب گوشی زیر ۲۰۰ هزار","query_has":["قاب","گوشی"],"max_price":200000}
+{"split":"dev","text":"هندزفری تا ۵ تومن","query_has":["هندزفری"],"max_price":5000000,"ambiguous":true}
+{"split":"dev","text":"لامپ ال ای دی پنجشنبه ساعت ۵","query_has":["لامپ"],"time":"thu 17"}
+{"split":"dev","text":"سشوار فیلیپس ارسال فوری","query_has":["سشوار","فیلیپس"],"conditions":["fast"]}
+{"split":"dev","text":"مانیتور سامسونگ ۲۷ اینچ","query_has":["مانیتور","سامسونگ","27","اینچ"]}
+{"split":"dev","text":"نمیدونم چه مدلی هندزفری بخرم","query_has":["هندزفری"],"intent":"choose"}
+{"split":"dev","text":"مقایسه ایرپاد و کیو سی وای","query_has":["ایرپاد"],"intent":"compare"}
+{"split":"dev","text":"کلید و پریز سیمکت تو بازار چارسو","query_has":["کلید","پریز","سیمکت"],"passage":"چارسو"}
+{"split":"dev","text":"گوشی سامسونگ A17 زیر ۲۰۰۰۰۰۰۰۰ ریال","query_has":["گوشی","سامسونگ","a17"],"max_price":20000000}
+{"split":"dev","text":"تلویزیون ال جی امروز ساعت 18","query_has":["تلویزیون"],"time":"today 18"}
+{"split":"dev","text":"پمپ آب خانگی تو بهارستان قسطی","query_has":["پمپ","اب"],"area":"بهارستان","conditions":["installments"]}
+{"split":"dev","text":"ریسه شلنگی ارزان کنار جمهوری","query_has":["ریسه","شلنگی"],"cheap":true,"area":"شیخ هادی"}
+{"split":"dev","text":"هدفون سونی با گارانتی و پرداخت حضوری","query_has":["هدفون","سونی"],"conditions":["warranty","in_person_pay"]}
+{"split":"dev","text":"شبکه وای فای تی پی لینک","query_has":["شبکه","وای","فای"]}
+{"split":"dev","text":"ساعت هوشمند ۲/۵ میلیون به بالا","query_has":["ساعت","هوشمند"],"min_price":2500000}
+{"split":"dev","text":"گوشی ۱۰ میلیونی","query_has":["گوشی"],"min_price":8000000,"max_price":12000000}
+{"split":"test","text":"یه گوشی سامسونگ زیر ۲۰۰ میلیون میخوام که قسطی بشه خرید","query_has":["گوشی","سامسونگ"],"max_price":200000000,"conditions":["installments"]}
+{"split":"test","text":"هندزفری کیو سی وای ارزون نزدیک علاالدین","query_has":["هندزفری"],"cheap":true,"passage":"علاءالدین"}
+{"split":"test","text":"شارژر سامسونگ ۲۵ وات اصل","query_has":["شارژر","سامسونگ","25","وات"],"conditions":["warranty"]}
+{"split":"test","text":"دوربین کانن بین ۵۰ تا ۸۰ میلیون","query_has":["دوربین","کانن"],"min_price":50000000,"max_price":80000000}
+{"split":"test","text":"چراغ پنلی سقفی فردا صبح لاله زار","query_has":["چراغ","پنلی"],"area":"فردوسی","time":"tomorrow 10"}
+{"split":"test","text":"پاوربانک انکر تا یک و نیم میلیون","query_has":["پاوربانک","انکر"],"max_price":1500000}
+{"split":"test","text":"اسپیکر بلوتوثی که الان باز باشه با ترب‌پی","query_has":["اسپیکر","بلوتوثی"],"conditions":["open","torobpay"]}
+{"split":"test","text":"کتونی نایکی سایز ۴۲","query_has":["کتونی","نایکی","42"]}
+{"split":"test","text":"کمکم کن یه لپ تاپ برای برنامه نویسی انتخاب کنم","query_has":["لپ","تاپ"],"intent":"choose"}
+{"split":"test","text":"گلس آیفون ۱۵ زیر ۵۰۰ هزار تومان","query_has":["گلس","ایفون","15"],"max_price":500000}
+{"split":"test","text":"کنتاکتور اشنایدر شنبه ساعت ۱۰ پاساژ بوشهری","query_has":["کنتاکتور","اشنایدر"],"passage":"بوشهری","time":"sat 10"}
+{"split":"test","text":"ماوس بی سیم لاجیتک حداکثر ۲ میلیون","query_has":["ماوس","لاجیتک"],"max_price":2000000}
+{"split":"test","text":"رله شیله با ارسال فوری","query_has":["رله","شیله"],"conditions":["fast"]}
+{"split":"test","text":"فرق گلکسی A57 و A17 چیه","query_has":["گلکسی","a57","a17"],"intent":"compare"}
+{"split":"test","text":"جاروبرقی بوش حدود ۲۰ میلیون","query_has":["جاروبرقی","بوش"],"min_price":16000000,"max_price":24000000}
+{"split":"hard","text":"یه چیزی میخوام تو مترو آهنگ گوش بدم، سیم نداشته باشه، پول زیادی ندارم","query_has":["هندزفری"],"cheap":true}
+{"split":"hard","text":"برای کولر گازی خونه یه چیزی میخوام که برق رفت و اومد خراب نشه","query_has":["محافظ"]}
+{"split":"hard","text":"گوشیم شارژ نمیشه، یه شارژر اصل آیفون میخوام همین امروز عصر برم بخرم","query_has":["شارژر"],"conditions":["warranty"],"time":"today 17"}
+{"split":"hard","text":"واسه مغازه‌ام دوربین میخوام که شب هم تصویر بده، بودجه‌ام حدود ده میلیونه","query_has":["دوربین"],"min_price":8000000,"max_price":12000000}
+{"split":"hard","text":"یه ساعت مچی مردونه شیک برای هدیه، نهایتا پونزده میلیون، قسطی هم باشه بهتره","query_has":["ساعت"],"max_price":15000000,"conditions":["installments"]}
+{"split":"hard","text":"نمیدونم لپتاپ چی بگیرم برای دانشگاه، زیاد گرون نباشه","query_has":["لپ"],"intent":"choose","cheap":true}
+{"split":"hard","text":"فردا ظهر میرم سمت جمهوری، یه پاوربانک خوب میخوام","query_has":["پاوربانک"],"area":"شیخ هادی","time":"tomorrow 13"}
+{"split":"hard","text":"یه اسپیکر بلوتوثی برای مهمونی که صداش بلند باشه، با ترب پی بخرم","query_has":["اسپیکر"],"conditions":["torobpay"]}
+{"split":"hard","text":"دزدگیر خونه سیم‌کارتی، تو پاساژ علاءالدین ۲، الان باز باشن","query_has":["دزدگیر"],"passage":"علاءالدین 2","conditions":["open"]}
+{"split":"hard","text":"کفش کتونی میخوام برای پیاده‌روی ولی نمیدونم چه مدلی","query_has":["کتونی"],"intent":"choose"}
