@@ -35,6 +35,7 @@
 | 7 | Evaluation and reviewer doc | done | [phase-7](phases/phase-7-review.md) |
 | 8 | Release: audit, final deploy, tag | in progress: audit passed, tagged v1.0.0; public deploy parked (D11) | — |
 | 9 | Organizer clarifications (R26–R31) | done (v1.1.0) | [phase-9](phases/phase-9-clarifications.md) |
+| 10 | AI-first layer: AI search, shopping agent, ✨ explanations (async next to the rule path) | done (D14, D15) | — |
 
 ## Requirement → phase
 
@@ -128,8 +129,13 @@ Score items: Product 75 → R1–R9, R14; UX 75 → R17–R22; Intelligence 50 �
 - **Done when:** a product that isn't found leads to the right Tehran hub with a map widget (dataset areas first, outside knowledge labeled); a seller panel answers buyer questions in one tap and the buyer sees it; each product shows an honest review summary; at least two categories get their own components; the audit is rerun for R26–R31.
 - **Not yet:** real messaging or calls.
 
+### Phase 10 — AI-first layer
+- **Why:** the challenge is agentic AI and Intelligence is scored; the AI was a narrow fallback (rules answered, the LLM ran only when rules struggled).
+- **Done when:** every search gets an async AI reading, wider candidates and ranked picks with reasons; a chat agent can search, apply conditions, compare, ask sellers, find alternatives and say where to go, with every card and number from the DB; the guide accepts the need in words; the rule path's speed is unchanged; the guards (no ungrounded price, no unconfirmed stock, labeled simulation) are tested.
+- **Not yet:** real messaging or calls; an embedding model (none on the gateway, F31); streaming of the agent's final text.
+
 ## Later
-- Semantic search with embeddings.
+- Semantic search with embeddings (none on the gateway; AI search uses LLM expansion and re-rank instead, F31).
 - Price history charts.
 - Store photos from Instagram for the 22 stores that have it.
 - Multi-store route on a map.

@@ -408,8 +408,10 @@ async function viewGuide(params) {
     $view.innerHTML = `<div class="card empty-state">برای «${esc(q)}» دسته‌ای پیدا نشد. نام کالا را ساده‌تر بنویسید (مثلاً «هندزفری»).</div>`;
     return;
   }
+  const said = params.get("t") || "";
   const link = (qid, value) => {
     const next = new URLSearchParams({ q });
+    if (said) next.set("t", said);
     for (const [k, v] of Object.entries(answers)) if (k !== qid) next.set(`a.${k}`, v);
     if (value != null && answers[qid] !== value) next.set(`a.${qid}`, value);
     return `#/guide?${next}`;
@@ -434,6 +436,7 @@ async function viewGuide(params) {
         </div>
       </a>
       <div class="reasons"><span class="chip reason-good">${esc(p.why)}</span></div>
+      <div class="ai-why" data-ai-why="${esc(p.product_id)}"></div>
       <div class="actions">${compareBtn(p.product_id, p.title)}<a class="btn" href="#/p/${esc(p.product_id)}">فروشنده‌ها</a></div>
     </article>`).join("");
   const compareAll = g.suggestions.length >= 2
@@ -443,10 +446,12 @@ async function viewGuide(params) {
       <h1 style="margin-top:0">راهنمای انتخاب: ${esc(g.category)}</h1>
       <p class="muted small" style="margin:0">سؤال‌ها از روی همین ${num(g.products)} مدلِ موجود در فروشگاه‌ها ساخته شده؛ عدد کنار هر گزینه یعنی چند مدل با آن جور است.</p>
     </section>
+    ${aiGuideBox(q, g.category, said)}
     ${questions}
     <h2>${num(g.matching)} مدل با جواب‌های شما · ۳ پیشنهاد</h2>
     ${sugg || `<div class="card muted">مدلی با این جواب‌ها نماند؛ یکی از جواب‌ها را «مهم نیست» کنید.</div>`}
     <div class="actions">${compareAll}<a class="btn" href="#/search?q=${encodeURIComponent(q)}">همه‌ی نتایج «${esc(q)}»</a></div>`;
+  aiGuide(q, g.category, answers, said);
 }
 document.addEventListener("click", (e) => {
   const b = e.target.closest("[data-compare-set]");
@@ -540,12 +545,13 @@ async function alternativesHTML(productId, shopId, reason) {
         ${contacts[s.offer_id] ? "" : ""}</div>
     </div>`).join("");
   const subs = (a.substitutes || []).map((p) => `
-    <div class="alt"><a href="#/p/${esc(p.product_id)}"><strong>${esc(p.title)}</strong></a>
+    <div class="alt" data-pid="${esc(p.product_id)}"><a href="#/p/${esc(p.product_id)}"><strong>${esc(p.title)}</strong></a>
+      <div class="ai-why"></div>
       <div class="reasons">${p.why.map((w) => `<span class="chip reason-info">${esc(w)}</span>`).join("")}</div></div>`).join("");
   return `<div class="card small" style="margin-top:8px">
       <strong>${esc(title)}</strong> <span class="muted">(${num(a.sellers_total)} فروشنده‌ی باز)</span>
       ${sellers || `<p class="muted">فروشنده‌ی باز دیگری برای همین کالا نیست.</p>`}
-      ${subs ? `<p style="margin:8px 0 4px"><strong>کالاهای مشابه:</strong></p>${subs}` : ""}
+      ${subs ? `<p style="margin:8px 0 4px"><strong>کالاهای مشابه:</strong></p><div class="ai-subs" data-ai="alt" data-product="${esc(productId)}" data-shop="${esc(shopId || "")}" data-reason="${esc(reason)}">${subs}<div class="ai-advice"></div></div>` : ""}
       ${(a.category_shops || []).length ? `<p style="margin:8px 0 4px"><strong>فروشگاه‌هایی که در همین دسته کار می‌کنند:</strong></p>
         <p class="muted small" style="margin:0">این کالا را ثبت نکرده‌اند؛ موجودی نامعلوم است — بپرسید.</p>
         ${a.category_shops.map((s) => `<div class="alt"><div class="between"><a href="#/s/${esc(s.shop_id)}"><strong>${esc(s.name)}</strong></a>${openPill(s.open_now, s.hours_status)}</div>
@@ -636,7 +642,8 @@ function whereHTML(w) {
   return `<div class="small" style="margin-top:6px"><strong>${esc(where)}</strong>${bnote}
     <div class="muted">${count}${num(w.passage_shops)} فروشگاه در این پاساژ (در داده‌ی ترب).</div>
     ${nb ? `<div style="margin-top:4px">واحدهای نزدیک${w.floor_shops ? " در همین طبقه" : ""} برای پیدا کردن راه:</div><ul style="margin:2px 0;padding-inline-start:18px">${nb}</ul>` : ""}
-    <div class="muted">آدرس ثبت‌شده: ${esc(w.address || "نامشخص")}</div></div>`;
+    <div class="muted">آدرس ثبت‌شده: ${esc(w.address || "نامشخص")}</div>
+    <div class="ai-dir" data-ai="dir" data-shop="${esc(w.shop_id)}"></div></div>`;
 }
 
 async function viewPlan() {
@@ -1008,9 +1015,11 @@ function viewHome() {
     <section class="card">
       <h1>دستیار خرید حضوری در تهران</h1>
       <p class="muted">کالا را پیدا کنید، فروشنده‌ها را مقایسه کنید، فروشگاهِ باز و نزدیک را انتخاب کنید و بعد بروید.</p>
+      <div class="actions ai-only" style="margin:0 0 12px"><button type="button" class="btn primary" data-agent-open>✨ گفت‌وگو با دستیار هوشمند</button></div>
       <p class="small" style="margin:0 0 6px">مثل یک فروشنده با من حرف بزنید؛ بودجه، محله، زمان و شرط پرداخت را از جمله‌تان برمی‌دارم:</p>
       <div class="chips">${EXAMPLES.map((e) => `<button type="button" class="chip" data-ask="${esc(e)}">${esc(e)}</button>`).join("")}</div>
     </section>
+    ${agentHomeCard()}
     <section class="notice info">
       قیمت‌ها همان قیمتی است که فروشنده در ترب ثبت کرده، با زمان آخرین تغییر. موجودی کالا را هیچ‌جا تأیید شده نشان نمی‌دهیم؛ قبل از رفتن بپرسید.
     </section>`;
@@ -1029,7 +1038,8 @@ async function viewSearch(q) {
          <div class="actions" style="justify-content:center">${(data.relax || []).map((r) => `<button class="btn" data-relax="${esc(r.filter)}">بدون «${esc(r.label)}»: ${num(r.products)} کالا</button>`).join("")}</div>
          <button class="btn primary" data-open-sheet>تغییر شرایط</button>`
       : "<p>کلمه‌ی کوتاه‌تر یا نام دیگری امتحان کنید.</p>";
-    $view.innerHTML = understoodBanner(q) + `<div class="card empty-state">برای «${esc(q)}» چیزی پیدا نشد.${hint}</div><div id="hubsBox"></div>`;
+    $view.innerHTML = understoodBanner(q) + `<div id="aiBox"></div><div class="card empty-state">برای «${esc(q)}» چیزی پیدا نشد.${hint}</div><div id="hubsBox"></div>`;
+    aiSearch(q);
     loadHubs("hubsBox", { q, llm: 1 }, data.filters_active ? "جاهایی که این کالا معمولاً فروخته می‌شود:" : "این کالا را در فروشگاه‌های داده پیدا نکردیم؛ بورسش در تهران:");
     return;
   }
@@ -1045,9 +1055,10 @@ async function viewSearch(q) {
   const fixedWords = Object.entries(data.corrected || {});
   const typo = fixedWords.length
     ? `<p class="small">نتایج برای ${fixedWords.map(([a, b]) => `«${esc(b)}» (به‌جای «${esc(a)}»)`).join("، ")}</p>` : "";
-  $view.innerHTML = understoodBanner(q) + typo + loose + focus + few + guideLink + `<p class="muted small">مرتب‌شده بر اساس شباهت و تعداد فروشنده${scope}</p>` +
+  $view.innerHTML = understoodBanner(q) + typo + `<div id="aiBox"></div>` + loose + focus + few + guideLink + `<p class="muted small">مرتب‌شده بر اساس شباهت و تعداد فروشنده${scope}</p>` +
     data.items.map((p) => productCard(p, data.filters_active)).join("") + `<div id="hubsBox"></div>`;
   if (data.mode === "or") loadHubs("hubsBox", { q, llm: 1 }, "دقیقاً همین را پیدا نکردیم؛ بورس این کالا در تهران:");
+  aiSearch(q);
 }
 
 function productCard(p, filtered) {
@@ -1113,6 +1124,7 @@ async function viewProduct(id) {
     ${specs}`;
   if (p.category) loadHubs("hubsBox", { category: p.category, q: p.title }, `بورس «${p.category}» در تهران`);
   loadReview(p.product_id);
+  aiPick(p.product_id);
   const askBtn = document.getElementById("askTop");
   if (askBtn) askBtn.onclick = () => { askBtn.disabled = true; askTopSellers(p); };
 }
@@ -1126,6 +1138,7 @@ function pickCard(p) {
     <div class="between"><a href="#/s/${esc(e.shop.shop_id)}"><strong>${esc(e.shop.name)}</strong></a><span class="price">${esc(toman(e.best_price))}</span></div>
     <div class="muted small">${esc(e.shop.location_short || e.shop.area || "")}</div>
     <ul class="small" style="margin:6px 0 0;padding-inline-start:18px">${p.pick.why.map((w) => `<li class="${w.startsWith("احتیاط") ? "warn-text" : ""}">${esc(faDigits(w))}</li>`).join("")}</ul>
+    <div id="aiPickBox"></div>
     <div class="actions">
       <button type="button" class="btn primary" data-contact="${esc(e.offers[0].offer_id)}" data-shop-name="${esc(e.shop.name)}" data-product-id="${esc(p.product_id)}" data-shop-id="${esc(e.shop.shop_id)}">از این فروشنده بپرس</button>
       ${planBtn(e.shop.shop_id, e.shop.name, p.title, p.product_id, e.offers[0].offer_id)}

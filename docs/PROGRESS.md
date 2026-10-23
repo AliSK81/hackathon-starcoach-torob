@@ -826,3 +826,42 @@ Proof it works: fresh clone of `008ad1c` → `starcoach/data/known_hubs.json` an
 | R31 website / Instagram shops | pass | online-presence badge and links (Change 37) |
 
 Still open: public deploy (parked, D11).
+
+### Change 39 — AI-first layer: AI search, shopping agent, and ✨ explanations, all async next to the rule path — 2026-10-23
+Phase: 10 (R1, R5–R8, R18, R26–R29; Intelligence criterion)
+How to see it: search «برای دویدن هندزفری» → the rule list is on screen at once, then a ✨ card (reading of the request, picks with reasons, «فقط با دستیار پیدا شد»); tap «✨ دستیار» (any page) and say «شارژر اپل ۲۰ وات قسطی نزدیک علاءالدین؛ از دو فروشنده بپرس موجوده؟»; guide page → «نیازتان را با کلمات خودتان بگویید»; product page → ✨ under «⭐ پیشنهاد دستیار»; `uv run starcoach ai-demo` → `results/ai-demo.txt`
+Proof it works (full DB, live LLM, browser 375 px):
+- AI search: 6 of 7 queries got picks, 20 products the keyword list had not ranked; avg 4.3 s, shown after the rule list. «گوشیم بیرون زود خالی میشه» (keyword search returned «کپسول اکسیژن … خالی») → six power banks with spec-based reasons; the AC power-cut sentence → surge protectors / stabilizers; broad words («کابل», «جی بی ال») → a clarifying question with 4 tap-options.
+- Speed: `/api/search` took 11–38 ms for five queries while one AI search ran 4.2 s in parallel.
+- Agent: «نمیدونم چه هندزفری‌ای بخرم؛ برای ورزش، حدود ۳ میلیون» → budget chips applied by the rule pre-pass, 3 model cards, one question; follow-up «مقایسه این سه مدل» used the refs from the previous turn and drew a compare table. «شارژر اپل … از دو فروشنده بپرس» → rules → search → get_product → contact_sellers → find_alternatives; chips set (علاءالدین, installments), contact results labeled simulated, a product card, a seller card, alternatives. Typed through the real chat input.
+- Guide: «برای ورزش و دویدن، ضد عرق، بودجه کم» → budget band mapped from words, then 3 AI picks chosen by specs with a trade-off each («مقاومت IPX4 … اما …»); per-model reasons under the standard shortlist.
+- 94 tests pass offline (scripted fake LLM: only real candidates survive, invented refs resolve to nothing, ungrounded prices and unconfirmed «in stock» sentences are dropped, refs never reach the user, cache hit makes no second call, a busy gate or LLM failure keeps the rule path); ruff clean.
+- Found by live runs and fixed with tests: the model claimed stock for a shop nobody contacted; mixed-script slips («رaman»); a sentence splitter that cut «2.5 million» at the decimal point; when the LLM failed before any tool ran the agent apologised instead of using the rule path.
+
+Research: 04 §3 (bounded workflow, LLM amends and explains, code validates), 03 §4 (no embedding model here: F31).
+Questions: none
+Decisions: D14, D15; facts F31, F32, F33
+
+Shipped:
+- `starcoach/ai.py`: `search_assist` (plan → widen with the same filters → rank), `explain_pick`, `guide_answers`, `guide_why`, `guide_picks`, `explain_alternatives`, `directions`; TTL caches; the LLM gate; text guards (no price words, no ungrounded digits, no mixed script)
+- `starcoach/agent.py`: 12 data tools + `respond`, refs, server-built cards, rules pre-pass, number and stock guards, SSE steps; `POST /api/agent`
+- `GET /api/ai/{search,pick,guide/answers,guide/why,guide/picks,alternatives,directions/{shop}}`
+- `starcoach/web/static/ai.js` (loaded before `app.js`): ✨ cards, chat panel with streamed steps, persisted per device; hooks in `app.js` are marker elements only
+- `starcoach ai-demo`, `starcoach/ai_demo.py`, `results/ai-demo.txt`
+
+
+### Change 40 — AI UI hardened after a stale-server 404; dataset search always runs before the agent answers — 2026-10-23
+Phase: 10 (R28)
+How to see it: restart the server, open the chat and ask «کت و شلوار مردانه کجا بخرم؟» → dataset suit cards first, then (if wanted) the hubs card
+What went wrong: a server started before Change 39 kept serving the new `ai.js` from disk but had no `/api/agent` route, so the chat answered 404. My earlier browser checks ran against a freshly started server and missed it. Python code changes need a server restart; static files do not.
+Proof it works (fresh server, 375 px and desktop, real clicks and typing):
+- old server + new JS (reproduced on port 8000): `/health` has no `ai` flag → the ✨ parts are hidden, search works, no AI requests, no 404s;
+- new server: ✨ button and home card shown; chat opens, sends, streams; the same prompt that 404'd now answers with 3 dataset suit cards; tapping a card closes the chat and opens the product page (with its ✨ summary); reload restores the conversation; a seller card inside the chat opens the contact sheet over the panel and sends; «گفت‌وگوی تازه» clears chat and storage; a 404 shows «دستیار روی این سرور فعال نیست؛ سرور را دوباره راه‌اندازی کنید» and is not saved to the history; 680 px centered column on desktop;
+- the agent had answered that suit question from its own knowledge only (called `find_hubs`, never searched the dataset: a Q&A 5 fault). The server now searches the shopper's own words before the first LLM call and gives the model the result (`Dataset search already done…`), so the dataset cannot be skipped.
+- an alternatives card is no longer re-fetched on every re-render of the chat. 96 tests pass; ruff clean.
+
+Research: none new.
+Questions: none
+Decisions: none (extends D15)
+
+Shipped: `/health` `ai` flag; `.ai-only` hiding in `app.css`/`ai.js`; dataset pre-search in `agent.run_agent`; tests for dataset-first and the new step trail

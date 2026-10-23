@@ -135,6 +135,21 @@ FOCUS_TOP = 10
 FOCUS_SHARE = 0.6
 
 
+def product_card(conn: sqlite3.Connection, product_id: str, f: Filters) -> dict | None:
+    """One product as a search-result card under the user's filters (the same shape search() items have)."""
+    row = conn.execute(
+        "SELECT product_id, title, brand, category, images, n_shops, min_price, median_price FROM products WHERE product_id = ?",
+        (product_id,)).fetchone()
+    if row is None:
+        return None
+    st = _seller_stats(conn, [product_id], f)[product_id]
+    images = json.loads(row["images"] or "[]")
+    return {"product_id": row["product_id"], "title": row["title"], "brand": row["brand"], "category": row["category"],
+            "image": images[0] if images else None, "n_shops": row["n_shops"], "min_price": row["min_price"],
+            "median_price": row["median_price"], "match_shops": len(st["match"]), "match_min_price": st["min_price"],
+            "open_shops": len(st["open"])}
+
+
 def focus_category(items: list[dict]) -> str | None:
     """The category the top results agree on (e.g. «گوشی سامسونگ» -> گوشی موبایل), if they clearly do."""
     top = [it["category"] for it in items[:FOCUS_TOP] if it.get("category")]

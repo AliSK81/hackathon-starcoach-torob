@@ -1,16 +1,17 @@
 """FastAPI application: JSON API under /api and the mobile web app at /."""
 
 import hashlib
+import json
 import sqlite3
 from collections.abc import Iterator
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from starcoach import __version__, api, contact, hubs, review, visit
+from starcoach import __version__, agent, ai, api, contact, hubs, review, visit
 from starcoach.config import Settings, get_settings
 from starcoach.db import connect
 from starcoach.filters import parse_filters
@@ -28,6 +29,14 @@ class ContactRequest(BaseModel):
     mode: str = Field(default="auto", pattern="^(auto|seller)$")  # seller = send to the seller panel (R27)
 
 
+class AgentTurn(BaseModel):
+    text: str = Field(min_length=1, max_length=600)
+    history: list[dict] = Field(default_factory=list, max_length=20)
+    filters: dict = Field(default_factory=dict)  # the app's filter params, as /api/search takes them
+    state: dict | None = None  # refs the last reply introduced, echoed back by the client
+    stream: bool = True
+
+
 class SellerReply(BaseModel):
     request_id: str = Field(max_length=64)
     in_stock: bool
@@ -38,7 +47,7 @@ class SellerReply(BaseModel):
 
 def asset_version() -> str:
     h = hashlib.sha256()
-    for name in ("app.js", "app.css"):
+    for name in ("ai.js", "app.js", "app.css"):
         h.update((WEB_DIR / "static" / name).read_bytes())
     return h.hexdigest()[:10]
 
@@ -64,6 +73,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "version": __version__,
             "db": settings.db_path.exists(),
             "llm": settings.llm_enabled,
+            "ai": True,  # this build has the /api/ai/* and /api/agent routes; the web app hides its ✨ parts without it
         }
 
     @app.get("/ready")
@@ -227,6 +237,71 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                conn: sqlite3.Connection = Depends(db)) -> dict:
         """Passages around a point, for the app's own mini-map (no map tiles needed)."""
         return {"lat": lat, "lon": lon, "radius_m": radius_m, "places": visit.nearby_places(conn, lat, lon, radius_m)}
+
+    # ---------- the AI layer: always async next to the rule-based answer, never in front of it ----------
+    @app.get("/api/ai/search")
+    def ai_search(request: Request, q: str = Query(..., min_length=1, max_length=200),
+                  conn: sqlite3.Connection = Depends(db)) -> dict:
+        """The LLM's reading of a search, wider candidates and a ranked short list with reasons (cached)."""
+        return ai.search_assist(conn, q, parse_filters(dict(request.query_params)), settings)
+
+    @app.get("/api/ai/pick")
+    def ai_pick(request: Request, product_id: str, conn: sqlite3.Connection = Depends(db)) -> dict:
+        return {"pick": ai.explain_pick(conn, product_id, parse_filters(dict(request.query_params)), settings)}
+
+    @app.get("/api/ai/guide/answers")
+    def ai_guide_answers(request: Request, q: str = Query("", max_length=200), text: str = Query(..., max_length=300),
+                         cat: str | None = None, conn: sqlite3.Connection = Depends(db)) -> dict:
+        """The shopper's own words -> answers to the guide's questions (only options that exist)."""
+        r = ai.guide_answers(conn, q, text, cat, parse_filters(dict(request.query_params)), settings)
+        return r or {"answers": {}, "reply": None, "category": cat}
+
+    @app.get("/api/ai/guide/why")
+    def ai_guide_why(request: Request, q: str = Query("", max_length=200), text: str = Query("", max_length=300),
+                     cat: str | None = None, conn: sqlite3.Connection = Depends(db)) -> dict:
+        params = dict(request.query_params)
+        answers = {k[2:]: v for k, v in params.items() if k.startswith("a.")}
+        return ai.guide_why(conn, q, text, answers, cat, parse_filters(params), settings) or {"why": {}}
+
+    @app.get("/api/ai/guide/picks")
+    def ai_guide_picks(request: Request, q: str = Query("", max_length=200), text: str = Query("", max_length=300),
+                       cat: str | None = None, conn: sqlite3.Connection = Depends(db)) -> dict:
+        """The AI's best 3 models for a need written in words, chosen by specs among the models that match the answers."""
+        params = dict(request.query_params)
+        answers = {k[2:]: v for k, v in params.items() if k.startswith("a.")}
+        return ai.guide_picks(conn, q, text, answers, cat, parse_filters(params), settings) or {"picks": []}
+
+    @app.get("/api/ai/alternatives")
+    def ai_alternatives(product_id: str, shop_id: str | None = None, reason: str = "closed", at: str | None = None,
+                        conn: sqlite3.Connection = Depends(db)) -> dict:
+        a = visit.alternatives(conn, product_id, shop_id, parse_filters({"at": at}).at, reason)
+        return ai.explain_alternatives(conn, product_id, a["substitutes"], settings) or {"order": [], "why": {}, "advice": None}
+
+    @app.get("/api/ai/directions/{shop_id}")
+    def ai_directions(shop_id: str, conn: sqlite3.Connection = Depends(db)) -> dict:
+        return ai.directions(conn, shop_id, settings) or {"text": None}
+
+    @app.post("/api/agent")
+    def agent_turn(body: AgentTurn):
+        """One turn of the shopping agent. stream=true answers as server-sent events: `step` events while it works,
+        then one `final` event with the reply, cards, filter changes and the refs to echo back next turn."""
+        if not settings.db_path.exists():
+            raise HTTPException(503, "database not built; run `starcoach build-db`")
+
+        def events():
+            conn = connect(settings.db_path, readonly=True)
+            try:
+                for ev in agent.run_agent(conn, settings, body.text, body.history, body.filters, body.state):
+                    if ev["event"] == "final":
+                        agent.log_turn(settings, body.text, ev)
+                    yield ev
+            finally:
+                conn.close()
+
+        if body.stream:
+            return StreamingResponse((f"data: {json.dumps(ev, ensure_ascii=False)}\n\n" for ev in events()),
+                                     media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+        return list(events())[-1]  # the last event is always the final one
 
     @app.get("/api/areas")
     def areas(conn: sqlite3.Connection = Depends(db)) -> dict:

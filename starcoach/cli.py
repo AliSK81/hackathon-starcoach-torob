@@ -109,6 +109,16 @@ def cmd_results(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_ai_demo(args: argparse.Namespace) -> int:
+    from starcoach.ai_demo import generate
+
+    settings = get_settings()
+    summary = generate(Path(args.db) if args.db else settings.db_path, settings, Path(args.out))
+    print(json.dumps(summary, ensure_ascii=False, indent=2))
+    log_event(settings.log_dir, "runs", "ai_demo", **summary)
+    return 0
+
+
 def cmd_smoke(args: argparse.Namespace) -> int:
     from starcoach.smoke import run
 
@@ -157,6 +167,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--cases", default="tests/data/intents.jsonl")
     p.add_argument("--db", default=None)
     p.set_defaults(func=cmd_results)
+
+    p = sub.add_parser("ai-demo", help="run the AI layer live (needs the LLM in .env) and write results/ai-demo.txt")
+    p.add_argument("--out", default="results/ai-demo.txt")
+    p.add_argument("--db", default=None)
+    p.set_defaults(func=cmd_ai_demo)
 
     p = sub.add_parser("smoke", help="smoke test a running instance over HTTP")
     p.add_argument("--url", default="http://127.0.0.1:8000")

@@ -26,6 +26,7 @@ Optional: copy `.env.example` to `.env` and edit it. The app needs no keys.
 | `uv run starcoach eval-intents --split test` | Scores the Persian request parser on labeled requests against a no-parsing baseline (`--with-llm` adds the LLM) |
 | `uv run starcoach serve` | Runs the web app and API on http://127.0.0.1:8000 |
 | `uv run starcoach results` | Regenerates the offline result files in `results/` from the DB |
+| `uv run starcoach ai-demo` | Runs the AI layer live (needs the LLM in `.env`) and writes `results/ai-demo.txt`: keyword vs AI search, agent tool trails, timings |
 | `uv run starcoach smoke --url <base>` | Checks a running instance: health, ready, search, product, shop, web |
 | `uv run starcoach pack-db` | Writes `data/starcoach.db.gz` and prints its SHA256, for upload to a server |
 

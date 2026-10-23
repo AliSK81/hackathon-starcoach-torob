@@ -79,9 +79,10 @@ SQLite (read-only at runtime, 382 MB)
    │
 FastAPI ── /api/search  /api/products/{id}  /api/shops/{id}  /api/compare  /api/areas
    │       /api/ask (rules [+ LLM])  /api/guide  /api/alternatives  /api/contact  /api/plan
+   │       /api/ai/*  (async ✨ layer: search, pick, guide, alternatives, directions)  /api/agent (SSE)
    │       /api/shops/{id}/where  /health  /ready
    ▼
-web app (index.html + app.js + app.css, hash routes, localStorage for the user's context, compare list, plan, contacts)
+web app (index.html + ai.js + app.js + app.css, hash routes, localStorage for the user's context, compare list, plan, contacts)
 ```
 
 | Module | Job |
@@ -95,6 +96,9 @@ web app (index.html + app.js + app.css, hash routes, localStorage for the user's
 | `api.py` | read model for the app (transparency labels live here) |
 | `intent.py` | rule-based request parser (budget, place, time, conditions, intent) |
 | `llm.py` | OpenAI-compatible client; LLM refinement merged with rules |
+| `ai.py` | async AI layer: search reading + widening + re-rank, pick summary, guide mapping and picks, alternatives, directions; caches, gate, text guards |
+| `agent.py` | shopping agent: bounded tool loop over the read model, short refs, server-built cards, number and stock guards |
+| `ai_demo.py` | `starcoach ai-demo`: live evidence in `results/ai-demo.txt` |
 | `guide.py` | guided model choice |
 | `visit.py` | alternatives, substitutes, in-passage location, visit plan |
 | `contact.py` | message draft + simulated seller reply |
@@ -107,6 +111,8 @@ web app (index.html + app.js + app.css, hash routes, localStorage for the user's
 - **Filters are one object.** Chips, the sentence parser and the LLM all produce the same filters, so the user can always see and undo them.
 - **Three-valued hours.** Unknown is never treated as open; 2,003 shops have no hours.
 - **Rules first, LLM second (D12).** Measured: the LLM alone drops slots; merged it helps on free descriptions (table below).
+- **AI next to the rules, never in front (D14).** Every screen paints from the rules in milliseconds; the AI fills `✨` cards a few seconds later from a cache-backed, capped LLM path. Measured: normal search 11–38 ms while an AI call ran 4.2 s. No embedding model exists on the gateway (F31), so AI search widens with LLM-suggested phrases run through the same FTS search under the same filters and then re-ranks those real candidates; it surfaced 20 products the keyword list had missed on 7 queries (F32).
+- **The agent can only show what the DB returned (D15).** It reasons over short refs; the server builds every card; price-sized numbers must match tool output; «in stock» is dropped unless a seller answered through the simulated channel; the simulation is labeled everywhere. The rule parser applies budget, place, time and payment before the LLM runs.
 - **Simulated contact, honestly labeled (D6).** Store phones are fake (F2), so the agent cannot really message. Replies are deterministic per offer and day and grounded in data (fresh price → likely in stock, old price → likely changed), and always marked «پاسخ نمایشی».
 
 ## 6. Results (real numbers)
@@ -143,12 +149,13 @@ The LLM *replacing* the rules scored 0.423 on hard (F29); that is why the LLM on
 
 ## 8. Demo script (about 5 minutes)
 
-1. **Home (20 s).** Phone-width screen; say what the app is; point at the note that prices are recorded prices and stock is not confirmed.
-2. **A sentence (60 s).** Tap «گوشی سامسونگ زیر ۲۰۰ میلیون قسطی تو علاءالدین». Show the understood chips (budget, installments, Alaeddin), the "only phones" focus, and the relax buttons. Remove «پاساژ» with one tap.
-3. **Don't know the model (50 s).** Type «نمیدونم چه مدلی هندزفری بخرم» → guided questions → pick a budget and «بی‌سیم» → 3 models with reasons → «مقایسه‌ی این ۳ مدل».
-4. **Sellers (50 s).** Open S25 FE; set area to علاءالدین and Saturday 11:00 in the sheet; read the «⭐ پیشنهاد دستیار» card and its reasons; show seller cards: price + «آخرین تغییر قیمت», open status, passage / floor / unit, reasons; switch sort to «نزدیک‌ترین».
-5. **Seller panel (30 s).** On a seller card tap «از فروشنده بپرس» → «بپرس»; open «پنل فروشنده (نمایشی)» in a second tab and tap «✅ موجود، با این قیمت»; the buyer's chat updates.
-6. **The agent asks (40 s).** «🤖 از ۳ فروشنده‌ی اول بپرس» → replies arrive (labeled simulated) → «ارزان‌ترینِ تأییدشده». Open one seller that didn't answer → alternatives in the same passage.
-7. **Plan (30 s).** Add 2–3 stops → «🗺 برنامه‌ی بازدید»: walk order, arrival times, a warning for a shop without hours; «کجای پاساژ؟» shows floor and neighbouring units.
-8. **Where it is sold + free description with the LLM (20 s).** «برای کولر گازی خونه یه چیزی میخوام که برق رفت و اومد خراب نشه» → ⏳ → ✨ «محافظ برق»; on a product page show «بورس … در تهران» and its mini-map.
-9. **Close (10 s).** Mention the tests, the evaluation numbers and the Docker smoke test.
+1. **Home (15 s).** Phone-width screen; say what the app is; point at the note that prices are recorded prices and stock is not confirmed; point at «✨ گفت‌وگو با دستیار هوشمند».
+2. **AI search (50 s).** Type «برای دویدن هندزفری». The normal list appears at once; a few seconds later the ✨ card shows the reading, picks with reasons and «فقط با دستیار پیدا شد» on items keyword search missed. Then «گوشیم بیرون زود خالی میشه» → power banks. Then «کابل» → the clarifying question.
+3. **The agent (90 s).** Tap «✨ دستیار»: «نمیدونم چه هندزفری‌ای بخرم؛ برای ورزش، حدود ۳ میلیون» → budget chip applied, 3 cards, one question; tap «مقایسه این سه مدل». Then «شارژر اپل ۲۰ وات قسطی نزدیک علاءالدین؛ از دو فروشنده بپرس موجوده؟» → watch the steps (rules → search → sellers → ask → alternatives), the labeled-simulated answers and the alternatives.
+4. **Guide in your own words (30 s).** Guide for «هندزفری» → «برای ورزش و دویدن، ضد عرق، بودجه کم» → budget mapped, 3 AI picks with a trade-off each.
+5. **A sentence with filters (40 s).** Tap «گوشی سامسونگ زیر ۲۰۰ میلیون قسطی تو علاءالدین»: chips, «only phones» focus, relax buttons.
+6. **Sellers (40 s).** Open a product; read «⭐ پیشنهاد دستیار» and its ✨ summary and what to ask the seller; seller cards: recorded price + age, open status, passage / floor / unit.
+7. **Seller panel (25 s).** «از فروشنده بپرس» → second tab «پنل فروشنده (نمایشی)» → one tap answer → the buyer's chat updates.
+8. **Plan and where in the passage (25 s).** Add stops → «🗺 برنامه‌ی بازدید»; «کجای پاساژ؟» with the ✨ directions line.
+9. **Where it is sold (15 s).** Agent: «کت و شلوار مردانه کجا بخرم؟» → hubs card with map.
+10. **Close (10 s).** Tests, evaluation numbers, `results/ai-demo.txt`, Docker smoke test.
