@@ -171,7 +171,9 @@ function renderCtxBar() {
   const clearAll = anyOn
     ? `<button type="button" class="ctxchip ctxclear-all" data-clear-ctx="all" title="پاک کردن همه‌ی شرایط">پاک کردن ✕</button>`
     : "";
-  bar.innerHTML =
+  const nOn = [pl, ctx.max_price || ctx.min_price, ctx.day != null].filter(Boolean).length + conds.length;
+  const all = `<button type="button" class="ctxchip ctxall" data-open-sheet>⚙️ فیلترها${nOn ? ` (${num(nOn)})` : ""}</button>`;
+  bar.innerHTML = all +
     chip(Boolean(pl), "📍 " + place, "place") + chip(Boolean(ctx.max_price || ctx.min_price), "💰 " + budget, "budget") +
     chip(ctx.day != null, "🕒 " + when, "when") + chip(conds.length > 0, "💳 " + (conds.length ? conds.join("، ") : "شرایط خرید"), "conds") +
     clearAll;
@@ -186,6 +188,7 @@ async function openSheet() {
   const check = (name, label) =>
     `<label class="opt"><input type="checkbox" name="${name}" ${ctx[name] ? "checked" : ""}><span>${esc(label)}</span></label>`;
   sheet.innerHTML = `
+    <div class="sheet-head"><strong>فیلترها و شرایط خرید</strong><button type="button" class="ctxclear" id="sheetX" aria-label="بستن">✕</button></div>
     <form method="dialog" id="sheetForm">
       <h3>کجا؟</h3>
       <div class="opts">
@@ -218,6 +221,7 @@ async function openSheet() {
       <button type="button" class="btn primary" id="sheetApply">نمایش نتایج</button>
     </div>`;
   sheet.showModal();
+  document.getElementById("sheetX").onclick = () => sheet.close();
   document.getElementById("sheetReset").onclick = () => { ctx = { ...DEFAULT_CTX }; applyCtx(); };
   document.getElementById("sheetApply").onclick = async () => {
     const fd = new FormData(document.getElementById("sheetForm"));
@@ -1341,6 +1345,7 @@ function setHomeChrome(on) {
 }
 
 function route() {
+  document.getElementById("sheet")?.open && document.getElementById("sheet").close();
   renderTray();
   const hash = location.hash || "#/";
   const [path, query] = hash.slice(1).split("?");
