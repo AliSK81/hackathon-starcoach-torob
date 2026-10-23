@@ -75,6 +75,61 @@ img { max-width: 100%; }
   cursor: pointer;
 }
 
+.locbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 680px;
+  align-self: stretch;
+  margin-inline: auto;
+  min-height: 0;
+}
+.locbar[hidden] { display: none; }
+.locbar-main {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, .4);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .16);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 5px 12px;
+  text-align: start;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.locbar-main.locbar-empty { font-weight: 500; opacity: .95; }
+.locbar-btn {
+  flex: none;
+  border: 1px solid rgba(255, 255, 255, .45);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .12);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.locbar-x {
+  flex: none;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .16);
+  color: #fff;
+  font: inherit;
+  line-height: 1;
+  padding: 4px 10px;
+  cursor: pointer;
+  opacity: .9;
+}
+.locbar-x:hover, .locbar-btn:hover, .locbar-main:hover { background: rgba(255, 255, 255, .28); }
+
 .home-above,
 .home-below { display: none; }
 

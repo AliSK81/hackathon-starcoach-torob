@@ -150,7 +150,40 @@ function ctxBarVisible() {
   return /\/(p|guide|compare|plan|passage|s|seller)\b/.test(path);
 }
 
+function placeLabel() {
+  const pl = ctx.place;
+  if (!pl) return null;
+  const name = pl.kind === "me" ? "نزدیک من" : pl.name;
+  const radius = ctx.radius_m ? ` · ${RADII.find((r) => r[0] === ctx.radius_m)?.[1] || ""}` : "";
+  return name + radius;
+}
+
+function renderLocBar() {
+  const bar = document.getElementById("locbar");
+  if (!bar) return;
+  // Home has its own location block; elsewhere keep place pinned under search.
+  if (document.body.classList.contains("is-home")) {
+    bar.hidden = true;
+    bar.innerHTML = "";
+    return;
+  }
+  bar.hidden = false;
+  const pl = ctx.place;
+  const label = placeLabel();
+  if (pl) {
+    bar.innerHTML = `
+      <button type="button" class="locbar-main" data-open-sheet title="تغییر محل خرید">📍 ${esc(label)}</button>
+      <button type="button" class="locbar-btn" data-use-location>${pl.kind === "me" ? "به‌روزرسانی" : "موقعیت من"}</button>
+      <button type="button" class="locbar-x" data-clear-ctx="place" aria-label="پاک کردن محل" title="پاک کردن محل">✕</button>`;
+  } else {
+    bar.innerHTML = `
+      <button type="button" class="locbar-main locbar-empty" data-open-sheet>📍 محل خرید را انتخاب کنید</button>
+      <button type="button" class="locbar-btn" data-use-location>نزدیک من</button>`;
+  }
+}
+
 function renderCtxBar() {
+  renderLocBar();
   const bar = document.getElementById("ctxbar");
   if (!ctxBarVisible()) {
     bar.hidden = true;
@@ -159,7 +192,6 @@ function renderCtxBar() {
   }
   bar.hidden = false;
   const pl = ctx.place;
-  const place = pl ? (pl.kind === "me" ? "نزدیک من" : pl.name) + (ctx.radius_m ? ` · ${RADII.find((r) => r[0] === ctx.radius_m)?.[1] || ""}` : "") : "همه‌ی محله‌ها";
   const budget = ctx.min_price && ctx.max_price ? `${tomanShort(ctx.min_price)} تا ${tomanShort(ctx.max_price)}`
     : ctx.max_price ? `تا ${tomanShort(ctx.max_price)}` : ctx.min_price ? `از ${tomanShort(ctx.min_price)} به بالا` : "هر بودجه";
   const when = ctx.day == null ? "الان" : `${DAYS_FA[ctx.day]} ساعت ${num(ctx.hour ?? 11)}`;
@@ -173,10 +205,8 @@ function renderCtxBar() {
   const all = anyOn
     ? `<span class="ctxchip on ctxall"><button type="button" class="ctxchip-main" data-open-sheet>${filtersLabel}</button><button type="button" class="ctxclear" data-clear-ctx="all" aria-label="پاک کردن همه‌ی شرایط" title="پاک کردن همه‌ی شرایط">✕</button></span>`
     : `<button type="button" class="ctxchip ctxall" data-open-sheet>${filtersLabel}</button>`;
-  const locate = pl ? "" : `<button type="button" class="ctxchip ctxlocate" data-use-location>📍 نزدیک من</button>`;
+  // Place lives in #locbar; only budget / time / purchase conditions stay here.
   const active = [
-    locate,
-    pl && chip(true, "📍 " + place, "place"),
     (ctx.max_price || ctx.min_price) && chip(true, "💰 " + budget, "budget"),
     ctx.day != null && chip(true, "🕒 " + when, "when"),
     conds.length > 0 && chip(true, "💳 " + conds.join("، "), "conds"),
