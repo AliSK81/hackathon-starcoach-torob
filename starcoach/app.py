@@ -48,6 +48,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def meta(conn: sqlite3.Connection = Depends(db)) -> dict:
         return api.meta(conn)
 
+    @app.get("/api/compare")
+    def compare(request: Request, ids: str = Query(..., max_length=500),
+                conn: sqlite3.Connection = Depends(db)) -> dict:
+        """ids: comma-separated product ids (2-3). Same filter params as /api/products/{id}."""
+        return api.compare(conn, [i for i in ids.split(",") if i], parse_filters(dict(request.query_params)))
+
     @app.get("/api/areas")
     def areas(conn: sqlite3.Connection = Depends(db)) -> dict:
         return api.areas(conn)

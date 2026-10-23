@@ -120,3 +120,14 @@ def test_areas_have_counts_and_centers(client):
     assert a["areas"] and a["passages"]
     top = a["areas"][0]
     assert top["shops"] >= a["areas"][-1]["shops"] and 35 < top["lat"] < 36 and 51 < top["lon"] < 52
+
+
+def test_compare_aligns_specs_and_prices(client):
+    items = client.get("/api/search", params={"q": "شارژر اپل"}).json()["items"][:3]
+    ids = ",".join(i["product_id"] for i in items)
+    c = client.get("/api/compare", params={"ids": ids}).json()
+    assert len(c["products"]) == len(items)
+    assert all(len(r["values"]) == len(items) for r in c["spec_rows"])
+    assert c["products"][0]["sellers_match"] == c["products"][0]["sellers_total"]
+    f = client.get("/api/compare", params={"ids": ids, "installments": "1"}).json()
+    assert all(p["sellers_match"] <= p["sellers_total"] for p in f["products"])

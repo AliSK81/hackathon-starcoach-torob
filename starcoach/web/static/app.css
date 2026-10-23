@@ -204,3 +204,21 @@ details summary { cursor: pointer; color: var(--primary); }
 .reason-good { background: var(--open-soft); color: var(--open); }
 .reason-warn { background: var(--warn-soft); color: var(--warn); }
 .reason-info { background: var(--unknown-soft); color: var(--fg); }
+
+.chip.cmp { cursor: pointer; background: #fff; border: 1px solid var(--line); color: var(--primary); }
+.chip.cmp.on { background: var(--primary); color: #fff; border-color: var(--primary); }
+.tray {
+  position: fixed; inset-inline: 0; bottom: 0; z-index: 20; display: flex; justify-content: space-between; align-items: center;
+  gap: 8px; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid var(--line);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, .06);
+}
+.tray[hidden] { display: none; }
+body { padding-bottom: 64px; }
+.cmp-wrap { overflow-x: auto; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); }
+.cmp-table { border-collapse: collapse; min-width: 100%; font-size: 13px; }
+.cmp-table th, .cmp-table td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; text-align: start; min-width: 110px; }
+.cmp-table tbody th { position: sticky; inset-inline-start: 0; background: #fafbfc; color: var(--muted); font-weight: 500; min-width: 96px; }
+.cmp-table thead th { font-weight: 600; }
+.cmp-table td.best { background: var(--open-soft); color: var(--open); font-weight: 700; }
+.cmp-table th.group { background: var(--primary-soft); color: #134e4a; position: static; }
+.cmp-table.diff-only tr.same { display: none; }

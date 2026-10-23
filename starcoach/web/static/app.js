@@ -222,6 +222,91 @@ document.addEventListener("click", (e) => {
   if (relax) { ctx = { ...ctx, ...(RELAX_CTX[relax.dataset.relax] || {}) }; applyCtx(); }
 });
 
+// ---------- compare list (max 3 products) ----------
+const COMPARE_MAX = 3;
+let compareList = (() => { try { return JSON.parse(localStorage.getItem("sc_compare") || "[]"); } catch { return []; } })();
+function saveCompare() { try { localStorage.setItem("sc_compare", JSON.stringify(compareList)); } catch { /* private mode */ } renderTray(); }
+function inCompare(id) { return compareList.some((x) => x.id === id); }
+function toggleCompare(id, title) {
+  if (inCompare(id)) compareList = compareList.filter((x) => x.id !== id);
+  else if (compareList.length >= COMPARE_MAX) { alert("حداکثر ۳ کالا را می‌توانید مقایسه کنید."); return; }
+  else compareList.push({ id, title });
+  saveCompare();
+  document.querySelectorAll(`[data-compare="${CSS.escape(id)}"].cmp`).forEach((b) => {
+    b.classList.toggle("on", inCompare(id));
+    b.textContent = inCompare(id) ? "✓ در مقایسه" : "+ مقایسه";
+  });
+}
+function compareBtn(id, title) {
+  return `<button type="button" class="chip cmp ${inCompare(id) ? "on" : ""}" data-compare="${esc(id)}" data-title="${esc(title)}">${inCompare(id) ? "✓ در مقایسه" : "+ مقایسه"}</button>`;
+}
+function renderTray() {
+  let tray = document.getElementById("tray");
+  if (!tray) { tray = document.createElement("div"); tray.id = "tray"; tray.className = "tray"; document.body.appendChild(tray); }
+  tray.hidden = compareList.length === 0 || location.hash.startsWith("#/compare");
+  tray.innerHTML = `<span>${num(compareList.length)} کالا برای مقایسه</span>
+    <span><button type="button" class="btn" data-compare-clear>پاک کردن</button>
+    <a class="btn primary" href="#/compare">مقایسه</a></span>`;
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-compare]");
+  if (b) {
+    e.preventDefault(); e.stopPropagation();
+    toggleCompare(b.dataset.compare, b.dataset.title);
+    if (location.hash.startsWith("#/compare")) route();
+  }
+  if (e.target.closest("[data-compare-clear]")) { compareList = []; saveCompare(); if (location.hash.startsWith("#/compare")) route(); }
+}, true);
+
+function fmtDistance(m) {
+  if (m < 50) return "کمتر از ۵۰ متر";
+  if (m < 1000) return `${num(Math.round(m / 10) * 10)} متر`;
+  return `${new Intl.NumberFormat("fa-IR", { maximumFractionDigits: 1 }).format(m / 1000)} کیلومتر`;
+}
+
+async function viewCompare() {
+  if (compareList.length < 2) {
+    $view.innerHTML = `<div class="card empty-state">برای مقایسه حداقل ۲ کالا انتخاب کنید (دکمه‌ی «+ مقایسه» روی هر کالا).</div>`;
+    return;
+  }
+  loading();
+  let c;
+  try { c = await getJSON(`/api/compare?ids=${compareList.map((x) => encodeURIComponent(x.id)).join(",")}&${filterParams()}`); } catch (e) { return failed(e); }
+  const P = c.products;
+  const best = (vals, fn) => { const ok = vals.filter((v) => v != null); return ok.length ? fn(...ok) : null; };
+  const minPrice = best(P.map((p) => p.min_price), Math.min);
+  const maxSellers = best(P.map((p) => p.sellers_match), Math.max);
+  const nearest = best(P.map((p) => p.nearest_m), Math.min);
+  const cell = (v, isBest) => `<td class="${isBest ? "best" : ""}">${v}</td>`;
+  const row = (label, cells) => `<tr><th>${esc(label)}</th>${cells.join("")}</tr>`;
+  const scope = c.filters_active ? " (با شرایط شما)" : "";
+  const rows = [
+    row(`کمترین قیمت ثبت‌شده${scope}`, P.map((p) => cell(p.min_price != null ? esc(tomanShort(p.min_price)) : unknown("ثبت نشده"), p.min_price === minPrice))),
+    row("میانه‌ی قیمت همه‌ی فروشنده‌ها", P.map((p) => cell(p.median_price != null ? esc(tomanShort(p.median_price)) : unknown(), false))),
+    row(`فروشنده${scope}`, P.map((p) => cell(`${num(p.sellers_match)} از ${num(p.sellers_total)}`, p.sellers_match === maxSellers))),
+    row("باز در زمان بازدید", P.map((p) => cell(num(p.open_match), false))),
+    ...(nearest != null ? [row("نزدیک‌ترین فروشنده", P.map((p) => cell(p.nearest_m != null ? esc(fmtDistance(p.nearest_m)) : unknown(), p.nearest_m === nearest)))] : []),
+    row("فروشنده‌ی اقساطی", P.map((p) => cell(num(p.installment_sellers), false))),
+    row("فروشنده با گارانتی", P.map((p) => cell(num(p.warranty_sellers), false))),
+    row("تازه‌ترین تغییر قیمت", P.map((p) => cell(p.last_change ? esc(ago(p.last_change)) : unknown(), false))),
+  ];
+  const specRows = c.spec_rows.map((r) =>
+    `<tr class="${r.same ? "same" : ""}"><th>${esc(r.key)}</th>${r.values.map((v) => `<td>${v == null ? unknown() : esc(v)}</td>`).join("")}</tr>`).join("");
+  const n = P.length + 1;
+  $view.innerHTML = `
+    <h1>مقایسه</h1>
+    <p class="muted small">قیمت‌ها ثبت‌شده‌ی فروشنده‌اند؛ موجودی تأیید نشده. بهترین مقدار هر ردیف سبز است.</p>
+    <div class="cmp-wrap"><table class="cmp-table">
+      <thead><tr><th></th>${P.map((p) => `<th><a href="#/p/${esc(p.product_id)}">${thumb(p.image, p.title)}<div class="title-2 small">${esc(p.title)}</div></a>
+        <button type="button" class="chip" data-compare="${esc(p.product_id)}" data-title="${esc(p.title)}">حذف</button></th>`).join("")}</tr></thead>
+      <tbody>${rows.join("")}</tbody>
+      <tbody><tr><th colspan="${n}" class="group">مشخصات فنی
+        <label class="small" style="font-weight:400;margin-inline-start:8px"><input type="checkbox" id="diffOnly"> فقط تفاوت‌ها</label></th></tr>
+        ${specRows || `<tr><td colspan="${n}">${unknown("مشخصات مشترکی ثبت نشده")}</td></tr>`}</tbody>
+    </table></div>`;
+  document.getElementById("diffOnly").onchange = (e) => document.querySelector(".cmp-table").classList.toggle("diff-only", e.target.checked);
+}
+
 // ---------- data ----------
 async function getJSON(url) {
   const r = await fetch(url);
@@ -280,7 +365,7 @@ function productCard(p, filtered) {
         <div class="title-2">${esc(p.title)}</div>
         <div class="muted small">${esc(p.category || "")}${p.brand ? " · " + esc(p.brand) : ""}</div>
         <div class="between">${price}<span class="chip">${sellers}</span></div>
-        ${open}
+        <div class="between">${open || "<span></span>"}${compareBtn(p.product_id, p.title)}</div>
       </div>
     </a>`;
 }
@@ -308,7 +393,7 @@ async function viewProduct(id) {
         ${p.category ? `<span class="chip">${esc(p.category)}</span>` : ""}
         <span class="chip">برند: ${p.brand ? esc(p.brand) : "نامشخص"}</span>
       </div>
-      <p class="muted small" style="margin:8px 0 0">${esc(summary)}</p>
+      <div class="between" style="margin-top:8px"><span class="muted small">${esc(summary)}</span>${compareBtn(p.product_id, p.title)}</div>
     </section>
     <div class="notice">موجودی تأیید نشده است: هر فروشنده این کالا را در ترب ثبت کرده، اما موجود بودن آن امروز معلوم نیست. قیمت‌ها «قیمت ثبت‌شده» با زمان آخرین تغییر هستند.</div>
     <h2>فروشنده‌ها (${ctx.sort === "distance" && ctx.place ? "نزدیک‌ترین اول" : "ارزان‌ترین اول"})</h2>
@@ -428,6 +513,7 @@ async function viewShop(id) {
 
 // ---------- router ----------
 function route() {
+  renderTray();
   const hash = location.hash || "#/";
   const [path, query] = hash.slice(1).split("?");
   const params = new URLSearchParams(query || "");
@@ -435,6 +521,7 @@ function route() {
   if (path.startsWith("/search")) return viewSearch(params.get("q") || "");
   if (path.startsWith("/p/")) return viewProduct(decodeURIComponent(path.slice(3)));
   if (path.startsWith("/s/")) return viewShop(decodeURIComponent(path.slice(3)));
+  if (path.startsWith("/compare")) return viewCompare();
   return viewHome();
 }
 

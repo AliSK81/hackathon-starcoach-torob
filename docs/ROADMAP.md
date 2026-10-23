@@ -28,8 +28,8 @@
 | 0 | The project runs | done | [phase-0](phases/phase-0-runs.md) |
 | 1 | Data import | done | [phase-1](phases/phase-1-data.md) |
 | 2 | Thin end-to-end: search → product → sellers → store | done | [phase-2](phases/phase-2-thin-e2e.md) |
-| 3 | Docker and first deploy | in progress (blocked on host) | [phase-3](phases/phase-3-deploy.md) |
-| 4 | Filters, area and comparison | in progress | [phase-4](phases/phase-4-filters.md) |
+| 3 | Docker and first deploy | parked (D11): image ready, public deploy in Phase 8 | [phase-3](phases/phase-3-deploy.md) |
+| 4 | Filters, area and comparison | done | [phase-4](phases/phase-4-filters.md) |
 | 5 | Assistant: understand the need | not started | — |
 | 6 | Visit plan, substitution and seller follow-up | not started | — |
 | 7 | Evaluation and reviewer doc | not started | — |

@@ -18,6 +18,7 @@ Rules:
 | D7 | Deploy target: a Docker image that runs anywhere. The host is chosen when the user answers. | 2026-10-22 | Claude (pending reply) |
 | D9 | The four-step flow is now known from the challenge video (`docs/requirements.md` §2): 1) help choose the product/model, 2) find stores that have it near the user, 3) compare stores by price, distance and hours, 4) contact stores (the agent itself asks about price/stock). Replaces D5. Requirements are now numbered R1–R25. | 2026-10-23 | user (video transcript) |
 | D10 | LLM = the user's OpenAI-compatible gateway from `.env` (F25). Thinking is off by default (`chat_template_kwargs.enable_thinking=false`, F27) for mobile latency. The rule-based path stays the default answer; the LLM refines it. Replaces the open part of D4 (provider). | 2026-10-23 | user (.env) + Claude |
+| D11 | Public deploy is parked: keep developing features first. The Docker image stays ready; deploy comes back in Phase 8. | 2026-10-23 | user |
 
 ## Checked facts
 

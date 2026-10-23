@@ -2,9 +2,9 @@
 
 ## Status board
 
-- **Current phase:** 4 — Filters, area and comparison (3 waits on the host)
-- **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page.
-- **Last change:** Change 15
+- **Current phase:** 5 — Assistant: understand the need (3's public deploy parked, D11)
+- **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page, with filters (area / near me, budget, visit time, installments, TorobPay, …), reasons, relax buttons and a 3-product compare.
+- **Last change:** Change 16
 
 ### What we need from the user
 
@@ -12,7 +12,7 @@
 |---|---|---|
 | The four steps and pain points from the challenge video | 5 | answered 2026-10-23 → D9, `docs/requirements.md` §2–3 |
 | LLM provider, base URL and key (D4) | 5 (app works without it) | answered 2026-10-23: set in `.env` → D10, F25–F27 |
-| Deploy host: VPS, Iranian PaaS (Liara is a sponsor, F23), or none (D7); and whether judges test from inside Iran | 3 | asked — Docker image ready, waiting |
+| Deploy host: VPS, Iranian PaaS (Liara is a sponsor, F23), or none (D7); and whether judges test from inside Iran | 8 | parked by the user (D11); Docker image ready |
 | OK on stack (D2), data out of git (D3), simulated seller replies (D6) | 1 | asked |
 | Public download URL for the dataset, if any | 3 | asked |
 
@@ -373,3 +373,26 @@ Not done yet:
 
 Next change idea:
 - Compare 2–3 products side by side
+
+### Change 16 — Phase 4 done: compare 2–3 products side by side — 2026-10-23
+Phase: 4, steps 5–6 (R4, R17, R18)
+How to see it: tap «+ مقایسه» on 2–3 product cards, then «مقایسه» in the bottom tray (`#/compare`); API `/api/compare?ids=a,b,c&<filters>`
+Proof it works:
+- API on the full DB (point = Alaeddin): Anker R50i / QCY T13x / Anker K20i → sellers 23 / 28 / 1, lowest 4.08M / 2.19M / 3.03M, nearest 9 m / 19 m / 161 m, installment sellers 9 / 8 / 0, warranty sellers 14 / 16 / 0; 11 aligned spec rows.
+- Browser 375 px with the area set to علاءالدین: three «+ مقایسه» taps → tray «۳ کالا برای مقایسه»; compare page shows the table with sticky labels, best value per row in green, «فقط تفاوت‌ها» toggle.
+- The same title can be two products in the data (research 01 §7); compare shows them side by side (4.1M vs 2.2M), which helps.
+46 tests pass.
+
+Research: 05 §4 (2–3 items on mobile, "differences only") followed.
+Questions: deploy → parked by the user (D11).
+Decisions: D11
+
+Shipped:
+- `api.compare` + `/api/compare`: per product under the user's filters (matching sellers, lowest normal price, open, nearest, installment and warranty sellers, freshest change) + spec rows shared by ≥ 2 products
+- UI: compare buttons on cards and product page, bottom tray, compare page
+
+Not done yet:
+- Phase 5: free-text assistant (rules + LLM), guided model choice (R1)
+
+Next change idea:
+- Persian rule parser: sentence → query words + budget + area + time + conditions

@@ -282,6 +282,60 @@ def shop(conn: sqlite3.Connection, shop_id: str, at: datetime | None = None, lim
     }
 
 
+COMPARE_MAX = 3
+COMPARE_SPECS = 30
+
+
+def compare(conn: sqlite3.Connection, product_ids: list[str], f: Filters | None = None) -> dict:
+    """2-3 products side by side: price and sellers under the user's filters, plus aligned specs."""
+    f = f or Filters()
+    cols = []
+    for pid in product_ids[:COMPARE_MAX]:
+        p = product(conn, pid, f)
+        if p is None:
+            continue
+        sellers = p["sellers"]
+        priced = [e for e in sellers if e["best_status"] == "ok"]
+        cheapest = min(priced, key=lambda e: e["best_price"]) if priced else None
+        nearest = min((e for e in sellers if e["distance_m"] is not None), key=lambda e: e["distance_m"], default=None)
+        changes = [e["last_change"] for e in sellers if e["last_change"]]
+        cols.append({
+            "product_id": p["product_id"],
+            "title": p["title"],
+            "brand": p["brand"],
+            "category": p["category"],
+            "image": (p["images"] or [None])[0],
+            "sellers_total": p["sellers_total"],
+            "sellers_match": len(sellers),
+            "open_match": sum(1 for e in sellers if e["shop"]["open_now"] is True),
+            "min_price": cheapest["best_price"] if cheapest else None,
+            "median_price": p["median_price"],
+            "cheapest_shop": cheapest["shop"]["name"] if cheapest else None,
+            "nearest_m": nearest["distance_m"] if nearest else None,
+            "installment_sellers": sum(1 for e in sellers if any(x["installments"] for x in e["shop"]["payment"])),
+            "warranty_sellers": sum(1 for e in sellers if e["offers"][0]["warranty_kind"] == "yes"),
+            "last_change": max(changes) if changes else None,
+            "specs": {s["key"]: s["value"] for s in p["specs"] if s.get("key")},
+        })
+    # spec rows: keys present in at least 2 products (or all keys when there is one), first-seen order
+    keys: list[str] = []
+    for c in cols:
+        for k in c["specs"]:
+            if k not in keys:
+                keys.append(k)
+    need = 2 if len(cols) > 1 else 1
+    rows = []
+    for k in keys:
+        values = [c["specs"].get(k) for c in cols]
+        if sum(v is not None for v in values) >= need:
+            rows.append({"key": k, "values": values, "same": len({v for v in values}) == 1})
+        if len(rows) >= COMPARE_SPECS:
+            break
+    for c in cols:
+        c.pop("specs")
+    return {"products": cols, "spec_rows": rows, "filters_active": f.active}
+
+
 def areas(conn: sqlite3.Connection, passages: int = 40) -> dict:
     """Neighbourhoods and the busiest passages, with shop counts and a center point (for "near" and maps)."""
     def rows(col: str, limit: int):

@@ -19,5 +19,5 @@
 - [x] Search filtered by budget, area, open, conditions; cards show matching sellers
 - [x] `/api/areas` with shop counts and centers
 - [x] UI: context bar + filter sheet; results update
-- [ ] Compare view for 2–3 products
-- [ ] Check real output for the demo scenarios
+- [x] Compare view for 2–3 products
+- [x] Check real output for the demo scenarios
