@@ -926,6 +926,38 @@ document.addEventListener("click", async (e) => {
   viewSeller(location.hash.slice("#/seller/".length));
 });
 
+// ---------- R29: review without a reviews dataset — market signals + labeled AI summary ----------
+async function loadReview(productId) {
+  const box = document.getElementById("reviewBox");
+  if (!box) return;
+  let r;
+  try { r = await getJSON(`/api/products/${encodeURIComponent(productId)}/review`); } catch { return; }
+  const notes = r.signals.notes.map((n) => `<li class="${n.kind === "warn" ? "warn-text" : ""}">${esc(faDigits(n.text))}</li>`).join("");
+  const aiPart = (ai) => ai ? `
+      <div style="margin-top:8px">
+        ${ai.good_for ? `<p class="small" style="margin:0 0 4px"><strong>مناسب برای:</strong> ${esc(ai.good_for)}</p>` : ""}
+        ${ai.strengths.length ? `<p class="small" style="margin:4px 0 0"><strong>نقاط قوت</strong></p><ul class="small" style="margin:0;padding-inline-start:18px">${ai.strengths.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+        ${ai.weaknesses.length ? `<p class="small" style="margin:4px 0 0"><strong>نقاط ضعف</strong></p><ul class="small" style="margin:0;padding-inline-start:18px">${ai.weaknesses.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+        ${ai.check_in_shop.length ? `<p class="small" style="margin:4px 0 0"><strong>در مغازه این‌ها را چک کنید</strong></p><ul class="small" style="margin:0;padding-inline-start:18px">${ai.check_in_shop.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+        <p class="muted small" style="margin:6px 0 0">${esc(ai.label)}</p>
+      </div>` : "";
+  box.innerHTML = `<section class="card">
+      <h2 style="margin-top:0">بررسی کالا</h2>
+      <p class="muted small" style="margin:0">از داده‌ی ترب (نشانه‌های بازار، نه نظر کاربران):</p>
+      <ul class="small" style="margin:4px 0 0;padding-inline-start:18px">${notes || "<li>نشانه‌ی خاصی نیست.</li>"}</ul>
+      <div id="aiReview">${r.ai ? aiPart(r.ai) : r.llm_available ? `<button type="button" class="btn" id="aiReviewBtn" style="margin-top:8px">✨ جمع‌بندی هوشمند: نقاط قوت، ضعف و چک‌لیست خرید</button>` : ""}</div>
+    </section>`;
+  const btn = document.getElementById("aiReviewBtn");
+  if (btn) btn.onclick = async () => {
+    btn.disabled = true;
+    btn.textContent = "⏳ در حال جمع‌بندی…";
+    try {
+      const x = await getJSON(`/api/products/${encodeURIComponent(productId)}/review?llm=1`);
+      document.getElementById("aiReview").innerHTML = x.ai ? aiPart(x.ai) : `<p class="muted small">جمع‌بندی هوشمند در دسترس نیست.</p>`;
+    } catch { btn.disabled = false; btn.textContent = "دوباره امتحان کنید"; }
+  };
+}
+
 // ---------- data ----------
 async function getJSON(url) {
   const r = await fetch(url);
@@ -1038,9 +1070,11 @@ async function viewProduct(id) {
     ${pickCard(p)}
     ${p.sellers.length ? `<div class="actions" style="margin-bottom:10px"><button type="button" class="btn primary" id="askTop">🤖 از ${num(Math.min(3, p.sellers.length))} فروشنده‌ی اول بپرس</button></div><div id="agentBox"></div>` : ""}
     ${p.sellers.map((e) => sellerCard({ ...e, product_id: p.product_id, product_title: p.title })).join("")}
+    <div id="reviewBox"></div>
     <div id="hubsBox"></div>
     ${specs}`;
   if (p.category) loadHubs("hubsBox", { category: p.category, q: p.title }, `بورس «${p.category}» در تهران`);
+  loadReview(p.product_id);
   const askBtn = document.getElementById("askTop");
   if (askBtn) askBtn.onclick = () => { askBtn.disabled = true; askTopSellers(p); };
 }

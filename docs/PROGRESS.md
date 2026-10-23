@@ -4,7 +4,7 @@
 
 - **Current phase:** 9 — Organizer clarifications (R26–R31); release v1.0.0 audited, public deploy parked (D11)
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page, with filters (area / near me, budget, visit time, installments, TorobPay, …), reasons, relax buttons and a 3-product compare.
-- **Last change:** Change 35
+- **Last change:** Change 36
 
 ### What we need from the user
 
@@ -780,3 +780,17 @@ Shipped:
 - `starcoach/inbox.py` (append-only `logs/inbox.jsonl`, replayed at start; reuse window 3 h)
 - `POST /api/contact` `mode=seller`; `GET /api/contact/{id}`; `GET /api/seller/{shop}/inbox`; `POST /api/seller/reply`; `contact.answer_reply`
 - UI: buyer waiting state with polling and fallback; seller panel page; panel link on shop pages
+
+### Change 36 — R29: product review without a reviews dataset — market signals + labeled AI summary with an in-shop checklist — 2026-10-23
+Phase: 9, step 3 (R29, R20, R21)
+How to see it: any product page → «بررسی کالا» → «✨ جمع‌بندی هوشمند…»; API `/api/products/<id>/review` (`llm=1` for the AI part)
+Proof it works (full DB, live LLM):
+- signals (always, from data): S25 FE «پرفروشنده: ۳۴ فروشگاه…», «بیشتر فروشنده‌ها قیمت را در هفته‌ی آخر داده به‌روز کرده‌اند», «۲۸ از ۳۴ فروشنده گارانتی ثبت کرده‌اند»; Anker R50i adds «قیمت‌ها تا ۱.۵ برابر فرق دارند؛ اصل/غیراصل… را بپرسید»;
+- AI summary (3.0–3.4 s, then cached in `logs/reviews.jsonl`): «مناسب برای…», 3 strengths, 3 weaknesses, and «در مغازه این‌ها را چک کنید» (e.g. «تست صدای خروجی و کیفیت مکالمه با میکروفون»), ending with «جمع‌بندی هوش مصنوعی…؛ نظر واقعی خریداران نیست.»;
+- browser 375 px: card renders, no overflow. 73 tests pass (signals offline; no LLM in tests; price words dropped from AI text); ruff clean.
+
+Research: none new. Honesty rule: no fabricated user reviews; the AI part never shows prices or shops.
+Questions: none
+Decisions: D13 (reviews labeled with their source)
+
+Shipped: `starcoach/review.py` (signals, `ReviewCache`, `ai_review`), `/api/products/{id}/review`, «بررسی کالا» card

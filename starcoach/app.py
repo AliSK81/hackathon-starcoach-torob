@@ -10,7 +10,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from starcoach import __version__, api, contact, hubs, visit
+from starcoach import __version__, api, contact, hubs, review, visit
 from starcoach.config import Settings, get_settings
 from starcoach.db import connect
 from starcoach.filters import parse_filters
@@ -186,6 +186,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         log_event(settings.log_dir, "contacts", "seller_answered", request_id=body.request_id, in_stock=body.in_stock,
                   price_now=body.price_now, hold_until=body.hold_until)
         return {"request": req, "reply": contact.answer_reply(req)}
+
+    reviews = review.ReviewCache(settings.log_dir / "reviews.jsonl")
+
+    @app.get("/api/products/{product_id}/review")
+    def product_review(product_id: str, llm: bool = False, conn: sqlite3.Connection = Depends(db)) -> dict:
+        """R29: market signals from the data, plus (llm=1, cached) an AI summary labeled as such."""
+        sig = review.signals(conn, product_id)
+        if sig is None:
+            raise HTTPException(404, "product not found")
+        ai = review.ai_review(conn, product_id, settings if llm else None, reviews) if llm else reviews.get(product_id)
+        return {"signals": sig, "ai": ai, "llm_available": settings.llm_enabled}
 
     @app.get("/api/plan")
     def plan(shops: str = Query(..., max_length=2000), at: str | None = None, lat: float | None = None,

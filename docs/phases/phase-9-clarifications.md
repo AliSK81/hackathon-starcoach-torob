@@ -13,7 +13,7 @@
 ## Checklist
 - [x] R26 hubs API + card on product and empty search, with map widget
 - [x] R27 seller panel + buyer status update
-- [ ] R29 review summary (data signals + labeled AI summary)
+- [x] R29 review summary (data signals + labeled AI summary)
 - [ ] R30 category components
 - [ ] R31 online-presence badge
 - [ ] Re-run the audit for R26–R31

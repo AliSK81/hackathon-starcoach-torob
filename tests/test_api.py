@@ -198,3 +198,16 @@ def test_hubs_put_dataset_first_and_label_outside_knowledge(client):
     assert all(x["source"] == "data" and x["shops"] >= 3 for x in h["data_hubs"])
     assert h["known"] and "balad" in h["known"]["source"]
     assert h["llm"] is None  # no LLM when the dataset or the cited list has an answer
+
+
+def test_review_has_data_signals_and_no_ai_without_llm(client):
+    pid = client.get("/api/search", params={"q": "شارژر اپل ۲۰ وات"}).json()["items"][0]["product_id"]
+    r = client.get(f"/api/products/{pid}/review", params={"llm": "1"}).json()
+    assert r["signals"]["sellers"] >= 1 and r["signals"]["notes"]
+    assert r["ai"] is None and r["llm_available"] is False  # offline tests never call the LLM
+
+
+def test_ai_review_cleaning_drops_prices():
+    from starcoach.review import _clean_list
+
+    assert _clean_list(["کیفیت صدای خوب", "قیمت ۲ میلیون تومان است", 5]) == ["کیفیت صدای خوب"]
