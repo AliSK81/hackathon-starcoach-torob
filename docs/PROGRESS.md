@@ -4,13 +4,13 @@
 
 - **Current phase:** 4 — Filters, area and comparison (3 waits on the host)
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page.
-- **Last change:** Change 10
+- **Last change:** Change 11
 
 ### What we need from the user
 
 | Item | Needed by phase | Status |
 |---|---|---|
-| The four steps and pain points from the challenge video (D5 is a guess) | 5 | asked |
+| The four steps and pain points from the challenge video | 5 | answered 2026-10-23 → D9, `docs/requirements.md` §2–3 |
 | LLM provider, base URL and key (D4) | 5 (app works without it) | asked |
 | Deploy host: VPS, Iranian PaaS (Liara is a sponsor, F23), or none (D7); and whether judges test from inside Iran | 3 | asked — Docker image ready, waiting |
 | OK on stack (D2), data out of git (D3), simulated seller replies (D6) | 1 | asked |
@@ -267,3 +267,22 @@ Not done yet:
 
 Next change idea:
 - Wire `Filters` into `api.product` (filter, sort by price/distance, reasons), then into search, then the context bar UI
+
+### Change 11 — Requirements rewritten with the challenge video; R1–R25 mapped to phases — 2026-10-23
+Phase: docs (all phases)
+How to see it: `docs/requirements.md` (§2 four-step flow, §3 pain points, §9 checklist R1–R25); `docs/ROADMAP.md` "Requirement → phase"
+Proof it works: every ID R1–R25 has a phase in the roadmap table; the old guess D5 is replaced by D9.
+
+Research: the video confirms research 02's hypothesis of the flow; it adds two things research did not have: the agent itself should contact stores (like "Let Google Call") and an installment-only filter is called "very important".
+Questions: the four steps from the video → answered by the user (transcript).
+Decisions: D9 (replaces D5)
+
+Shipped:
+- `docs/requirements.md` in English, organized: goal, four-step flow, pain points, dataset, design rules, deploy, deliverables, judging, numbered checklist. Transcript typos fixed (e.g. «قطی» → installment, «للت گوگل کار» → "Let Google Call", «آلانتی» → alternative).
+- Roadmap: requirement table by R-ID; Phase 3, 4, 5, 6 "Done when" now name R6–R9, R1 and Liara
+
+Not done yet:
+- Nothing new built in this change
+
+Next change idea:
+- Wire `Filters` into the product API with the installment-only filter (R9) and distance (R3, R4)

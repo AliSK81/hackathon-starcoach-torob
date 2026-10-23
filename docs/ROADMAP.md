@@ -2,7 +2,7 @@
 
 ## Goal
 - A Persian, mobile-first assistant for in-store shopping in Tehran stores and passages.
-- It covers the full trip: state the need → find and compare products → pick a seller and plan the visit → follow up with the seller (D5).
+- It covers the four steps from the challenge video (D9): choose the product → find stores nearby → compare stores → contact stores, with fast alternatives when a store fails.
 - It uses the Torob dataset correctly and shows what is known, what is old, and what is unknown.
 - It runs on a public server, stable, from one command.
 - It is judged on: Product 75, UX 75, Intelligence 50, Deploy 40, Technical 40, Dataset 20 (`docs/requirements.md`).
@@ -37,30 +37,37 @@
 
 ## Requirement → phase
 
-| Requirement or score item (`docs/requirements.md`) | Phase |
-|---|---|
-| Dataset must be used (shops, products, offers) | 1, 2 |
-| Store info: ID, name, category, description; images, history, licenses where present | 1, 2 (show what exists; mark missing fields) |
-| Location: address, coordinates, passage / floor / unit | 1, 2, 4 |
-| Weekly working hours | 1, 4, 6 |
-| Contact channels (phone, messengers) | 2, 6 |
-| Product: ID, titles, brand, category, specs, images | 1, 2 |
-| Product in store: sellers per product, store's products, seller title, price, warranty, last price change | 1, 2, 4 |
-| Category alone ≠ product in stock | 2, 4 |
-| Purchase conditions: TorobPay, installments, Kalabarg, express delivery, info type made clear | 1, 4 |
-| UX: cards, filters, buttons, not only chat | 2, 4, 5 |
-| UX: clear search and comparison; why suggested; next step | 2, 4, 5 |
-| UX: change area, budget, purchase conditions and see the result | 4 |
-| Transparency: price vs price-change time vs confirmed availability kept apart | 2, 6 |
-| Transparency: unknown info shown clearly | 2 |
-| Persian, RTL, mobile | 0, 2 |
-| Product score 75: search, compare, seller in area, follow-up | 2, 4, 6 |
-| UX score 75 | 2, 4, 5 |
-| Intelligence score 50: follow-up, substitution, visit conditions | 5, 6 |
-| Deploy score 40 | 3, 8 |
-| Technical score 40: structure, tools, performance | 0, 1, 7 |
-| Dataset score 20: correct and transparent use | 1, 2, 7 |
-| Demo video deliverable: the app must be demo-ready, with a scenario in the reviewer doc | 7, 8 |
+IDs are from `docs/requirements.md` §9. Nothing is left without a phase.
+
+| ID | Requirement (short) | Phase |
+|---|---|---|
+| R1 | Help choose a product/model when the user doesn't know it | 5 |
+| R2 | Find stores that carry the product (offer, not just category) | 2 (done), 4 |
+| R3 | Use the user's location: nearby areas and stores | 4 |
+| R4 | Compare stores by price, distance, working hours | 4 |
+| R5 | Help the user contact stores | 2 (links), 6 |
+| R6 | Agent contacts stores to confirm price and stock, reports back | 6 |
+| R7 | No answer / closed → quickly suggest alternative stores | 6 |
+| R8 | Precise in-passage location (floor, unit, landmarks) | 1 (done), 2 (done), 6 |
+| R9 | Installment / credit-purchase-only filter | 4 |
+| R10 | Use the Torob dataset correctly | 1 (done), 7 |
+| R11 | Store info, with missing fields shown as missing | 2 (done) |
+| R12 | Address, coordinates, passage/floor/unit, hours, contact | 1, 2 (done) |
+| R13 | Product info: titles, brand, category, specs, images | 2 (done) |
+| R14 | Product sellers, store products, price, warranty, last change | 2 (done) |
+| R15 | Category alone is never "in stock" | 2 (done), 4 |
+| R16 | TorobPay, installments, Kalabarg, express delivery, info type clear | 2 (done), 4 |
+| R17 | Cards, filters, buttons — not only chat | 2, 4, 5 |
+| R18 | Why suggested + next step | 4, 5 |
+| R19 | Easy change of area, budget, conditions | 4 |
+| R20 | Recorded price / change time / confirmed stock kept apart | 2 (done), 6 |
+| R21 | Unknown shown clearly | 2 (done) |
+| R22 | Persian, RTL, mobile | 0, 2 (done) |
+| R23 | Deployed and stable (Liara suggested) | 3, 8 |
+| R24 | Code structure, tools, performance | 0–8, 7 |
+| R25 | Demo-ready for a ~5-minute video of the full flow | 7, 8 |
+
+Score items: Product 75 → R1–R9, R14; UX 75 → R17–R22; Intelligence 50 → R1, R6, R7, R4; Deploy 40 → R23; Technical 40 → R24; Dataset 20 → R10–R16, R20, R21.
 
 ## Phases
 
@@ -81,22 +88,22 @@
 
 ### Phase 3 — Docker and first deploy
 - **Why:** deploy is scored on stability; deploying early finds problems early.
-- **Done when:** `docker compose up` runs the app with the DB; a smoke test passes against the container; it runs on the chosen host if the user has given one.
+- **Done when:** `docker compose up` runs the app with the DB; a smoke test passes against the container; it runs on Liara (suggested by the challenge) or the user's chosen host, and the smoke test passes there.
 - **Not yet:** no CI polish, no custom domain.
 
 ### Phase 4 — Filters, area and comparison
 - **Why:** the user must change area, budget and purchase terms and see the result.
-- **Done when:** filters for area, budget, open now / at a time, TorobPay, installments, fast delivery and warranty work and change results; sellers sort by price or distance; a compare view shows 2–3 products side by side; each result says why it was suggested.
+- **Done when:** filters for area or "near me", budget, open now / at a time, TorobPay, installments-only (R9), fast delivery and warranty work and change results; sellers sort by price or distance; a compare view shows 2–3 products side by side; each result says why it was suggested.
 - **Not yet:** no free-text assistant.
 
 ### Phase 5 — Assistant: understand the need
 - **Why:** intelligence score; fewer steps for the user.
-- **Done when:** a Persian sentence becomes filters (product, brand, budget, area, time, payment) with a rule-based parser; an optional LLM improves it when a key is set; answers are cards built from DB data only; an offline eval set measures parser accuracy against a baseline.
+- **Done when:** a Persian sentence becomes filters (product, brand, budget, area, time, payment) with a rule-based parser; a user who doesn't know the model gets a few questions and a short list of suitable models (R1); an optional LLM improves it when a key is set; answers are cards built from DB data only; an offline eval set measures parser accuracy against a baseline.
 - **Not yet:** no follow-up flows.
 
 ### Phase 6 — Visit plan, substitution and seller follow-up
 - **Why:** intelligence score: follow-up, substitution, visit conditions.
-- **Done when:** the user can save items to a visit plan; the plan orders stores by location and opening hours and warns about closed stores; alternatives are offered when a product is over budget, far, or the store is closed; a follow-up drafts a message to the seller and tracks its status (simulated replies, labeled).
+- **Done when:** the user can save items to a visit plan; the plan orders stores by location and opening hours and warns about closed stores; the agent "contacts" chosen stores to confirm price and stock and reports back (simulated replies, labeled, D6) (R6); when a store doesn't answer or is closed, equivalent stores are suggested at once (R7); the shop's in-passage location is shown as precisely as the data allows (R8).
 - **Not yet:** no real messaging to stores.
 
 ### Phase 7 — Evaluation and reviewer doc

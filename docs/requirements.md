@@ -1,99 +1,148 @@
-**System Description — Torob In-Store Shopping Assistant Challenge**
+# Torob In-Store Shopping Assistant — Challenge Requirements
 
-The system is an intelligent assistant for in-store shopping from small and large stores, passages, and shopping centers in Tehran. Its four-step flow is defined in the challenge video; additional features may be added at the team's discretion, and several pain points of in-store shopping are described in the video. The challenge video is mandatory viewing — not all points are in the text, and the video plus the challenge text together define the full task.
+Sources:
+- **[Text]** the written challenge text (the original content of this file).
+- **[Video]** the challenge announcement video by the StarCoach / Torob product owner (transcript provided by the user, 2026-10-23; transcription typos fixed).
 
-**Dataset (must be used)**
-The downloadable Torob dataset covers Tehran stores and products; some fields exist for only part of the records.
+The video and the text together define the task. Where they overlap, both are cited.
 
-*Store and business information*
-- Store ID, business name and type, activity category, and introductory description.
+---
+
+## 1. Goal
+
+Build an **intelligent, agent-based assistant for in-person shopping** in Tehran's small and large stores, passages (پاساژ) and shopping centers. [Text, Video]
+
+- It guides the user along the whole in-person purchase path. [Video]
+- It must have a very good user experience and UI/UX. [Text, Video]
+- Teams may add their own extra features on top of the required flow. [Text, Video]
+
+## 2. The required four-step flow [Video]
+
+| Step | What the assistant must do |
+|---|---|
+| **1. Find the right product** | Help the user work out *what* product they want, even when they don't know the model yet (example: "I want sneakers but don't know which model suits me"). Ask about the user's needs and preferences, compare products and prices, and finally suggest suitable products and models. |
+| **2. Find stores that have it, nearby** | Find the stores that carry the chosen product. Using the user's location, suggest nearby areas and nearby stores. |
+| **3. Compare the stores** | Compare the candidate stores by **price**, **distance** (near or far), and **working hours**. |
+| **4. Contact the stores** | Help the user get in touch with the stores, e.g. ask about working hours. Many stores do not update their prices or stock, so the agent itself should be able to **contact stores, ask questions and get answers**, and then give the user accurate, up-to-date information. |
+
+## 3. Pain points the product must address [Video]
+
+1. **The user doesn't know the right model yet.** The assistant must help them choose a suitable model (step 1).
+2. **Recorded prices are stale.** The price recorded for a store may be old. Teams may use services like Google's "Let Google Call" (an AI that calls stores) to contact stores and present an updated price and stock.
+3. **No answer, or the store is closed.** Sometimes the seller doesn't reply, or the user arrives and the store is closed. The agent must be smart and **quickly suggest equivalent or alternative stores**.
+4. **Finding the shop inside a passage.** People often find the passage but can't find the exact shop in it. Using the shop's textual information (e.g. from Google or the address text), suggest a **more precise location of the shop inside the passage** (floor, unit, landmarks).
+5. **Installment-only shoppers.** A very important case: when the user only wants options with **installment (credit) purchase**, the assistant must apply a **filter that shows only stores offering credit purchase services**.
+
+## 4. Dataset (must be used) [Text, Video]
+
+The downloadable Torob dataset covers in-person stores in Tehran, a large list of their products, and other information. Some fields exist for only part of the records.
+
+### 4.1 Store and business information
+- Store ID, business name and type, activity category, introductory description.
 - Store images, where present.
 - Torob presence history and registered licenses, where present.
 
-*Location, working hours, and contact*
-- Short text address, geographic coordinates, and location description (e.g., passage name, floor, unit) wherever recorded in the address.
+### 4.2 Location, working hours and contact
+- Short text address, geographic coordinates, and location description (e.g. passage name, floor, unit) wherever recorded in the address.
 - Weekly working-hours schedule, for stores that registered it.
-- Registered contact channels — phone and messengers such as WhatsApp and Bale. Which contact fields are publishable is determined in the final version.
+- Registered contact channels: phone and messengers such as WhatsApp and Bale. Which contact fields are publishable is decided in the final version.
 
-*Product information (BaseProduct)* — complete, about the product itself
-- Product ID, Persian and English title, brand, and category.
+### 4.3 Product information (BaseProduct) — about the product itself
+- Product ID, Persian and English title, brand, category.
 - Technical specifications and product description, where present.
 - Product images, where present.
 
-*Product in store (ProductInStore)* — a store's extra details about a specific product it carries
-- The link between each product and its sellers, for viewing a store's products or comparing sellers of a product.
-- Seller-registered title and description, price and price unit; warranty, provider, and duration wherever recorded.
-- Time of last recorded price change.
-- Distinguishes a store that has a specific product from a business whose activity category alone is known; activity category alone does not indicate a product is in stock.
+### 4.4 Product in store (ProductInStore) — a store's details about a product it carries
+- The link between each product and its sellers, for viewing a store's products or comparing the sellers of a product.
+- Seller-registered title and description, price and price unit; warranty, provider and duration wherever recorded.
+- Time of the last recorded price change.
+- A store that has a specific product is different from a business whose activity category alone is known. **The activity category alone does not mean the product is in stock.**
 
-*Purchase conditions and store capabilities*
-- In-store TorobPay acceptance status and installment-purchase services declared by the seller, with the information type made clear.
+### 4.5 Purchase conditions and store capabilities
+- In-store TorobPay acceptance and installment-purchase services declared by the seller, with the type of information made clear.
 - Kalabarg (voucher) support and express delivery, wherever recorded.
 
-*Dataset notes*
-- The `offers` table shows which store offered which product at what price and when the price was last updated (data is from last week).
-- The `products` and `shops` tables are self-explanatory.
-- In the `shops` table, most store names (6,364 of 6,476) are fake.
-- All store phone numbers are fake.
-- Other information, such as location, is real.
-- The 112 stores with non-fake names are those whose Instagram page or website is given in the table (22 Instagram, 90 website); these are non-fake so participants working with their Instagram have consistent data.
-- All stores are in Tehran, but they are 10% of Tehran's Torob stores and selectively drawn from certain Tehran areas.
-- Each store's products are capped at 300; overall, 331,506 offers cover 225,903 unique products.
+### 4.6 Dataset notes
+- `offers`: which store offered which product, at what price, and when the price was last updated (data is from the last week).
+- `products` and `shops` are self-explanatory.
+- In `shops`, most store names (6,364 of 6,476) are fake. All store phone numbers are fake. Other information, such as location, is real.
+- The 112 stores with real names are those whose Instagram page or website is given (22 Instagram, 90 website), so teams working with Instagram have consistent data.
+- All stores are in Tehran, but they are 10% of Tehran's Torob stores, selectively drawn from certain areas.
+- Each store's products are capped at 300. In total, 331,506 offers cover 225,903 unique products.
 
-**Product Design Notes and Requirements**
+## 5. Product design requirements [Text]
 
-*UX design*
-- Not all user flows need to go through chat. Cards, filters, and buttons help the user proceed without asking again.
-- Search and comparison results are shown clearly; the user understands why a product or store was suggested and what the next step is.
-- The user can easily change area, budget, and purchase conditions and see the result.
+### 5.1 UX
+- Not every flow has to go through chat. Cards, filters and buttons help the user move on without asking again.
+- Search and comparison results are shown clearly. The user understands **why** a product or store was suggested and **what the next step** is.
+- The user can easily change **area, budget and purchase conditions** and see the result.
+- A high-quality, easy, comfortable experience and a suitable UI/UX are very important. [Video]
 
-*Information transparency*
-- Recorded price, price-change time, and confirmed availability are not conflated.
-- Unknown information is shown clearly.
+### 5.2 Information transparency
+- Recorded price, price-change time and confirmed availability are never mixed up.
+- Unknown information is shown clearly as unknown.
 
-*Language and platform*
-- Focus on Persian, right-to-left experience, and mobile use.
+### 5.3 Language and platform
+- Persian first, right-to-left, mobile use.
 
-*Technical priorities*
-- Good product and UX are the priority in this hackathon; scalable service engineering is secondary.
+### 5.4 Technical priorities
+- Good product and UX come first in this hackathon. Scalable service engineering is secondary.
 
-**Deliverables**
+## 6. Deploy [Text, Video]
+- The product must be deployed (published and running on a server). This is part of the judging.
+- Teams can use **Liara** (لیارا), another sponsor, as the deploy infrastructure. [Video]
 
-*Demo video (mandatory)*
-- Submitting a project demo video is mandatory.
-- The video is about 5 minutes and demonstrates and explains the project's performance.
-- If no demo video is submitted, the entry is removed from judging.
+## 7. Deliverables [Text]
+
+### Demo video (mandatory)
+- A demo video is mandatory. Without it, the entry is removed from judging.
+- About 5 minutes. It demonstrates and explains the project's performance.
 - Video quality affects the overall score.
-- The video shows the output; no need to show source code. Performance, impact, output, and demonstrable items matter. The work is presented completely — this is very important.
-- If unable to speak, a silent video of the output only is acceptable but scores fewer points; this is better than no points. No special editing is needed.
+- Show the output, not the source code. Performance, impact, output and demonstrable items matter. Present the work completely — this is very important.
+- A silent video of the output only is acceptable if speaking is not possible, but it scores fewer points. No special editing is needed.
 
-**Judging Criteria (300 points)**
+## 8. Judging criteria (300 points) [Text]
 
-*Product — 75*
-Whether the solution genuinely solves the in-store shopping problem and covers the requested items: product search, comparing options, finding a seller in the desired area, follow-up, and so on.
+The ranking and scores are based entirely on these criteria; read them closely. [Video]
 
-*UX and user experience — 75*
-Whether the user can work with the agent easily and without hassle, and whether the UI/UX is appropriate — how simple, smooth, and user-friendly the design is.
+| Criterion | Points | What is judged |
+|---|---|---|
+| Product | 75 | Does the solution really solve in-store shopping and cover the requested items: product search, comparing options, finding a seller in the desired area, follow-up, and so on. |
+| UX and user experience | 75 | Can the user work with the agent easily and without hassle; is the UI/UX appropriate — simple, smooth, user-friendly. |
+| Intelligence | 50 | Can the assistant complete the purchase process more fully through seller follow-up, substitution, and attention to visit conditions (time, location, user needs, etc.). |
+| Deploy | 40 | Quality and stability of the deploy process (publishing and running on a server) and final execution in the operational environment. |
+| Technical implementation | 40 | Code structure, appropriate tools and technologies, performance, scalability. |
+| Dataset | 20 | Product and store information are used correctly and shown transparently and understandably. |
+| **Total** | **300** | |
 
-*Intelligence — 50*
-Whether the assistant can complete the purchase process more fully through seller follow-up, substitution, and attention to visit conditions (time, location, user needs, etc.).
+## 9. Requirement checklist
 
-*Deploy — 40*
-Quality and stability of the deploy process (publishing and running the project on a server) and final execution in the operational environment.
+Each line is one checkable requirement. `docs/ROADMAP.md` maps each ID to a phase.
 
-*Technical implementation — 40*
-Technical level of the challenge: code structure, use of appropriate tools and technologies, performance, and scalability.
-
-*Dataset — 20*
-Whether product and store information are used correctly and displayed transparently and understandably to the user.
-
-**Scoring Table**
-| Criterion | Points |
-|---|---|
-| Product | 75 |
-| UX and user experience | 75 |
-| Intelligence | 50 |
-| Deploy | 40 |
-| Technical implementation | 40 |
-| Dataset | 20 |
-| **Total** | **300** |
+| ID | Requirement | Source |
+|---|---|---|
+| R1 | Help the user choose a product/model when they don't know it: ask needs, compare products and prices, suggest models | Video step 1, pain 1 |
+| R2 | Find stores that carry the chosen product (an offer exists, not just a category match) | Video step 2; Text 4.4 |
+| R3 | Use the user's location to suggest nearby areas and stores | Video step 2 |
+| R4 | Compare stores by price, distance and working hours | Video step 3 |
+| R5 | Help the user contact stores (e.g. ask about hours) | Video step 4 |
+| R6 | The agent contacts stores itself to confirm current price and stock, then reports back | Video step 4, pain 2 |
+| R7 | When a seller doesn't answer or a store is closed, quickly suggest equivalent/alternative stores | Video pain 3; Intelligence |
+| R8 | Give a precise in-passage location for a shop (floor, unit, landmarks) | Video pain 4; Text 4.2 |
+| R9 | Filter to stores offering installment / credit purchase | Video pain 5; Text 4.5 |
+| R10 | Use the Torob dataset (shops, products, offers) correctly | Text 4; Dataset |
+| R11 | Show store info: name/type, category, description, images, history, licenses where present | Text 4.1 |
+| R12 | Show address, coordinates, passage/floor/unit, weekly hours, contact channels | Text 4.2 |
+| R13 | Show product info: titles, brand, category, specs, description, images | Text 4.3 |
+| R14 | Show a product's sellers and a store's products; seller title, price, unit, warranty, last price change | Text 4.4 |
+| R15 | Never present an activity category as "in stock" | Text 4.4 |
+| R16 | Show TorobPay, installments, Kalabarg, express delivery, with the information type made clear | Text 4.5 |
+| R17 | Cards, filters and buttons — not only chat | Text 5.1 |
+| R18 | Clear results; explain why each item is suggested and what the next step is | Text 5.1 |
+| R19 | Easy change of area, budget and purchase conditions, with visible results | Text 5.1 |
+| R20 | Keep recorded price, price-change time and confirmed availability separate | Text 5.2 |
+| R21 | Show unknown information clearly | Text 5.2 |
+| R22 | Persian, RTL, mobile-first | Text 5.3 |
+| R23 | Deployed and stable on a server (Liara suggested) | Text 6; Video |
+| R24 | Good code structure, tools, performance | Text 8 |
+| R25 | Demo-ready product for a ~5-minute demo video showing the full flow | Text 7 |

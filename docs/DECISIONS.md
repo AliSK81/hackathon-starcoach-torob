@@ -16,6 +16,7 @@ Rules:
 | D6 | Store phones are fake, so seller follow-up drafts real messages but simulates replies, clearly labeled as a demo. | 2026-10-22 | Claude (pending reply) |
 | D8 | Search ranking = FTS5 bm25 + head-word boost (only when the head word also names the category) + accessory-category penalty + log(1+shops). Aliases: 376 groups in `starcoach/data/aliases.json`, mined brands filtered by count ≥ 5, share ≥ 4%, ASCII, minus a hand drop-list. | 2026-10-22 | Claude |
 | D7 | Deploy target: a Docker image that runs anywhere. The host is chosen when the user answers. | 2026-10-22 | Claude (pending reply) |
+| D9 | The four-step flow is now known from the challenge video (`docs/requirements.md` §2): 1) help choose the product/model, 2) find stores that have it near the user, 3) compare stores by price, distance and hours, 4) contact stores (the agent itself asks about price/stock). Replaces D5. Requirements are now numbered R1–R25. | 2026-10-23 | user (video transcript) |
 
 ## Checked facts
 
