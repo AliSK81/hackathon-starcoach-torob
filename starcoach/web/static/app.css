@@ -222,3 +222,5 @@ body { padding-bottom: 64px; }
 .cmp-table td.best { background: var(--open-soft); color: var(--open); font-weight: 700; }
 .cmp-table th.group { background: var(--primary-soft); color: #134e4a; position: static; }
 .cmp-table.diff-only tr.same { display: none; }
+.chip { max-width: 100%; }
+.reasons .chip { white-space: normal; line-height: 1.6; padding-block: 3px; }

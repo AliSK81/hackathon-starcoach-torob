@@ -366,6 +366,65 @@ document.addEventListener("click", (e) => {
   }
 });
 
+// ---------- guided model choice (R1) ----------
+async function viewGuide(params) {
+  const q = params.get("q") || "";
+  const answers = {};
+  for (const [k, v] of params) if (k.startsWith("a.")) answers[k.slice(2)] = v;
+  loading();
+  let g;
+  const qs = new URLSearchParams({ q });
+  for (const [k, v] of Object.entries(answers)) qs.set(`a.${k}`, v);
+  try { g = await getJSON(`/api/guide?${qs}&${filterParams()}`); } catch (e) { return failed(e); }
+  if (!g.category) {
+    $view.innerHTML = `<div class="card empty-state">برای «${esc(q)}» دسته‌ای پیدا نشد. نام کالا را ساده‌تر بنویسید (مثلاً «هندزفری»).</div>`;
+    return;
+  }
+  const link = (qid, value) => {
+    const next = new URLSearchParams({ q });
+    for (const [k, v] of Object.entries(answers)) if (k !== qid) next.set(`a.${k}`, v);
+    if (value != null && answers[qid] !== value) next.set(`a.${qid}`, value);
+    return `#/guide?${next}`;
+  };
+  const questions = g.questions.map((qq, i) => `
+    <section class="card">
+      <div class="muted small">سؤال ${num(i + 1)} از ${num(g.questions.length)}</div>
+      <strong>${esc(qq.text)}</strong>
+      <div class="chips" style="margin-top:8px">
+        ${qq.options.map((o) => `<a class="chip ${answers[qq.id] === o.value ? "pill-open" : ""}" href="${link(qq.id, o.value)}">${esc(o.label)} <span class="muted">(${num(o.count)})</span></a>`).join("")}
+        <a class="chip ${answers[qq.id] ? "" : "pill-open"}" href="${link(qq.id, null)}">مهم نیست</a>
+      </div>
+    </section>`).join("");
+  const sugg = g.suggestions.map((p) => `
+    <article class="card">
+      <a class="product-card" href="#/p/${esc(p.product_id)}">
+        ${thumb(p.image, p.title)}
+        <div class="grow">
+          <div class="title-2">${esc(p.title)}</div>
+          <div class="between"><span class="price">میانه ${esc(tomanShort(p.median_price))}</span>
+            <span class="chip">${num(p.sellers_match)} فروشنده${filtersActive() ? " با شرایط شما" : ""}</span></div>
+        </div>
+      </a>
+      <div class="reasons"><span class="chip reason-good">${esc(p.why)}</span></div>
+      <div class="actions">${compareBtn(p.product_id, p.title)}<a class="btn" href="#/p/${esc(p.product_id)}">فروشنده‌ها</a></div>
+    </article>`).join("");
+  const compareAll = g.suggestions.length >= 2
+    ? `<button type="button" class="btn primary" data-compare-set='${esc(JSON.stringify(g.suggestions.map((p) => ({ id: p.product_id, title: p.title }))))}'>مقایسه‌ی این ${num(g.suggestions.length)} مدل</button>` : "";
+  $view.innerHTML = `
+    <section class="card">
+      <h1 style="margin-top:0">راهنمای انتخاب: ${esc(g.category)}</h1>
+      <p class="muted small" style="margin:0">سؤال‌ها از روی همین ${num(g.products)} مدلِ موجود در فروشگاه‌ها ساخته شده؛ عدد کنار هر گزینه یعنی چند مدل با آن جور است.</p>
+    </section>
+    ${questions}
+    <h2>${num(g.matching)} مدل با جواب‌های شما · ۳ پیشنهاد</h2>
+    ${sugg || `<div class="card muted">مدلی با این جواب‌ها نماند؛ یکی از جواب‌ها را «مهم نیست» کنید.</div>`}
+    <div class="actions">${compareAll}<a class="btn" href="#/search?q=${encodeURIComponent(q)}">همه‌ی نتایج «${esc(q)}»</a></div>`;
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-compare-set]");
+  if (b) { compareList = JSON.parse(b.dataset.compareSet).slice(0, COMPARE_MAX); saveCompare(); location.hash = "#/compare"; }
+});
+
 // ---------- data ----------
 async function getJSON(url) {
   const r = await fetch(url);
@@ -415,7 +474,9 @@ async function viewSearch(q) {
   const few = (data.relax || []).length
     ? `<div class="card small">فقط ${num(data.items.length)} کالا با همه‌ی شرایط شما. با برداشتن یکی:
         <div class="actions">${data.relax.map((r) => `<button class="btn" data-relax="${esc(r.filter)}">بدون «${esc(r.label)}»: ${num(r.products)} کالا</button>`).join("")}</div></div>` : "";
-  $view.innerHTML = understoodBanner(q) + loose + focus + few + `<p class="muted small">مرتب‌شده بر اساس شباهت و تعداد فروشنده${scope}</p>` +
+  const guideLink = !(lastAsk && lastAsk.query === q && lastAsk.intent === "choose")
+    ? `<p class="small"><a href="#/guide?q=${encodeURIComponent(q)}">مدلش را نمی‌دانید؟ با چند سؤال کمکتان می‌کنم ←</a></p>` : "";
+  $view.innerHTML = understoodBanner(q) + loose + focus + few + guideLink + `<p class="muted small">مرتب‌شده بر اساس شباهت و تعداد فروشنده${scope}</p>` +
     data.items.map((p) => productCard(p, data.filters_active)).join("");
 }
 
@@ -590,6 +651,7 @@ function route() {
   if (path.startsWith("/p/")) return viewProduct(decodeURIComponent(path.slice(3)));
   if (path.startsWith("/s/")) return viewShop(decodeURIComponent(path.slice(3)));
   if (path.startsWith("/compare")) return viewCompare();
+  if (path.startsWith("/guide")) return viewGuide(params);
   return viewHome();
 }
 

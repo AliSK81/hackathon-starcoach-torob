@@ -15,6 +15,7 @@ def test_health_and_index():
     page = client.get("/")
     assert page.status_code == 200
     assert 'dir="rtl"' in page.text
+    assert "{{asset_version}}" not in page.text and "/static/app.js?v=" in page.text
 
 
 def test_log_event_appends_and_redacts(tmp_path):

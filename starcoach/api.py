@@ -422,6 +422,19 @@ def ctx_patch(conn: sqlite3.Connection, parsed: dict) -> dict:
     return patch
 
 
+def guide(conn: sqlite3.Connection, q: str, answers: dict[str, str], f: Filters | None = None,
+          category: str | None = None) -> dict:
+    """R1: help choose a model in the category the query points to."""
+    from starcoach import guide as guide_mod
+
+    if not category:
+        top = search_products(conn, q, limit=20)["items"]
+        category = focus_category(top) or (top[0]["category"] if top else None)
+    if not category:
+        return {"category": None, "questions": [], "suggestions": [], "matching": 0, "products": 0}
+    return guide_mod.guide(conn, category, answers, f, seller_stats=_seller_stats)
+
+
 def areas(conn: sqlite3.Connection, passages: int = 40) -> dict:
     """Neighbourhoods and the busiest passages, with shop counts and a center point (for "near" and maps)."""
     def rows(col: str, limit: int):

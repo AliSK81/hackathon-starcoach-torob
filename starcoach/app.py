@@ -1,11 +1,12 @@
 """FastAPI application: JSON API under /api and the mobile web app at /."""
 
+import hashlib
 import sqlite3
 from collections.abc import Iterator
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from starcoach import __version__, api
@@ -15,6 +16,13 @@ from starcoach.filters import parse_filters
 from starcoach.logs import log_event
 
 WEB_DIR = Path(__file__).resolve().parent / "web"
+
+
+def asset_version() -> str:
+    h = hashlib.sha256()
+    for name in ("app.js", "app.css"):
+        h.update((WEB_DIR / "static" / name).read_bytes())
+    return h.hexdigest()[:10]
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -69,6 +77,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                   intent=result["intent"])
         return result
 
+    @app.get("/api/guide")
+    def guide(request: Request, q: str = Query("", max_length=200), cat: str | None = None,
+              conn: sqlite3.Connection = Depends(db)) -> dict:
+        """Guided model choice. Answers come as a.<question id>=<value>; filters as in /api/products."""
+        params = dict(request.query_params)
+        answers = {k[2:]: v for k, v in params.items() if k.startswith("a.")}
+        return api.guide(conn, q, answers, parse_filters(params), category=cat)
+
     @app.get("/api/areas")
     def areas(conn: sqlite3.Connection = Depends(db)) -> dict:
         return api.areas(conn)
@@ -97,8 +113,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return s
 
     @app.get("/", include_in_schema=False)
-    def index() -> FileResponse:
-        return FileResponse(WEB_DIR / "index.html")
+    def index() -> HTMLResponse:
+        # stamp asset URLs with a content hash, so browsers never run a stale app.js / app.css after an update
+        html = (WEB_DIR / "index.html").read_text(encoding="utf-8")
+        return HTMLResponse(html.replace("{{asset_version}}", asset_version()), headers={"Cache-Control": "no-cache"})
 
     app.mount("/static", StaticFiles(directory=WEB_DIR / "static"), name="static")
     return app

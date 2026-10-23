@@ -4,7 +4,7 @@
 
 - **Current phase:** 5 — Assistant: understand the need (3's public deploy parked, D11)
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page, with filters (area / near me, budget, visit time, installments, TorobPay, …), reasons, relax buttons and a 3-product compare.
-- **Last change:** Change 18
+- **Last change:** Change 19
 
 ### What we need from the user
 
@@ -452,3 +452,28 @@ Not done yet:
 
 Next change idea:
 - Guided model choice (R1), then the LLM step
+
+### Change 19 — Guided model choice: questions from the category's own data, 3 suggested models (R1) — 2026-10-23
+Phase: 5, step 5 (R1, R18)
+How to see it: type «نمیدونم چه مدلی هندزفری بخرم» → «کمکم کن مدل مناسب را انتخاب کنم»; or `#/guide?q=کتونی`; API `/api/guide?q=…&a.budget=…&a.brand=…`
+Proof it works (`results/guide-demo.txt`, full DB, 0.15–0.5 s per call):
+- «کتونی» (the video's own example) → «کتانی و کفش اسپرت», 850 models: budget (تا ۳٫۸ / ۳٫۸–۱۰ / بیش از ۱۰ میلیون), brand (نایکی 153, نیو بالانس 16, …), «برای چه کسی؟» (مردانه 182, زنانه 96);
+- «گوشی» → budget, brand, internal memory (256 / 128 / 512 GB); «ساعت مچی» → for whom, water resistance, strap, movement; «لپ تاپ» → storage, screen size, CPU series;
+- answers narrow it: phone + 9–120M + Samsung → 59 models → A07 64GB (28 sellers, «بیشترین فروشنده»), A07 128GB, A17; «مقایسه‌ی این ۳ مدل» opens compare.
+- Each option shows how many models match it, given the other answers.
+Browser 375 px checked. 55 tests pass.
+
+Research: 04 §4.3 (substitution/choice without an LLM from category + price band + specs) followed.
+Questions: none
+Decisions: none
+
+Shipped:
+- `starcoach/guide.py`: budget bands from price terciles, top brands by seller count, "for whom" from titles, spec questions (user-facing keys first, value units folded, multi-valued and count keys skipped), shortlist of 3 with different strengths (most sellers, cheapest, most complete specs), respecting the user's filters
+- `/api/guide`; guide page; «مدلش را نمی‌دانید؟» link on every search page
+- Bugs found and fixed: «باس رم»/«رادیو»/colour questions; values «5600MHz» vs «5600 مگاهرتز» split; a broken regex back-reference (``) merged all memory sizes; long reason chips overflowed at 375 px; browsers kept a stale `app.css` → assets now carry a content hash (`?v=`) and `index.html` is `no-cache`
+
+Not done yet:
+- LLM step (better wording of questions, "why" sentences, messy requests)
+
+Next change idea:
+- LLM client + refine step with logging and fallback

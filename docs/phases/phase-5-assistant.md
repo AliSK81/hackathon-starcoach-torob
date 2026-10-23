@@ -18,5 +18,5 @@
 - [x] Eval set + `starcoach eval-intents` with baseline and held-out split
 - [x] `/api/ask` + assistant box in the UI with "understood" chips
 - [ ] LLM client + refine step with fallback; logged
-- [ ] Guided model choice (R1)
+- [x] Guided model choice (R1)
 - [ ] Check real output on the demo scenarios

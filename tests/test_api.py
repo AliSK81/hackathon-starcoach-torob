@@ -160,3 +160,12 @@ def test_filtered_search_stays_in_the_category_the_query_means(client):
 def test_search_suggests_relaxing_when_results_are_few(client):
     r = client.get("/api/search", params={"q": "شارژر اپل", "max_price": "1000"}).json()
     assert r["items"] == [] and r["relax"] and r["relax"][0]["filter"] == "max_price"
+
+
+def test_guide_asks_data_questions_and_narrows(client):
+    g = client.get("/api/guide", params={"q": "شارژر"}).json()
+    assert g["category"] and g["questions"] and g["suggestions"]
+    budget = next(q for q in g["questions"] if q["id"] == "budget")
+    first = budget["options"][0]
+    narrowed = client.get("/api/guide", params={"q": "شارژر", "a.budget": first["value"]}).json()
+    assert narrowed["matching"] == first["count"] <= g["matching"]
