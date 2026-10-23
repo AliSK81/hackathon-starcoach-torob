@@ -17,6 +17,7 @@ Rules:
 | D8 | Search ranking = FTS5 bm25 + head-word boost (only when the head word also names the category) + accessory-category penalty + log(1+shops). Aliases: 376 groups in `starcoach/data/aliases.json`, mined brands filtered by count ≥ 5, share ≥ 4%, ASCII, minus a hand drop-list. | 2026-10-22 | Claude |
 | D7 | Deploy target: a Docker image that runs anywhere. The host is chosen when the user answers. | 2026-10-22 | Claude (pending reply) |
 | D9 | The four-step flow is now known from the challenge video (`docs/requirements.md` §2): 1) help choose the product/model, 2) find stores that have it near the user, 3) compare stores by price, distance and hours, 4) contact stores (the agent itself asks about price/stock). Replaces D5. Requirements are now numbered R1–R25. | 2026-10-23 | user (video transcript) |
+| D10 | LLM = the user's OpenAI-compatible gateway from `.env` (F25). Thinking is off by default (`chat_template_kwargs.enable_thinking=false`, F27) for mobile latency. The rule-based path stays the default answer; the LLM refines it. Replaces the open part of D4 (provider). | 2026-10-23 | user (.env) + Claude |
 
 ## Checked facts
 
@@ -46,3 +47,6 @@ Rules:
 | F22 | TorobPay (ترب‌پی) | a buy-now-pay-later service: 4 fee-free installments; public sources describe it as online, while the data marks 50 shops `in_person` | 2026-10-22 | research 02 §2 (URLs there); `p8_pay.py` |
 | F23 | The event | StarCoach Agentic AI Hackathon, Torob is the main sponsor, Liara a sponsor; started 2026-10-21 | 2026-10-22 | https://starcoach.ir/hackathon/agentic-ai (research 02 §1) |
 | F24 | Docker Hub from Iran | returns 403 to Iranian IPs; Liara runs a Docker mirror and a PyPI mirror | 2026-10-22 | research 06 §1 (URLs there) |
+| F25 | LLM gateway | OpenAI-compatible `/chat/completions` at `ai-gateway.mohaymen.ir`, model `mohaymen/qwen3.8-27b`; key in `.env` only | 2026-10-23 | live call from `uv run python` (Change 13), HTTP 200 |
+| F26 | LLM tool calling | works with `tools` + `tool_choice:"auto"`: «یه گوشی سامسونگ زیر ۲۰۰ میلیون میخوام» → `search_products{"query":"Samsung phone","max_price":200000000}` in 2.6 s | 2026-10-23 | live call (Change 13) |
+| F27 | LLM is a reasoning model | default: 138 reasoning tokens, 7.2 s; with `chat_template_kwargs:{"enable_thinking":false}`: 0 reasoning tokens, 0.9 s, good Persian; `/no_think` 1.7 s; `reasoning_effort:"low"` 2.6 s. With `max_tokens` 20 the default mode returned no text at all | 2026-10-23 | live calls (Change 13) |

@@ -4,14 +4,14 @@
 
 - **Current phase:** 4 — Filters, area and comparison (3 waits on the host)
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page.
-- **Last change:** Change 12
+- **Last change:** Change 13
 
 ### What we need from the user
 
 | Item | Needed by phase | Status |
 |---|---|---|
 | The four steps and pain points from the challenge video | 5 | answered 2026-10-23 → D9, `docs/requirements.md` §2–3 |
-| LLM provider, base URL and key (D4) | 5 (app works without it) | asked |
+| LLM provider, base URL and key (D4) | 5 (app works without it) | answered 2026-10-23: set in `.env` → D10, F25–F27 |
 | Deploy host: VPS, Iranian PaaS (Liara is a sponsor, F23), or none (D7); and whether judges test from inside Iran | 3 | asked — Docker image ready, waiting |
 | OK on stack (D2), data out of git (D3), simulated seller replies (D6) | 1 | asked |
 | Public download URL for the dataset, if any | 3 | asked |
@@ -311,3 +311,21 @@ Not done yet:
 
 Next change idea:
 - Filters on search results (cards show matching sellers), then the context bar UI
+
+### Change 13 — LLM gateway checked live: chat, tool calls, latency — 2026-10-23
+Phase: 5 prep (R1, R6 depend on it)
+How to see it: the facts F25–F27 in `docs/DECISIONS.md`
+Proof it works: live calls to the gateway in `.env` (key never printed; `.env` is git-ignored): plain chat HTTP 200; tool call parsed budget and query correctly in 2.6 s; thinking off → 0.9 s.
+
+Research: 04 assumed AvalAI/Liara; the user chose a different OpenAI-compatible gateway, so 04's client design (one OpenAI-compatible client, tools, Pydantic check, rules fallback) still holds. New: this model "thinks" by default, which costs 6+ s; turning it off is required for mobile.
+Questions: LLM provider → answered by the user (`.env`).
+Decisions: D10, F25, F26, F27
+
+Shipped:
+- Facts and decision only; no code
+
+Not done yet:
+- No LLM client in the app yet (Phase 5)
+
+Next change idea:
+- Filters on search results, then the context bar UI; then Phase 5 with this LLM
