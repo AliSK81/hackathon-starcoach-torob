@@ -173,7 +173,9 @@ function renderCtxBar() {
     : "";
   const nOn = [pl, ctx.max_price || ctx.min_price, ctx.day != null].filter(Boolean).length + conds.length;
   const all = `<button type="button" class="ctxchip ctxall" data-open-sheet>⚙️ فیلترها${nOn ? ` (${num(nOn)})` : ""}</button>`;
+  const locate = pl ? "" : `<button type="button" class="ctxchip ctxlocate" data-use-location>📍 نزدیک من</button>`;
   const active = [
+    locate,
     pl && chip(true, "📍 " + place, "place"),
     (ctx.max_price || ctx.min_price) && chip(true, "💰 " + budget, "budget"),
     ctx.day != null && chip(true, "🕒 " + when, "when"),
@@ -252,13 +254,24 @@ async function openSheet() {
 
 function myLocation() {
   return new Promise((resolve) => {
-    if (!navigator.geolocation) return resolve(null);
+    if (!navigator.geolocation) { alert("مرورگر شما موقعیت‌یابی را پشتیبانی نمی‌کند؛ یک محله یا پاساژ انتخاب کنید."); return resolve(null); }
     navigator.geolocation.getCurrentPosition(
       (pos) => resolve({ kind: "me", name: "نزدیک من", lat: pos.coords.latitude, lon: pos.coords.longitude }),
       () => { alert("دسترسی به موقعیت داده نشد؛ یک محله یا پاساژ انتخاب کنید."); resolve(null); },
-      { timeout: 8000 },
+      { timeout: 8000, maximumAge: 60000 },
     );
   });
+}
+
+// One-tap "use my location": nearest sellers first, no extra filter needed.
+async function useMyLocation() {
+  const me = await myLocation();
+  if (!me) return false;
+  ctx = { ...ctx, place: me, sort: "distance" };
+  saveCtx();
+  renderCtxBar();
+  route();
+  return true;
 }
 
 function applyCtx() {
@@ -286,6 +299,13 @@ document.addEventListener("click", (e) => {
     return;
   }
   if (e.target.closest("[data-open-sheet]")) openSheet();
+  if (e.target.closest("[data-use-location]")) useMyLocation();
+  const area = e.target.closest("[data-pick-area]");
+  if (area) {
+    const [kind, name, lat, lon] = area.dataset.pickArea.split("|");
+    ctx = { ...ctx, place: { kind, name, lat: Number(lat), lon: Number(lon) }, sort: "distance" };
+    applyCtx();
+  }
   const relax = e.target.closest("[data-relax]");
   if (relax) { ctx = { ...ctx, ...(RELAX_CTX[relax.dataset.relax] || {}) }; applyCtx(); }
 });
@@ -1083,9 +1103,36 @@ function viewHome() {
     <h1 class="home-title">دستیار خرید حضوری در تهران</h1>
     <p class="home-lead">کالا را پیدا کنید، فروشنده‌ها را مقایسه کنید، بروید.</p>`;
   below.innerHTML = `
+    <div id="homeLocation" class="home-location">${homeLocationHTML()}</div>
     <div class="chips home-examples">${EXAMPLES.slice(0, 4).map((e) => `<button type="button" class="chip" data-ask="${esc(e)}">${esc(e)}</button>`).join("")}</div>
     <p class="home-note">قیمت‌ها ثبت‌شده‌ی ترب‌اند · موجودی را قبل از رفتن بپرسید</p>
     ${agentHomeCard()}`;
+  if (ctx.place?.lat != null) loadNearbyChips();
+}
+
+function homeLocationHTML() {
+  const pl = ctx.place;
+  if (pl?.lat != null) {
+    const label = pl.kind === "me" ? "موقعیت شما" : pl.name;
+    return `<div class="home-loc-row"><span>📍 ${esc(label)}</span>
+      <button type="button" class="home-loc-btn" data-use-location>${pl.kind === "me" ? "به‌روزرسانی" : "استفاده از موقعیت من"}</button>
+      <button type="button" class="home-loc-btn" data-clear-ctx="place">پاک کردن</button></div>
+      <div class="chips home-nearby" id="homeNearby"></div>`;
+  }
+  return `<button type="button" class="home-loc-main" data-use-location>📍 موقعیت من را پیدا کن</button>
+    <p class="home-loc-hint">تا نزدیک‌ترین فروشگاه‌ها و پاساژها را نشان دهم · <button type="button" class="home-loc-link" data-open-sheet>انتخاب دستی محله</button></p>`;
+}
+
+// Passages within walking range of the shopper's point, as one-tap "search around there" chips.
+async function loadNearbyChips() {
+  const box = document.getElementById("homeNearby");
+  if (!box) return;
+  try {
+    const { places } = await getJSON(`/api/nearby?lat=${ctx.place.lat}&lon=${ctx.place.lon}&radius_m=1500`);
+    if (!places.length) { box.remove(); return; }
+    box.innerHTML = `<span class="small">نزدیک شما:</span>` + places.slice(0, 5).map((p) =>
+      `<button type="button" class="chip" data-pick-area="passage|${esc(p.name)}|${p.lat}|${p.lon}">${esc(p.name)} · ${esc(faDigits(fmtDistance(p.distance_m)))}</button>`).join("");
+  } catch { box.remove(); }
 }
 
 async function viewSearch(q) {
@@ -1249,6 +1296,7 @@ function sellerCard(entry) {
       <div class="muted small">${s.location_short ? esc(s.location_short) : "محل دقیق در آدرس پیدا نشد"}${s.area ? " · محله " + esc(s.area) : ""} ${nameBadge(s)}</div>
       <div class="between" style="margin-top:6px">${priceLine}${variants}</div>
       ${note}
+      ${entry.distance_m != null ? `<div class="small">📍 ${esc(faDigits(fmtDistance(entry.distance_m)))} ${ctx.place?.kind === "me" ? "تا شما" : "تا " + esc(ctx.place?.name || "")}</div>` : ""}
       <div class="muted small">${ageText}</div>
       <div class="small">${warranty}</div>
       ${(entry.reasons || []).length ? `<div class="reasons">${entry.reasons.map((r) => `<span class="chip reason-${r.kind}">${esc(faDigits(r.text))}</span>`).join("")}</div>` : ""}
