@@ -4,16 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0f766e">
-  <title>استارکوچ — دستیار خرید حضوری</title>
+  <title>دستیار خرید حضوری</title>
   <link rel="stylesheet" href="/static/app.css?v={{asset_version}}">
 </head>
 <body>
   <header class="topbar">
-    <div class="between"><a class="brand" href="#/">استارکوچ</a><a class="planlink" id="planLink" href="#/plan">🗺 برنامه‌ی بازدید</a></div>
+    <div class="between"><a class="brand" href="#/">دستیار خرید حضوری</a><a class="planlink" id="planLink" href="#/plan">🗺 برنامه‌ی بازدید</a></div>
+    <div id="homeAbove" class="home-above" hidden></div>
     <form class="searchbox" id="searchForm" role="search">
       <input id="q" name="q" type="search" placeholder="چه می‌خواهید بخرید؟ مثلاً «شارژر اپل ۲۰ وات»" autocomplete="off" enterkeyhint="search">
       <button type="submit" aria-label="جست‌وجو">جست‌وجو</button>
     </form>
+    <div id="homeBelow" class="home-below" hidden></div>
     <nav class="ctxbar" id="ctxbar" aria-label="شرایط خرید"></nav>
   </header>
   <dialog id="sheet" class="sheet" aria-label="تنظیم شرایط"></dialog>

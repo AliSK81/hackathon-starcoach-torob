@@ -128,17 +128,53 @@ const RELAX_CTX = {
   warranty: { warranty: false },
 };
 
+const CLEAR_CTX = {
+  place: { place: null, radius_m: null, sort: "price" },
+  budget: { max_price: null, min_price: null },
+  when: { day: null, hour: null },
+  conds: Object.fromEntries(CONDITIONS.map(([k]) => [k, false])),
+};
+const CLEAR_UNDO_KEYS = {
+  place: ["passage", "area"],
+  budget: ["budget"],
+  when: ["at"],
+  conds: CONDITIONS.map(([k]) => k),
+};
+
+function ctxBarVisible() {
+  // Filters only matter once the shopper is looking at results (or a page that uses them).
+  const hash = location.hash || "#/";
+  const [path, query] = hash.slice(1).split("?");
+  if (!path || path === "/") return false;
+  if (path.startsWith("/search")) return Boolean(new URLSearchParams(query || "").get("q")?.trim());
+  return /\/(p|guide|compare|plan|passage|s|seller)\b/.test(path);
+}
+
 function renderCtxBar() {
+  const bar = document.getElementById("ctxbar");
+  if (!ctxBarVisible()) {
+    bar.hidden = true;
+    bar.innerHTML = "";
+    return;
+  }
+  bar.hidden = false;
   const pl = ctx.place;
   const place = pl ? (pl.kind === "me" ? "نزدیک من" : pl.name) + (ctx.radius_m ? ` · ${RADII.find((r) => r[0] === ctx.radius_m)?.[1] || ""}` : "") : "همه‌ی محله‌ها";
   const budget = ctx.min_price && ctx.max_price ? `${tomanShort(ctx.min_price)} تا ${tomanShort(ctx.max_price)}`
     : ctx.max_price ? `تا ${tomanShort(ctx.max_price)}` : ctx.min_price ? `از ${tomanShort(ctx.min_price)} به بالا` : "هر بودجه";
   const when = ctx.day == null ? "الان" : `${DAYS_FA[ctx.day]} ساعت ${num(ctx.hour ?? 11)}`;
   const conds = CONDITIONS.filter(([k]) => ctx[k]).map(([, l]) => l);
-  const chip = (on, text) => `<button type="button" class="ctxchip ${on ? "on" : ""}" data-open-sheet>${esc(text)}</button>`;
-  document.getElementById("ctxbar").innerHTML =
-    chip(Boolean(pl), "📍 " + place) + chip(Boolean(ctx.max_price || ctx.min_price), "💰 " + budget) +
-    chip(ctx.day != null, "🕒 " + when) + chip(conds.length > 0, "💳 " + (conds.length ? conds.join("، ") : "شرایط خرید"));
+  const chip = (on, text, clearKey) => on
+    ? `<span class="ctxchip on"><button type="button" class="ctxchip-main" data-open-sheet>${esc(text)}</button><button type="button" class="ctxclear" data-clear-ctx="${clearKey}" aria-label="پاک کردن" title="پاک کردن">✕</button></span>`
+    : `<button type="button" class="ctxchip" data-open-sheet>${esc(text)}</button>`;
+  const anyOn = Boolean(pl || ctx.max_price || ctx.min_price || ctx.day != null || conds.length);
+  const clearAll = anyOn
+    ? `<button type="button" class="ctxchip ctxclear-all" data-clear-ctx="all" title="پاک کردن همه‌ی شرایط">پاک کردن ✕</button>`
+    : "";
+  bar.innerHTML =
+    chip(Boolean(pl), "📍 " + place, "place") + chip(Boolean(ctx.max_price || ctx.min_price), "💰 " + budget, "budget") +
+    chip(ctx.day != null, "🕒 " + when, "when") + chip(conds.length > 0, "💳 " + (conds.length ? conds.join("، ") : "شرایط خرید"), "conds") +
+    clearAll;
 }
 
 async function openSheet() {
@@ -228,6 +264,20 @@ function applyCtx() {
 document.addEventListener("click", (e) => {
   const a = e.target.closest("[data-ask]");
   if (a) { $q.value = a.dataset.ask; ask(a.dataset.ask); }
+  const clear = e.target.closest("[data-clear-ctx]");
+  if (clear) {
+    e.preventDefault();
+    e.stopPropagation();
+    const key = clear.dataset.clearCtx;
+    if (key === "all") ctx = { ...DEFAULT_CTX };
+    else ctx = { ...ctx, ...(CLEAR_CTX[key] || {}) };
+    if (lastAsk) {
+      const drop = key === "all" ? null : new Set(CLEAR_UNDO_KEYS[key] || []);
+      lastAsk.understood = drop ? lastAsk.understood.filter((x) => !drop.has(x.key)) : [];
+    }
+    applyCtx();
+    return;
+  }
   if (e.target.closest("[data-open-sheet]")) openSheet();
   const relax = e.target.closest("[data-relax]");
   if (relax) { ctx = { ...ctx, ...(RELAX_CTX[relax.dataset.relax] || {}) }; applyCtx(); }
@@ -277,7 +327,7 @@ function fmtDistance(m) {
 
 async function viewCompare() {
   if (compareList.length < 2) {
-    $view.innerHTML = `<div class="card empty-state">برای مقایسه حداقل ۲ کالا انتخاب کنید (دکمه‌ی «+ مقایسه» روی هر کالا).</div>`;
+    $view.innerHTML = `${backLink()}<div class="card empty-state">برای مقایسه حداقل ۲ کالا انتخاب کنید (دکمه‌ی «+ مقایسه» روی هر کالا).</div>`;
     return;
   }
   loading();
@@ -305,6 +355,7 @@ async function viewCompare() {
     `<tr class="${r.same ? "same" : ""}"><th>${esc(r.key)}</th>${r.values.map((v) => `<td>${v == null ? unknown() : esc(v)}</td>`).join("")}</tr>`).join("");
   const n = P.length + 1;
   $view.innerHTML = `
+    ${backLink()}
     <h1>مقایسه</h1>
     <p class="muted small">قیمت‌ها ثبت‌شده‌ی فروشنده‌اند؛ موجودی تأیید نشده. بهترین مقدار هر ردیف سبز است.</p>
     <div class="cmp-wrap"><table class="cmp-table">
@@ -405,7 +456,7 @@ async function viewGuide(params) {
   for (const [k, v] of Object.entries(answers)) qs.set(`a.${k}`, v);
   try { g = await getJSON(`/api/guide?${qs}&${filterParams()}`); } catch (e) { return failed(e); }
   if (!g.category) {
-    $view.innerHTML = `<div class="card empty-state">برای «${esc(q)}» دسته‌ای پیدا نشد. نام کالا را ساده‌تر بنویسید (مثلاً «هندزفری»).</div>`;
+    $view.innerHTML = `${backLink()}<div class="card empty-state">برای «${esc(q)}» دسته‌ای پیدا نشد. نام کالا را ساده‌تر بنویسید (مثلاً «هندزفری»).</div>`;
     return;
   }
   const said = params.get("t") || "";
@@ -442,6 +493,7 @@ async function viewGuide(params) {
   const compareAll = g.suggestions.length >= 2
     ? `<button type="button" class="btn primary" data-compare-set='${esc(JSON.stringify(g.suggestions.map((p) => ({ id: p.product_id, title: p.title }))))}'>مقایسه‌ی این ${num(g.suggestions.length)} مدل</button>` : "";
   $view.innerHTML = `
+    ${backLink()}
     <section class="card">
       <h1 style="margin-top:0">راهنمای انتخاب: ${esc(g.category)}</h1>
       <p class="muted small" style="margin:0">سؤال‌ها از روی همین ${num(g.products)} مدلِ موجود در فروشگاه‌ها ساخته شده؛ عدد کنار هر گزینه یعنی چند مدل با آن جور است.</p>
@@ -648,7 +700,7 @@ function whereHTML(w) {
 
 async function viewPlan() {
   if (!planList.length) {
-    $view.innerHTML = `<div class="card empty-state">برنامه‌ی بازدید خالی است. روی کارت هر فروشنده «+ برنامه‌ی بازدید» را بزنید.</div>`;
+    $view.innerHTML = `${backLink()}<div class="card empty-state">برنامه‌ی بازدید خالی است. روی کارت هر فروشنده «+ برنامه‌ی بازدید» را بزنید.</div>`;
     return;
   }
   loading();
@@ -689,6 +741,7 @@ async function viewPlan() {
   }).join("");
   const when = ctx.day == null ? "الان" : `${DAYS_FA[ctx.day]} ساعت ${num(ctx.hour ?? 11)}`;
   $view.innerHTML = `
+    ${backLink()}
     <h1>برنامه‌ی بازدید</h1>
     <p class="muted small">شروع ${esc(start)}، ${esc(when)} · ${num(pl.stops.length)} توقف · ${num(pl.total_walk_m)} متر پیاده · پایان حدود ساعت ${esc(pl.finish)}
       · <a href="javascript:void 0" data-open-sheet>تغییر زمان یا محل شروع</a></p>
@@ -713,6 +766,7 @@ async function viewPassage(name) {
         </a>`).join("")}
     </details>`).join("");
   $view.innerHTML = `
+    ${backLink()}
     <section class="card">
       <h1 style="margin-top:0">${esc(p.kind || "پاساژ")} ${esc(p.name)}</h1>
       <p class="muted small" style="margin:0">${num(p.shops)} فروشگاه در داده‌ی ترب · ${num(p.open_now)} باز در ${esc(when)}${p.area ? ` · محله ${esc(p.area)}` : ""}</p>
@@ -915,6 +969,7 @@ async function viewSeller(shopId, refresh = false) {
     </article>`;
   }).join("");
   $view.innerHTML = `
+    ${backLink()}
     <section class="card">
       <h1 style="margin-top:0">پنل فروشنده (نمایشی)</h1>
       <p class="small" style="margin:0"><strong>${esc(d.shop.name || "")}</strong>${d.shop.passage ? ` · ${esc(d.shop.passage)}` : ""}</p>
@@ -1004,25 +1059,26 @@ async function getJSON(url) {
   return r.json();
 }
 function loading() { $view.innerHTML = '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>'; }
+function backLink() { return `<a class="back" href="javascript:history.back()">→ بازگشت</a>`; }
 function failed(err) {
-  $view.innerHTML = `<div class="card empty-state">مشکلی پیش آمد (${esc(err.message)}). دوباره امتحان کنید.</div>`;
+  $view.innerHTML = `${backLink()}<div class="card empty-state">مشکلی پیش آمد (${esc(err.message)}). دوباره امتحان کنید.</div>`;
 }
 
 // ---------- views ----------
 function viewHome() {
   $q.value = "";
-  $view.innerHTML = `
-    <section class="card">
-      <h1>دستیار خرید حضوری در تهران</h1>
-      <p class="muted">کالا را پیدا کنید، فروشنده‌ها را مقایسه کنید، فروشگاهِ باز و نزدیک را انتخاب کنید و بعد بروید.</p>
-      <div class="actions ai-only" style="margin:0 0 12px"><button type="button" class="btn primary" data-agent-open>✨ گفت‌وگو با دستیار هوشمند</button></div>
-      <p class="small" style="margin:0 0 6px">مثل یک فروشنده با من حرف بزنید؛ بودجه، محله، زمان و شرط پرداخت را از جمله‌تان برمی‌دارم:</p>
-      <div class="chips">${EXAMPLES.map((e) => `<button type="button" class="chip" data-ask="${esc(e)}">${esc(e)}</button>`).join("")}</div>
-    </section>
-    ${agentHomeCard()}
-    <section class="notice info">
-      قیمت‌ها همان قیمتی است که فروشنده در ترب ثبت کرده، با زمان آخرین تغییر. موجودی کالا را هیچ‌جا تأیید شده نشان نمی‌دهیم؛ قبل از رفتن بپرسید.
-    </section>`;
+  $view.innerHTML = "";
+  const above = document.getElementById("homeAbove");
+  const below = document.getElementById("homeBelow");
+  above.hidden = false;
+  below.hidden = false;
+  above.innerHTML = `
+    <h1 class="home-title">دستیار خرید حضوری در تهران</h1>
+    <p class="home-lead">کالا را پیدا کنید، فروشنده‌ها را مقایسه کنید، بروید.</p>`;
+  below.innerHTML = `
+    <div class="chips home-examples">${EXAMPLES.slice(0, 4).map((e) => `<button type="button" class="chip" data-ask="${esc(e)}">${esc(e)}</button>`).join("")}</div>
+    <p class="home-note">قیمت‌ها ثبت‌شده‌ی ترب‌اند · موجودی را قبل از رفتن بپرسید</p>
+    ${agentHomeCard()}`;
 }
 
 async function viewSearch(q) {
@@ -1038,7 +1094,7 @@ async function viewSearch(q) {
          <div class="actions" style="justify-content:center">${(data.relax || []).map((r) => `<button class="btn" data-relax="${esc(r.filter)}">بدون «${esc(r.label)}»: ${num(r.products)} کالا</button>`).join("")}</div>
          <button class="btn primary" data-open-sheet>تغییر شرایط</button>`
       : "<p>کلمه‌ی کوتاه‌تر یا نام دیگری امتحان کنید.</p>";
-    $view.innerHTML = understoodBanner(q) + `<div id="aiBox"></div><div class="card empty-state">برای «${esc(q)}» چیزی پیدا نشد.${hint}</div><div id="hubsBox"></div>`;
+    $view.innerHTML = backLink() + understoodBanner(q) + `<div id="aiBox"></div><div class="card empty-state">برای «${esc(q)}» چیزی پیدا نشد.${hint}</div><div id="hubsBox"></div>`;
     aiSearch(q);
     loadHubs("hubsBox", { q, llm: 1 }, data.filters_active ? "جاهایی که این کالا معمولاً فروخته می‌شود:" : "این کالا را در فروشگاه‌های داده پیدا نکردیم؛ بورسش در تهران:");
     return;
@@ -1055,7 +1111,7 @@ async function viewSearch(q) {
   const fixedWords = Object.entries(data.corrected || {});
   const typo = fixedWords.length
     ? `<p class="small">نتایج برای ${fixedWords.map(([a, b]) => `«${esc(b)}» (به‌جای «${esc(a)}»)`).join("، ")}</p>` : "";
-  $view.innerHTML = understoodBanner(q) + typo + `<div id="aiBox"></div>` + loose + focus + few + guideLink + `<p class="muted small">مرتب‌شده بر اساس شباهت و تعداد فروشنده${scope}</p>` +
+  $view.innerHTML = backLink() + understoodBanner(q) + typo + `<div id="aiBox"></div>` + loose + focus + few + guideLink + `<p class="muted small">مرتب‌شده بر اساس شباهت و تعداد فروشنده${scope}</p>` +
     data.items.map((p) => productCard(p, data.filters_active)).join("") + `<div id="hubsBox"></div>`;
   if (data.mode === "or") loadHubs("hubsBox", { q, llm: 1 }, "دقیقاً همین را پیدا نکردیم؛ بورس این کالا در تهران:");
   aiSearch(q);
@@ -1069,15 +1125,18 @@ function productCard(p, filtered) {
   const sellers = filtered ? `${num(p.match_shops)} از ${num(p.n_shops)} فروشنده با شرایط شما` : `${num(p.n_shops)} فروشنده`;
   const open = p.open_shops ? `<div class="small" style="color:var(--open)">${num(p.open_shops)} فروشنده باز در زمان بازدید</div>` : "";
   return `
-    <a class="card product-card" href="#/p/${esc(p.product_id)}">
-      ${thumb(p.image, p.title)}
-      <div class="grow">
-        <div class="title-2">${esc(p.title)}</div>
-        <div class="muted small">${esc(p.category || "")}${p.brand ? " · " + esc(p.brand) : ""}</div>
-        <div class="between">${price}<span class="chip">${sellers}</span></div>
-        <div class="between">${open || "<span></span>"}${compareBtn(p.product_id, p.title)}</div>
-      </div>
-    </a>`;
+    <article class="card product-card">
+      <a class="product-link" href="#/p/${esc(p.product_id)}">
+        ${thumb(p.image, p.title)}
+        <div class="grow">
+          <div class="title-2">${esc(p.title)}</div>
+          <div class="muted small">${esc(p.category || "")}${p.brand ? " · " + esc(p.brand) : ""}</div>
+          <div class="between">${price}<span class="chip">${sellers}</span></div>
+          ${open || ""}
+        </div>
+      </a>
+      <div class="actions" style="margin-top:8px">${compareBtn(p.product_id, p.title)}</div>
+    </article>`;
 }
 
 let variantProduct = null;
@@ -1097,7 +1156,7 @@ async function viewProduct(id) {
     p.median_price != null && p.sellers_total > 2 ? `میانه ${tomanShort(p.median_price)}` : null,
   ].filter(Boolean).join(" · ");
   $view.innerHTML = `
-    <a class="back" href="javascript:history.back()">→ بازگشت</a>
+    ${backLink()}
     <section class="card">
       ${img}
       <h1>${esc(p.title)}</h1>
@@ -1108,6 +1167,8 @@ async function viewProduct(id) {
       </div>
       <div class="between" style="margin-top:8px"><span class="muted small">${esc(summary)}</span>${compareBtn(p.product_id, p.title)}</div>
     </section>
+    ${specs}
+    <div id="reviewBox"></div>
     <div class="notice">موجودی تأیید نشده است: هر فروشنده این کالا را در ترب ثبت کرده، اما موجود بودن آن امروز معلوم نیست. قیمت‌ها «قیمت ثبت‌شده» با زمان آخرین تغییر هستند.</div>
     ${p.price_spread && p.price_spread > 3 ? `<div class="notice">قیمت‌ها تا ${num(Math.round(p.price_spread))} برابر با هم فرق دارند. ممکن است واحد فروش (عدد، متر، حلقه، بسته) یا اصل/غیراصل بودن کالا فرق کند؛ واحد فروش در داده ثبت نشده. قبل از خرید بپرسید.</div>` : ""}
     <h2>فروشنده‌ها (${ctx.sort === "distance" && ctx.place ? "نزدیک‌ترین اول" : "ارزان‌ترین اول"})</h2>
@@ -1119,9 +1180,7 @@ async function viewProduct(id) {
       .map((e) => ({ ...e, offers: e.offers.filter(offerMatchesVariant) }))
       .filter((e) => e.offers.length)
       .map((e) => sellerCard({ ...e, product_id: p.product_id, product_title: p.title })).join("")}
-    <div id="reviewBox"></div>
-    <div id="hubsBox"></div>
-    ${specs}`;
+    <div id="hubsBox"></div>`;
   if (p.category) loadHubs("hubsBox", { category: p.category, q: p.title }, `بورس «${p.category}» در تهران`);
   loadReview(p.product_id);
   aiPick(p.product_id);
@@ -1205,7 +1264,7 @@ async function viewShop(id) {
   loading();
   let s;
   try { s = await getJSON(`/api/shops/${encodeURIComponent(id)}`); } catch (e) { return failed(e); }
-  const todayIdx = (new Date().getDay() + 1) % 7; // JS: Sun=0 → Iranian week: Sat=0
+  const todayIdx = (tehranNow().getUTCDay() + 1) % 7; // JS Sun=0 → Iranian Sat=0 (same as visitISO)
   const hours = s.hours_week.length
     ? `<table class="hours">${s.hours_week.map((h, i) => `<tr class="${i === todayIdx ? "today" : ""}"><td>${esc(h.day)}</td><td>${esc(h.text)}</td></tr>`).join("")}</table>
        <p class="muted small">ساعت‌ها را فروشنده اعلام کرده؛ تعطیلات رسمی در داده نیست.</p>`
@@ -1219,7 +1278,7 @@ async function viewShop(id) {
     s.website ? `<a class="btn" target="_blank" rel="noopener" href="${esc(s.website)}">وب‌سایت</a>` : "",
   ].join("");
   $view.innerHTML = `
-    <a class="back" href="javascript:history.back()">→ بازگشت</a>
+    ${backLink()}
     <section class="card">
       <div class="between"><h1>${esc(s.name || "بدون نام")}</h1>${openPill(s.open_now, s.hours_status)}</div>
       ${nameBadge(s)}
@@ -1267,11 +1326,28 @@ async function viewShop(id) {
 }
 
 // ---------- router ----------
+function isHomeRoute(path) {
+  return !path || path === "/";
+}
+
+function setHomeChrome(on) {
+  document.body.classList.toggle("is-home", on);
+  if (!on) {
+    const above = document.getElementById("homeAbove");
+    const below = document.getElementById("homeBelow");
+    if (above) { above.hidden = true; above.innerHTML = ""; }
+    if (below) { below.hidden = true; below.innerHTML = ""; }
+  }
+}
+
 function route() {
   renderTray();
   const hash = location.hash || "#/";
   const [path, query] = hash.slice(1).split("?");
   const params = new URLSearchParams(query || "");
+  const home = isHomeRoute(path) || (path.startsWith("/search") && !params.get("q")?.trim());
+  setHomeChrome(home);
+  renderCtxBar();
   window.scrollTo(0, 0);
   if (path.startsWith("/search")) return viewSearch(params.get("q") || "");
   if (path.startsWith("/p/")) return viewProduct(decodeURIComponent(path.slice(3)));

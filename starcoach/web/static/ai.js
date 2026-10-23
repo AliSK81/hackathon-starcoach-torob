@@ -178,12 +178,9 @@ function agentSave() {
 }
 
 function agentHomeCard() {
-  return `<section class="card ai-card ai-only">
-      <div class="ai-head"><span class="ai-spark">✨</span> با دستیار حرف بزنید</div>
-      <p class="muted small" style="margin:4px 0 8px">یک دستیار گفت‌وگومحور که می‌گردد، شرایط شما را اعمال می‌کند، فروشنده‌ها را مقایسه می‌کند، از آن‌ها می‌پرسد و می‌گوید کجا بروید.</p>
-      <div class="chips">${AGENT_EXAMPLES.map((t) => `<button type="button" class="chip" data-agent-say="${esc(t)}">${esc(t)}</button>`).join("")}</div>
-      <div class="actions"><button type="button" class="btn primary" data-agent-open>شروع گفت‌وگو</button></div>
-    </section>`;
+  return `<div class="home-ai ai-only">
+      <button type="button" class="btn home-ai-btn" data-agent-open>✨ گفت‌وگو با دستیار</button>
+    </div>`;
 }
 
 function agentShell() {
@@ -233,9 +230,10 @@ document.addEventListener("click", (e) => {
   if (e.target.closest("[data-agent-open]")) { agentOpen(); return; }
   const chip = e.target.closest("[data-agent-chip]");
   if (chip) { agentSend(chip.dataset.agentChip); return; }
-  // a link inside the chat (a product, a shop) leaves the chat and shows that page
+  // a link or "full compare" inside the chat leaves the chat and shows that page
   const link = e.target.closest("#aiPanel a[href^='#/']");
   if (link) agentClose();
+  if (e.target.closest("#aiPanel [data-compare-set]")) agentClose();
 });
 
 function patchNote(patch, clear) {
