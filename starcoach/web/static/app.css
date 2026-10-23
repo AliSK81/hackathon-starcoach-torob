@@ -277,7 +277,7 @@ details summary { cursor: pointer; color: var(--primary); }
 .skeleton { height: 96px; border-radius: var(--radius); background: linear-gradient(90deg, #eceef1, #f6f7f9, #eceef1); background-size: 200% 100%; animation: sk 1.2s infinite; margin-bottom: 12px; }
 @keyframes sk { to { background-position: -200% 0; } }
 
-.ctxbar { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.ctxbar { display: flex; flex-wrap: wrap; gap: 6px; }
 .ctxbar[hidden] { display: none; }
 .ctxbar::-webkit-scrollbar { display: none; }
 .ctxchip {
@@ -421,8 +421,8 @@ body:not(.ai-ready) .ai-only { display: none !important; }
 
 /* ---------- mobile polish ---------- */
 .ctxall { background: #fff; color: var(--primary); border-color: #fff; font-weight: 700; }
-.ctxbar { padding: 2px 0 4px; -webkit-mask-image: linear-gradient(to left, #000 92%, transparent); mask-image: linear-gradient(to left, #000 92%, transparent); }
-.ctxchip { min-height: 34px; }
+.ctxchip { min-height: 30px; padding: 2px 12px; font-size: 13px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.ctxchip.on { padding: 2px 4px 2px 12px; }
 .btn, .searchbox button { min-height: 40px; }
 .thumb { max-width: 28vw; }
 
