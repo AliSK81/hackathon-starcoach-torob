@@ -48,6 +48,12 @@ In Iran, Docker Hub and PyPI may be blocked. Build with mirrors:
 BASE_IMAGE=docker-mirror.liara.ir/library/python:3.12-slim PIP_INDEX_URL=https://package-mirror.liara.ir/repository/pypi/simple docker compose build
 ```
 
+## Lint
+
+```bash
+uvx ruff@0.8.4 check starcoach tests
+```
+
 ## Tests
 
 All tests run offline. They use a small real sample of the dataset in `tests/fixtures/mini/`
