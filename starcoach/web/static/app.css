@@ -223,10 +223,10 @@ h2 { font-size: 16px; margin: 18px 0 8px; }
   white-space: nowrap;
 }
 button.chip, a.chip { cursor: pointer; background: var(--primary-soft); color: var(--primary); padding: 6px 12px; }
-.pill-open { background: var(--open-soft); color: var(--open); }
-.pill-closed { background: var(--closed-soft); color: var(--closed); }
-.pill-unknown { background: var(--unknown-soft); color: var(--unknown); }
-.pill-warn { background: var(--warn-soft); color: var(--warn); }
+.chip.pill-open, a.chip.pill-open, button.chip.pill-open { background: var(--open-soft); color: var(--open); }
+.chip.pill-closed, a.chip.pill-closed, button.chip.pill-closed { background: var(--closed-soft); color: var(--closed); }
+.chip.pill-unknown, a.chip.pill-unknown, button.chip.pill-unknown { background: var(--unknown-soft); color: var(--unknown); }
+.chip.pill-warn, a.chip.pill-warn, button.chip.pill-warn { background: var(--warn-soft); color: var(--warn); }
 
 .product-card { color: inherit; }
 .product-card > .product-link { display: flex; gap: 12px; color: inherit; }
