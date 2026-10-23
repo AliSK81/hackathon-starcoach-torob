@@ -8,7 +8,6 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-
 from pydantic import BaseModel, Field
 
 from starcoach import __version__, api, contact, visit
