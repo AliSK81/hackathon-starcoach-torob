@@ -43,3 +43,9 @@ def test_eval_beats_baseline():
         rules = run_eval(CASES, parse, split)
         base = run_eval(CASES, baseline_parse, split)
         assert rules["slot_accuracy"] >= 0.9 > base["slot_accuracy"]
+
+
+def test_budget_word_wins_over_a_spec_number():
+    assert parse_price("پاوربانک 20 هزار زیر 3 میلیون")["max"] == 3_000_000
+    r = parse("بودجم کمه، یه گوشی ساده میخوام")
+    assert r["cheap"] is True and r["query"] == "گوشی ساده"

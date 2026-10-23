@@ -15,7 +15,7 @@ It follows the four steps of the challenge video: **choose the product → find 
 uv sync
 uv run starcoach build-db        # CSVs in data/torob-dataset/ -> data/starcoach.db (~50 s)
 uv run starcoach serve           # http://127.0.0.1:8000 — open it at phone width
-uv run pytest                    # 65 offline tests
+uv run pytest                    # 66 offline tests
 uv run starcoach results         # regenerates results/*.txt|json from the DB (~2 s)
 uv run starcoach smoke --url http://127.0.0.1:8000
 ```
@@ -60,7 +60,7 @@ Optional LLM: set `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` in `.env` (any Open
 | R21 | Unknown shown clearly | «نامشخص», «ساعت کاری ثبت نشده», «قیمت ثبت نشده؛ استعلام تلفنی» |
 | R22 | Persian, RTL, mobile | `dir="rtl"`, `fa-IR` numbers and dates, checked at 375 × 812 |
 | R23 | Deployed and stable | Docker image, `/health`, `/ready`, healthcheck, `starcoach smoke`; public deploy parked by the team (D11) |
-| R24 | Code structure, tools, performance | one module per capability, one CLI command per capability, 65 tests, ruff clean; timings below |
+| R24 | Code structure, tools, performance | one module per capability, one CLI command per capability, 66 tests, ruff clean; timings below |
 | R25 | Demo-ready | §8 demo script |
 
 ## 4. Architecture
@@ -109,13 +109,14 @@ web app (index.html + app.js + app.css, hash routes, localStorage for the user's
 
 **Search** (`results/search-demo-queries.txt`): 12 demo queries, all with a sensible top 3; ~10 ms mean.
 
-**Request understanding** (slot accuracy; `results/intent-eval-*.json`; 55 labeled requests):
+**Request understanding** (slot accuracy; `results/intent-eval-*.json`; 63 labeled requests):
 
 | split | baseline (no parsing) | rules | rules + LLM |
 |---|---|---|---|
 | dev (30) | 0.469 | 1.00 | 0.984 |
 | test (15, held out) | 0.429 | 1.00 | 1.00 |
-| hard (10 free descriptions) | 0.28 | 0.72 | 0.769 |
+| hard (10 free descriptions) | 0.28 | 0.88 | 0.96 |
+| hard2 (8 messy requests; rules 0.80 while held out) | 0.421 | 0.90 | 0.90 |
 
 The LLM *replacing* the rules scored 0.423 on hard (F29); that is why the LLM only fills gaps.
 

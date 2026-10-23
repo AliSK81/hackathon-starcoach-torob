@@ -47,7 +47,7 @@ def generate(db_path: Path, cases: Path, out: Path) -> dict:
 
     g = Gazetteer.from_db(conn)
     evals = {}
-    for split in ("dev", "test", "hard"):
+    for split in ("dev", "test", "hard", "hard2"):
         evals[split] = {
             "baseline": run_eval(cases, baseline_parse, split),
             "rules": run_eval(cases, lambda t: parse_request(t, g, now=EVAL_NOW), split),

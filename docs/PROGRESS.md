@@ -4,7 +4,7 @@
 
 - **Current phase:** 8 — Release (audit passed except the parked public deploy, D11); improving weakest items
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page, with filters (area / near me, budget, visit time, installments, TorobPay, …), reasons, relax buttons and a 3-product compare.
-- **Last change:** Change 29
+- **Last change:** Change 30
 
 ### What we need from the user
 
@@ -691,3 +691,21 @@ Decisions: pick weights in `filters.py` (price per 10% = 1.0, unknown hours 0.6,
 Shipped:
 - `filters.pick_seller`; `api.product` returns `pick`; pick card with contact and plan buttons
 - Persian digits in reason texts (`faDigits`)
+
+### Change 30 — Casual budget words, punctuation, and spec numbers that are not budgets — 2026-10-23
+Phase: 8, improving weakest items (Intelligence: understanding real requests)
+How to see it: type «بودجم کمه، یه گوشی ساده میخوام» or «یه پاوربانک ۱۰ هزار تو پاساژ چارسو»; `uv run starcoach eval-intents --split hard2`
+Proof it works:
+- Honest measurement: 8 new messy requests (split `hard2`) were written **before** this change. Held out, rules scored 0.80 (baseline 0.421). The first attempt (new "cheap" phrasings) left hard2 at 0.80: a comma right after the phrase («…کمه،») broke the whole-word check. After stripping punctuation before parsing, hard2 = 0.90 (no longer held out). Remaining misses are budget-unit judgments.
+- `hard` (older messy set): rules 0.72 → 0.88; rules + LLM 0.769 → 0.96. dev and test stay 1.0 (F30).
+- «پاوربانک ۱۰ هزار» → query «پاوربانک 10000» (a 10,000-Toman "budget" is under 1/20 of the category median, so it is a capacity) → top «پاوربانک 10000 گرین لاین»; «پاوربانک ۲۰ هزار زیر ۳ میلیون» → budget 3 M (the amount with «زیر» wins), «20 هزار» stays in the query.
+66 tests pass; ruff clean.
+
+Research: 03 §3.1 (bare «تومن» by category median) extended to implausible budgets.
+Questions: none
+Decisions: F30
+
+Shipped:
+- `intent.py`: casual cheap phrases («پول زیادی ندارم», «زیاد گرون نباشه», «بودجم کمه», «کم قیمت», …), «…میلیونه/…تومنه», punctuation stripped before parsing, the amount with a budget word wins
+- `api.ask`: implausible budgets go back into the product words
+- `eval-intents --split hard2`; `starcoach results` scores hard2 too

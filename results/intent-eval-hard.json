@@ -203,15 +203,15 @@
   "rules": {
     "split": "hard",
     "cases": 10,
-    "exact_match": 0.6,
-    "slot_accuracy": 0.72,
+    "exact_match": 0.7,
+    "slot_accuracy": 0.88,
     "per_slot": {
       "area": "1/1",
-      "cheap": "0/2",
+      "cheap": "2/2",
       "conditions": "4/4",
       "intent": "2/2",
-      "max_price": "1/2",
-      "min_price": "0/1",
+      "max_price": "2/2",
+      "min_price": "1/1",
       "passage": "1/1",
       "query": "7/10",
       "time": "2/2"
@@ -227,13 +227,7 @@
             "want": [
               "هندزفری"
             ],
-            "got": "چیزی تو مترو اهنگ گوش بدم, سیم نداشته باشه, پول زیادی ندارم"
-          },
-          {
-            "slot": "cheap",
-            "ok": false,
-            "want": true,
-            "got": false
+            "got": "چیزی تو مترو اهنگ گوش بدم سیم نداشته"
           }
         ]
       },
@@ -252,24 +246,6 @@
         ]
       },
       {
-        "text": "واسه مغازه‌ام دوربین میخوام که شب هم تصویر بده، بودجه‌ام حدود ده میلیونه",
-        "ok": false,
-        "failed": [
-          {
-            "slot": "max_price",
-            "ok": false,
-            "want": 12000000,
-            "got": null
-          },
-          {
-            "slot": "min_price",
-            "ok": false,
-            "want": 8000000,
-            "got": null
-          }
-        ]
-      },
-      {
         "text": "نمیدونم لپتاپ چی بگیرم برای دانشگاه، زیاد گرون نباشه",
         "ok": false,
         "failed": [
@@ -279,13 +255,7 @@
             "want": [
               "لپ"
             ],
-            "got": "لپتاپ بگیرم دانشگاه, زیاد گرون نباشه"
-          },
-          {
-            "slot": "cheap",
-            "ok": false,
-            "want": true,
-            "got": false
+            "got": "لپتاپ بگیرم دانشگاه"
           }
         ]
       }
@@ -294,50 +264,20 @@
   "rules+llm": {
     "split": "hard",
     "cases": 10,
-    "exact_match": 0.6,
-    "slot_accuracy": 0.769,
+    "exact_match": 0.9,
+    "slot_accuracy": 0.96,
     "per_slot": {
       "area": "1/1",
-      "cheap": "0/2",
+      "cheap": "2/2",
       "conditions": "4/4",
       "intent": "2/2",
-      "max_price": "1/2",
-      "min_price": "0/1",
+      "max_price": "2/2",
+      "min_price": "1/1",
       "passage": "1/1",
       "query": "9/10",
-      "time": "2/3"
+      "time": "2/2"
     },
     "failures": [
-      {
-        "text": "یه چیزی میخوام تو مترو آهنگ گوش بدم، سیم نداشته باشه، پول زیادی ندارم",
-        "ok": false,
-        "failed": [
-          {
-            "slot": "cheap",
-            "ok": false,
-            "want": true,
-            "got": false
-          }
-        ]
-      },
-      {
-        "text": "واسه مغازه‌ام دوربین میخوام که شب هم تصویر بده، بودجه‌ام حدود ده میلیونه",
-        "ok": false,
-        "failed": [
-          {
-            "slot": "max_price",
-            "ok": false,
-            "want": 12000000,
-            "got": null
-          },
-          {
-            "slot": "min_price",
-            "ok": false,
-            "want": 8000000,
-            "got": null
-          }
-        ]
-      },
       {
         "text": "نمیدونم لپتاپ چی بگیرم برای دانشگاه، زیاد گرون نباشه",
         "ok": false,
@@ -349,24 +289,6 @@
               "لپ"
             ],
             "got": "لپتاپ"
-          },
-          {
-            "slot": "cheap",
-            "ok": false,
-            "want": true,
-            "got": false
-          }
-        ]
-      },
-      {
-        "text": "دزدگیر خونه سیم‌کارتی، تو پاساژ علاءالدین ۲، الان باز باشن",
-        "ok": false,
-        "failed": [
-          {
-            "slot": "time",
-            "ok": false,
-            "want": null,
-            "got": "2026-10-22T12:00"
           }
         ]
       }

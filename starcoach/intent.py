@@ -23,13 +23,17 @@ _HUND = {"صد": 100, "یکصد": 100, "دویست": 200, "سیصد": 300, "چه
 _WORDNUM = {**_ONES, **_TEENS, **_TENS, **_HUND, "نیم": 0.5}
 _W = "|".join(sorted(_WORDNUM, key=len, reverse=True))
 _NUM = rf"(?:\d+(?:[.,/]\d+)?|(?<!\S)(?:{_W})(?!\S)(?:\s+و\s+(?:{_W})(?!\S))*)"  # «سی» must not match inside «سیم»
-_UNIT = (r"(?<=[\s\d])(?:میلیارد|ملیارد|میلیونی|میلیون|ملیون|میل|م|هزاری|هزار|تومان|تومن|تومنی|تومانی|ت|ریال|k|m)"
+_UNIT = (r"(?<=[\s\d])(?:میلیارد|ملیارد|میلیونی|میلیونه|میلیون|ملیون|میل|م|هزاری|هزاره|هزار|تومان|تومنه|تومن|تومنی|تومانی|ت|ریال|k|m)"  # «…میلیونه» = "is … million"
          r"(?!\w)(?!\s*(?:میلی|امپر|mah|گیگ|مگ|پیکسل|وات|دور|متر))")
 _CUR = r"(?:\s*(?:تومان|تومن|تومنی|تومانی|ریال))?"
 _MAX_W = r"(?:زیر|کمتر از|کم تر از|حداکثر|نهایتا|تا سقف|ارزان تر از|ارزونتر از|ارزون تر از|تا)"
 _MIN_W = r"(?:بالای|بالاتر از|بیشتر از|بیش از|حداقل|گرانتر از|گرون تر از)"
 _APX_W = r"(?:حدود|حدودا|در حد|تقریبا|دور و بر|در رنج)"
-_CHEAP = re.compile(r"(?<!\S)(?:ارزان|ارزون|ارزونترین|ارزانترین|ارزون ترین|ارزان ترین|اقتصادی|به صرفه|مقرون به صرفه)(?!\S)")
+_CHEAP = re.compile(
+    r"(?<!\S)(?:ارزان|ارزون|ارزونترین|ارزانترین|ارزون ترین|ارزان ترین|اقتصادی|به صرفه|مقرون به صرفه|"
+    r"کم قیمت|قیمت پایین|ارزون قیمت|ارزان قیمت|پول زیادی ندارم|پول زیاد ندارم|زیاد پول (?:پاش|براش|بابتش) ندم|"
+    r"(?:زیاد )?گرون نباشه|(?:زیاد )?گران نباشد|بودجه ?(?:ام|م)? ?کم(?:ه| است)?|بودجم کمه)(?!\S)"
+)
 _RANGE = re.compile(rf"(?:بین|از)?\s*(?P<a>{_NUM})\s*(?P<ua>{_UNIT})?{_CUR}\s*(?:تا|-|و(?=\s*\d))\s*(?P<b>{_NUM})\s*(?P<ub>{_UNIT}){_CUR}")
 _ONE = re.compile(rf"(?P<cmp>{_MAX_W}|{_MIN_W}|{_APX_W})?\s*(?P<n>{_NUM})\s*(?P<u>{_UNIT}){_CUR}(?:\s*(?:به بالا|به پایین|به بالاتر))?")
 _CMP_ONLY = re.compile(r"(?P<cmp>زیر|کمتر از|حداکثر|بالای|بیشتر از|حداقل)\s+(?P<n>\d+(?:[.]\d+)?)(?!\d)"
@@ -70,6 +74,12 @@ def _resolve(value: float, mult: float | None, median: float) -> tuple[float, bo
     return min(cands, key=lambda v: abs(math.log10(v) - math.log10(median))), True
 
 
+def _best_one(q: str):
+    """Of several amounts («پاوربانک ۲۰ هزار زیر ۳ میلیون»), the one with a budget word is the budget."""
+    found = list(_ONE.finditer(q))
+    return next((m for m in found if m.group("cmp")), found[0] if found else None)
+
+
 def parse_price(text: str, median: float = DEFAULT_MEDIAN) -> dict:
     """Return {min, max, cheap, ambiguous, matched, rest} on normalized text."""
     q = re.sub(r"(?<=\d),(?=\d{3}(?!\d))", "", text)
@@ -82,7 +92,7 @@ def parse_price(text: str, median: float = DEFAULT_MEDIAN) -> dict:
         b, x2 = _resolve(_num(m.group("b")), _mult(ub), median)
         out.update(min=int(min(a, b)), max=int(max(a, b)), ambiguous=x1 or x2, matched=m.group(0).strip())
         q = q.replace(m.group(0), " ")
-    elif m := _ONE.search(q):
+    elif m := _best_one(q):
         v, amb = _resolve(_num(m.group("n")), _mult(m.group("u")), median)
         cmp_, tail = m.group("cmp") or "", m.group(0)
         if re.fullmatch(_MIN_W, cmp_) or "به بالا" in tail:
@@ -231,6 +241,9 @@ def parse_request(text: str, g: Gazetteer, now: datetime | None = None, median: 
     """Return {"query", "filters": {...API params...}, "understood": [{"key", "label", "text"}], "ambiguous", "intent"}."""
     now = now or now_tehran()
     t = normalize(text, split_alnum=False)
+    # punctuation carries no slot meaning; drop it so whole-word checks work before a comma («…کمه،»)
+    t = re.sub(r"(?<=\d),(?=\d{3}(?!\d))", "", t)  # 20,000,000 -> 20000000
+    t = re.sub(r"[,;:!?()«»\"]|(?<!\d)\.|\.(?!\d)", " ", t)
     understood: list[dict] = []
     filters: dict = {}
 

@@ -434,9 +434,28 @@ def ask(conn: sqlite3.Connection, text: str, gazetteer, now: datetime | None = N
         # bare «تومن»: thousand or million? pick what fits this category's prices (research 03 §3.1)
         median = category_median(conn, category) or DEFAULT_MEDIAN
         parsed = parse_request(text, gazetteer, now=now, median=median)
+    parsed = _drop_implausible_budget(conn, parsed, category)
     parsed.setdefault("source", "rules")
     return {"text": text, "category": category, **parsed, "ctx_patch": ctx_patch(conn, parsed),
             "rules_struggled": struggled, "llm_available": llm_ready}
+
+
+IMPLAUSIBLE_BUDGET_SHARE = 1 / 20  # a "budget" this far below the category median is a spec, not a price
+
+
+def _drop_implausible_budget(conn: sqlite3.Connection, parsed: dict, category: str | None) -> dict:
+    """«پاوربانک ۱۰ هزار» means 10,000 mAh, not a 10,000-Toman budget: give the number back to the query."""
+    f = parsed.get("filters", {})
+    price = f.get("max_price") or f.get("min_price")
+    median = category_median(conn, category) if category else None
+    if not price or not median or price >= median * IMPLAUSIBLE_BUDGET_SHARE:
+        return parsed
+    budget = next((u for u in parsed.get("understood", []) if u["key"] == "budget"), None)
+    number = str(price) if price % 1000 == 0 else None
+    filters = {k: v for k, v in f.items() if k not in ("max_price", "min_price")}
+    query = f"{parsed['query']} {number}".strip() if number and budget and "هزار" in budget["text"] else parsed["query"]
+    return {**parsed, "filters": filters, "query": query, "ambiguous": {},
+            "understood": [u for u in parsed.get("understood", []) if u["key"] != "budget"]}
 
 
 def ctx_patch(conn: sqlite3.Connection, parsed: dict) -> dict:
