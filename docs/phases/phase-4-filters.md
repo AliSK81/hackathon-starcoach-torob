@@ -17,7 +17,7 @@
 ## Checklist
 - [x] `Filters` + seller filtering, sorting (price / distance) and reasons on the product page API
 - [x] Search filtered by budget, area, open, conditions; cards show matching sellers
-- [ ] `/api/areas` with shop counts and centers
-- [ ] UI: context bar + filter sheet; results update
+- [x] `/api/areas` with shop counts and centers
+- [x] UI: context bar + filter sheet; results update
 - [ ] Compare view for 2–3 products
 - [ ] Check real output for the demo scenarios

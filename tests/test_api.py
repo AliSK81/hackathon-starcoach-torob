@@ -113,3 +113,10 @@ def test_search_filters_keep_only_products_with_matching_sellers(client):
     assert all(0 < i["match_shops"] <= i["n_shops"] for i in inst)
     cheap = client.get("/api/search", params={"q": "شارژر", "max_price": "2000000"}).json()["items"]
     assert all(i["match_min_price"] <= 2000000 for i in cheap)
+
+
+def test_areas_have_counts_and_centers(client):
+    a = client.get("/api/areas").json()
+    assert a["areas"] and a["passages"]
+    top = a["areas"][0]
+    assert top["shops"] >= a["areas"][-1]["shops"] and 35 < top["lat"] < 36 and 51 < top["lon"] < 52

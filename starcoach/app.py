@@ -48,6 +48,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def meta(conn: sqlite3.Connection = Depends(db)) -> dict:
         return api.meta(conn)
 
+    @app.get("/api/areas")
+    def areas(conn: sqlite3.Connection = Depends(db)) -> dict:
+        return api.areas(conn)
+
     @app.get("/api/search")
     def search(request: Request, q: str = Query("", max_length=200), limit: int = Query(20, ge=1, le=50),
                conn: sqlite3.Connection = Depends(db)) -> dict:

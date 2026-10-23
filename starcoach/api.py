@@ -282,5 +282,20 @@ def shop(conn: sqlite3.Connection, shop_id: str, at: datetime | None = None, lim
     }
 
 
+def areas(conn: sqlite3.Connection, passages: int = 40) -> dict:
+    """Neighbourhoods and the busiest passages, with shop counts and a center point (for "near" and maps)."""
+    def rows(col: str, limit: int):
+        return [
+            {"name": r[0], "shops": r[1], "lat": round(r[2], 6), "lon": round(r[3], 6)}
+            for r in conn.execute(
+                f"""SELECT {col}, COUNT(*), AVG(lat), AVG(lon) FROM shops
+                    WHERE {col} IS NOT NULL AND n_offers > 0 AND lat IS NOT NULL
+                    GROUP BY {col} ORDER BY COUNT(*) DESC LIMIT ?""",
+                (limit,),
+            )
+        ]
+    return {"areas": rows("area", 100), "passages": rows("passage", passages)}
+
+
 def meta(conn: sqlite3.Connection) -> dict:
     return {k: v for k, v in conn.execute("SELECT key, value FROM meta") if k in ("snapshot", "built_at")}

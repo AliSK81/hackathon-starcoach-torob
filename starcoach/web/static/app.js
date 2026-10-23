@@ -59,6 +59,169 @@ function thumb(src, alt) {
     : `<div class="thumb empty">بدون تصویر</div>`;
 }
 
+// ---------- user context: area, budget, visit time, purchase conditions ----------
+const DAYS_FA = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"];
+const CONDITIONS = [
+  ["open", "فقط باز در زمان بازدید"],
+  ["installments", "فقط خرید اقساطی"],
+  ["torobpay", "ترب‌پی"],
+  ["in_person_pay", "پرداخت حضوری اعلام‌شده"],
+  ["fast", "ارسال فوری"],
+  ["warranty", "گارانتی‌دار"],
+];
+const BUDGETS = [2e6, 5e6, 20e6, 50e6, 100e6, 200e6];
+const RADII = [[300, "۳۰۰ متر"], [1000, "۱ کیلومتر"], [3000, "۳ کیلومتر"]];
+const DEFAULT_CTX = {
+  place: null, // {kind: "area" | "passage" | "me", name, lat, lon}
+  radius_m: null, max_price: null, day: null, hour: null, sort: "price",
+  open: false, installments: false, torobpay: false, in_person_pay: false, fast: false, warranty: false,
+};
+let ctx = loadCtx();
+let AREAS = null;
+
+function loadCtx() {
+  try { return { ...DEFAULT_CTX, ...JSON.parse(localStorage.getItem("sc_ctx") || "{}") }; } catch { return { ...DEFAULT_CTX }; }
+}
+function saveCtx() { try { localStorage.setItem("sc_ctx", JSON.stringify(ctx)); } catch { /* private mode */ } }
+
+function tehranNow() { return new Date(Date.now() + 3.5 * 3600e3); } // read with getUTC* (UTC+03:30, F17)
+function visitISO() {
+  if (ctx.day == null) return null;
+  const now = tehranNow();
+  const today = (now.getUTCDay() + 1) % 7; // JS Sun=0 → Iranian Sat=0
+  const hour = ctx.hour ?? 11;
+  let ahead = (ctx.day - today + 7) % 7;
+  if (ahead === 0 && hour < now.getUTCHours()) ahead = 7;
+  const d = new Date(now.getTime() + ahead * 86400e3);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(hour)}:00`;
+}
+function filterParams() {
+  const p = new URLSearchParams();
+  const pl = ctx.place;
+  if (pl?.kind === "area") p.set("area", pl.name);
+  if (pl?.kind === "passage") p.set("passage", pl.name);
+  if (pl?.lat != null) { p.set("lat", pl.lat); p.set("lon", pl.lon); }
+  if (ctx.radius_m && pl?.lat != null) p.set("radius_m", ctx.radius_m);
+  if (ctx.max_price) p.set("max_price", ctx.max_price);
+  const at = visitISO();
+  if (at) p.set("at", at);
+  for (const [k] of CONDITIONS) if (ctx[k]) p.set(k, "1");
+  if (ctx.sort === "distance" && pl?.lat != null) p.set("sort", "distance");
+  return p.toString();
+}
+function filtersActive() {
+  return Boolean(ctx.place || ctx.max_price || CONDITIONS.some(([k]) => ctx[k]));
+}
+// API filter name → how to switch it off in ctx (for "relax" suggestions)
+const RELAX_CTX = {
+  max_price: { max_price: null }, min_price: {}, area: { place: null }, passage: { place: null },
+  radius_m: { radius_m: null }, open_only: { open: false }, installments: { installments: false },
+  torobpay: { torobpay: false }, in_person_pay: { in_person_pay: false }, fast_delivery: { fast: false },
+  warranty: { warranty: false },
+};
+
+function renderCtxBar() {
+  const pl = ctx.place;
+  const place = pl ? (pl.kind === "me" ? "نزدیک من" : pl.name) + (ctx.radius_m ? ` · ${RADII.find((r) => r[0] === ctx.radius_m)?.[1] || ""}` : "") : "همه‌ی محله‌ها";
+  const budget = ctx.max_price ? `تا ${tomanShort(ctx.max_price)}` : "هر بودجه";
+  const when = ctx.day == null ? "الان" : `${DAYS_FA[ctx.day]} ساعت ${num(ctx.hour ?? 11)}`;
+  const conds = CONDITIONS.filter(([k]) => ctx[k]).map(([, l]) => l);
+  const chip = (on, text) => `<button type="button" class="ctxchip ${on ? "on" : ""}" data-open-sheet>${esc(text)}</button>`;
+  document.getElementById("ctxbar").innerHTML =
+    chip(Boolean(pl), "📍 " + place) + chip(Boolean(ctx.max_price), "💰 " + budget) +
+    chip(ctx.day != null, "🕒 " + when) + chip(conds.length > 0, "💳 " + (conds.length ? conds.join("، ") : "شرایط خرید"));
+}
+
+async function openSheet() {
+  if (!AREAS) { try { AREAS = await getJSON("/api/areas"); } catch { AREAS = { areas: [], passages: [] }; } }
+  const sheet = document.getElementById("sheet");
+  const pl = ctx.place;
+  const radio = (name, value, label, checked) =>
+    `<label class="opt"><input type="radio" name="${name}" value="${esc(value)}" ${checked ? "checked" : ""}><span>${esc(label)}</span></label>`;
+  const check = (name, label) =>
+    `<label class="opt"><input type="checkbox" name="${name}" ${ctx[name] ? "checked" : ""}><span>${esc(label)}</span></label>`;
+  sheet.innerHTML = `
+    <form method="dialog" id="sheetForm">
+      <h3>کجا؟</h3>
+      <div class="opts">
+        ${radio("placeKind", "", "همه‌ی محله‌ها", !pl)}
+        ${radio("placeKind", "me", "نزدیک من", pl?.kind === "me")}
+      </div>
+      <p class="muted small" style="margin:6px 0">یا یک محله یا پاساژ:</p>
+      <select name="place" style="width:100%">
+        <option value="">—</option>
+        <optgroup label="محله">${AREAS.areas.map((a) => `<option value="area|${esc(a.name)}" ${pl?.kind === "area" && pl.name === a.name ? "selected" : ""}>${esc(a.name)} (${num(a.shops)} فروشگاه)</option>`).join("")}</optgroup>
+        <optgroup label="پاساژ">${AREAS.passages.map((a) => `<option value="passage|${esc(a.name)}" ${pl?.kind === "passage" && pl.name === a.name ? "selected" : ""}>${esc(a.name)} (${num(a.shops)} فروشگاه)</option>`).join("")}</optgroup>
+      </select>
+      <h3>فاصله (برای «نزدیک من»)</h3>
+      <div class="opts">${radio("radius", "", "مهم نیست", !ctx.radius_m)}${RADII.map(([v, l]) => radio("radius", v, l, ctx.radius_m === v)).join("")}</div>
+      <h3>بودجه (سقف قیمت)</h3>
+      <div class="opts">${radio("budget", "", "مهم نیست", !ctx.max_price)}${BUDGETS.map((b) => radio("budget", b, tomanShort(b), ctx.max_price === b)).join("")}</div>
+      <h3>زمان بازدید</h3>
+      <div class="opts">
+        <select name="day"><option value="">الان</option>${DAYS_FA.map((d, i) => `<option value="${i}" ${ctx.day === i ? "selected" : ""}>${d}</option>`).join("")}</select>
+        <select name="hour">${[9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21].map((h) => `<option value="${h}" ${(ctx.hour ?? 11) === h ? "selected" : ""}>ساعت ${num(h)}</option>`).join("")}</select>
+      </div>
+      <h3>شرایط خرید</h3>
+      <div class="opts">${CONDITIONS.map(([k, l]) => check(k, l)).join("")}</div>
+      <h3>ترتیب فروشنده‌ها</h3>
+      <div class="opts">${radio("sort", "price", "ارزان‌ترین", ctx.sort !== "distance")}${radio("sort", "distance", "نزدیک‌ترین", ctx.sort === "distance")}</div>
+      <p class="muted small">قیمت‌ها ثبت‌شده‌ی فروشنده‌اند؛ بودجه فقط روی قیمت‌های عادی اعمال می‌شود. «باز» یعنی ساعت کاری اعلام‌شده؛ فروشگاه‌های بدون ساعت ثبت‌شده حذف می‌شوند.</p>
+    </form>
+    <div class="sheet-actions">
+      <button type="button" class="btn" id="sheetReset">پاک کردن</button>
+      <button type="button" class="btn primary" id="sheetApply">نمایش نتایج</button>
+    </div>`;
+  sheet.showModal();
+  document.getElementById("sheetReset").onclick = () => { ctx = { ...DEFAULT_CTX }; applyCtx(); };
+  document.getElementById("sheetApply").onclick = async () => {
+    const fd = new FormData(document.getElementById("sheetForm"));
+    const next = { ...DEFAULT_CTX };
+    const placeSel = fd.get("place");
+    if (placeSel) {
+      const [kind, name] = placeSel.split("|");
+      const src = kind === "area" ? AREAS.areas : AREAS.passages;
+      const a = src.find((x) => x.name === name);
+      next.place = { kind, name, lat: a?.lat, lon: a?.lon };
+    } else if (fd.get("placeKind") === "me") {
+      next.place = await myLocation();
+    }
+    next.radius_m = Number(fd.get("radius")) || null;
+    next.max_price = Number(fd.get("budget")) || null;
+    next.day = fd.get("day") === "" ? null : Number(fd.get("day"));
+    next.hour = Number(fd.get("hour")) || 11;
+    next.sort = fd.get("sort") || "price";
+    for (const [k] of CONDITIONS) next[k] = fd.get(k) === "on";
+    ctx = next;
+    applyCtx();
+  };
+}
+
+function myLocation() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) return resolve(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ kind: "me", name: "نزدیک من", lat: pos.coords.latitude, lon: pos.coords.longitude }),
+      () => { alert("دسترسی به موقعیت داده نشد؛ یک محله یا پاساژ انتخاب کنید."); resolve(null); },
+      { timeout: 8000 },
+    );
+  });
+}
+
+function applyCtx() {
+  saveCtx();
+  document.getElementById("sheet").close();
+  renderCtxBar();
+  route();
+}
+
+document.addEventListener("click", (e) => {
+  if (e.target.closest("[data-open-sheet]")) openSheet();
+  const relax = e.target.closest("[data-relax]");
+  if (relax) { ctx = { ...ctx, ...(RELAX_CTX[relax.dataset.relax] || {}) }; applyCtx(); }
+});
+
 // ---------- data ----------
 async function getJSON(url) {
   const r = await fetch(url);
@@ -89,21 +252,27 @@ async function viewSearch(q) {
   if (!q.trim()) return viewHome();
   loading();
   let data;
-  try { data = await getJSON(`/api/search?q=${encodeURIComponent(q)}`); } catch (e) { return failed(e); }
+  try { data = await getJSON(`/api/search?q=${encodeURIComponent(q)}&${filterParams()}`); } catch (e) { return failed(e); }
   if (!data.items.length) {
-    $view.innerHTML = `<div class="card empty-state">برای «${esc(q)}» چیزی پیدا نشد. کلمه‌ی کوتاه‌تر یا نام دیگری امتحان کنید.</div>`;
+    const hint = data.filters_active
+      ? `<p>با شرایطی که انتخاب کرده‌اید فروشنده‌ای پیدا نشد.</p><button class="btn primary" data-open-sheet>تغییر شرایط</button>`
+      : "<p>کلمه‌ی کوتاه‌تر یا نام دیگری امتحان کنید.</p>";
+    $view.innerHTML = `<div class="card empty-state">برای «${esc(q)}» چیزی پیدا نشد.${hint}</div>`;
     return;
   }
   const loose = data.mode === "or" ? `<div class="notice">همه‌ی کلمه‌ها با هم پیدا نشد؛ نتایج نزدیک را نشان می‌دهیم.</div>` : "";
-  $view.innerHTML = loose + `<p class="muted small">${num(data.total)} کالا · مرتب‌شده بر اساس شباهت و تعداد فروشنده</p>` +
-    data.items.map(productCard).join("");
+  const scope = data.filters_active ? " · فقط کالاهایی که فروشنده‌ای با شرایط شما دارند" : "";
+  $view.innerHTML = loose + `<p class="muted small">مرتب‌شده بر اساس شباهت و تعداد فروشنده${scope}</p>` +
+    data.items.map((p) => productCard(p, data.filters_active)).join("");
 }
 
-function productCard(p) {
-  const price = p.min_price != null
-    ? `<span class="price">از ${esc(tomanShort(p.min_price))}</span>`
+function productCard(p, filtered) {
+  const from = filtered ? p.match_min_price : p.min_price;
+  const price = from != null
+    ? `<span class="price">از ${esc(tomanShort(from))}</span>`
     : unknown("قیمت ثبت نشده");
-  const sellers = p.n_shops > 1 ? `${num(p.n_shops)} فروشنده` : "۱ فروشنده";
+  const sellers = filtered ? `${num(p.match_shops)} از ${num(p.n_shops)} فروشنده با شرایط شما` : `${num(p.n_shops)} فروشنده`;
+  const open = p.open_shops ? `<div class="small" style="color:var(--open)">${num(p.open_shops)} فروشنده باز در زمان بازدید</div>` : "";
   return `
     <a class="card product-card" href="#/p/${esc(p.product_id)}">
       ${thumb(p.image, p.title)}
@@ -111,6 +280,7 @@ function productCard(p) {
         <div class="title-2">${esc(p.title)}</div>
         <div class="muted small">${esc(p.category || "")}${p.brand ? " · " + esc(p.brand) : ""}</div>
         <div class="between">${price}<span class="chip">${sellers}</span></div>
+        ${open}
       </div>
     </a>`;
 }
@@ -118,16 +288,16 @@ function productCard(p) {
 async function viewProduct(id) {
   loading();
   let p;
-  try { p = await getJSON(`/api/products/${encodeURIComponent(id)}`); } catch (e) { return failed(e); }
+  try { p = await getJSON(`/api/products/${encodeURIComponent(id)}?${filterParams()}`); } catch (e) { return failed(e); }
   const img = p.images.length ? `<img class="hero-img" src="${esc(p.images[0])}" alt="${esc(p.title)}">` : "";
   const specs = p.specs.length
     ? `<details class="card"><summary>مشخصات فنی (${num(p.specs.length)})</summary><dl class="facts">${
         p.specs.slice(0, 60).map((s) => `<dt>${esc(s.key)}</dt><dd>${esc(s.value)}</dd>`).join("")}</dl></details>`
     : `<div class="card muted small">مشخصات فنی برای این کالا ثبت نشده.</div>`;
   const summary = [
-    `${num(p.sellers.length)} فروشنده`,
+    `${num(p.sellers_total)} فروشنده`,
     p.min_price != null ? `کمترین ${tomanShort(p.min_price)}` : null,
-    p.median_price != null && p.sellers.length > 2 ? `میانه ${tomanShort(p.median_price)}` : null,
+    p.median_price != null && p.sellers_total > 2 ? `میانه ${tomanShort(p.median_price)}` : null,
   ].filter(Boolean).join(" · ");
   $view.innerHTML = `
     <a class="back" href="javascript:history.back()">→ بازگشت</a>
@@ -141,9 +311,23 @@ async function viewProduct(id) {
       <p class="muted small" style="margin:8px 0 0">${esc(summary)}</p>
     </section>
     <div class="notice">موجودی تأیید نشده است: هر فروشنده این کالا را در ترب ثبت کرده، اما موجود بودن آن امروز معلوم نیست. قیمت‌ها «قیمت ثبت‌شده» با زمان آخرین تغییر هستند.</div>
-    <h2>فروشنده‌ها (ارزان‌ترین اول)</h2>
+    <h2>فروشنده‌ها (${ctx.sort === "distance" && ctx.place ? "نزدیک‌ترین اول" : "ارزان‌ترین اول"})</h2>
+    ${filterSummary(p)}
     ${p.sellers.map(sellerCard).join("")}
     ${specs}`;
+}
+
+function filterSummary(p) {
+  if (!p.filters_active) return "";
+  if (!p.sellers.length) {
+    const relax = p.relax.map((r) => `<button class="btn" data-relax="${esc(r.filter)}">بدون «${esc(r.label)}»: ${num(r.sellers)} فروشنده</button>`).join("");
+    return `<div class="card">
+      <p style="margin-top:0">هیچ‌کدام از ${num(p.sellers_total)} فروشنده با همه‌ی شرایط شما جور نیست.</p>
+      ${relax ? `<p class="muted small">با برداشتن یکی از این شرایط:</p><div class="actions">${relax}</div>` : ""}
+      <div class="actions"><button class="btn primary" data-open-sheet>تغییر شرایط</button></div>
+    </div>`;
+  }
+  return `<p class="muted small">${num(p.sellers.length)} از ${num(p.sellers_total)} فروشنده با شرایط شما · <a href="javascript:void 0" data-open-sheet>تغییر</a></p>`;
 }
 
 function sellerCard(entry) {
@@ -172,6 +356,7 @@ function sellerCard(entry) {
       ${note}
       <div class="muted small">${ageText}</div>
       <div class="small">${warranty}</div>
+      ${(entry.reasons || []).length ? `<div class="reasons">${entry.reasons.map((r) => `<span class="chip reason-${r.kind}">${esc(r.text)}</span>`).join("")}</div>` : ""}
       ${pay ? `<div class="chips" style="margin-top:6px">${pay}</div>` : ""}
       ${best.seller_title ? `<div class="muted small">عنوان فروشنده: ${esc(best.seller_title)}</div>` : ""}
       <div class="actions">
@@ -260,6 +445,7 @@ document.getElementById("searchForm").addEventListener("submit", (e) => {
 });
 window.addEventListener("hashchange", route);
 
+renderCtxBar();
 getJSON("/api/meta").then((m) => {
   if (m.snapshot) $foot.textContent = `داده: نمونه‌ی ترب از فروشگاه‌های تهران · آخرین تغییر قیمت ثبت‌شده: ${dateFmt.format(new Date(m.snapshot))}`;
 }).catch(() => {});

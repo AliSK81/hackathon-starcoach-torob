@@ -4,7 +4,7 @@
 
 - **Current phase:** 4 — Filters, area and comparison (3 waits on the host)
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page.
-- **Last change:** Change 14
+- **Last change:** Change 15
 
 ### What we need from the user
 
@@ -348,3 +348,28 @@ Not done yet:
 
 Next change idea:
 - `/api/areas`, then the context bar and filter sheet in the web app
+
+### Change 15 — Filter UI: context bar + bottom sheet; reasons and "relax" buttons on screen — 2026-10-23
+Phase: 4, steps 3–4 (R3, R9, R17, R18, R19; start of R7)
+How to see it: `uv run starcoach serve`, open the app, tap a chip under the search box (📍 / 💰 / 🕒 / 💳)
+Proof it works (browser, 375 × 812, full DB):
+- sheet: area or passage (28 areas, 40 passages with shop counts) or "near me", radius, budget presets, visit day + hour, 6 conditions, sort by price or distance;
+- «گوشی سامسونگ» + installments only + ≤ 200M + Saturday 11 → chips update; cards read «۱ از ۳۴ فروشنده با شرایط شما · از ۱۹۷٫۹ میلیون»;
+- S25 FE in علاءالدین + open + installments → «هیچ‌کدام از ۳۴ فروشنده…» with a button «بدون فقط اقساطی: ۶ فروشنده»; one tap → 6 sellers, nearest first, each with reasons («ارزان‌ترین با شرایط شما»، «در زمان بازدید باز است»، «کنار شما (کمتر از ۵۰ متر)»).
+`/api/areas`: Alaeddin center from data 35.6950, 51.4116 (research 02: 35.6950, 51.4113). 45 tests pass.
+
+Research: 05 §4 (context bar of chips + filter sheet with sticky apply) followed.
+Questions: none
+Decisions: none
+
+Shipped:
+- `/api/areas` (neighbourhoods + top passages with shop counts and centers)
+- `app.js`: context state in `localStorage`, chips bar, `<dialog>` sheet, filter params on search and product calls, matching/open counts on cards, reasons chips, relax buttons, "near me" via browser location
+- Found in the browser and fixed: product header showed «۰ فروشنده» under filters; the freshness reason contradicted «۱۵ روز پیش» (now «از تازه‌ترین قیمت‌های داده (هفته‌ی آخر)»)
+
+Not done yet:
+- Compare view
+- "near me" needs HTTPS on the deployed site (browser rule)
+
+Next change idea:
+- Compare 2–3 products side by side

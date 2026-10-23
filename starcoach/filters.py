@@ -167,7 +167,7 @@ def seller_reasons(entry: dict, cheapest: int | None, f: Filters, snapshot_age_d
     if best["warranty_kind"] == "yes":
         out.append({"kind": "info", "text": "گارانتی دارد"})
     if snapshot_age_days is not None and snapshot_age_days <= 7:
-        out.append({"kind": "info", "text": "قیمت در هفته‌ی آخر داده به‌روز شده"})
+        out.append({"kind": "info", "text": "از تازه‌ترین قیمت‌های داده (هفته‌ی آخر)"})
     elif snapshot_age_days is not None and snapshot_age_days > 90:
         out.append({"kind": "warn", "text": "قیمت بیش از ۳ ماه تغییر نکرده"})
     return out

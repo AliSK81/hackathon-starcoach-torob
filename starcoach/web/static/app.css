@@ -161,3 +161,46 @@ details summary { cursor: pointer; color: var(--primary); }
 .empty-state { text-align: center; padding: 32px 8px; color: var(--muted); }
 .skeleton { height: 96px; border-radius: var(--radius); background: linear-gradient(90deg, #eceef1, #f6f7f9, #eceef1); background-size: 200% 100%; animation: sk 1.2s infinite; margin-bottom: 12px; }
 @keyframes sk { to { background-position: -200% 0; } }
+
+.ctxbar { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.ctxbar::-webkit-scrollbar { display: none; }
+.ctxchip {
+  flex: none;
+  border: 1px solid rgba(255, 255, 255, .35);
+  background: rgba(255, 255, 255, .12);
+  color: #fff;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ctxchip.on { background: #fff; color: var(--primary); border-color: #fff; font-weight: 600; }
+
+.sheet {
+  border: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 680px;
+  margin: auto auto 0;
+  border-radius: 18px 18px 0 0;
+  max-height: 88vh;
+}
+.sheet::backdrop { background: rgba(0, 0, 0, .4); }
+.sheet form { padding: 16px; overflow-y: auto; max-height: calc(88vh - 64px); }
+.sheet h3 { margin: 14px 0 6px; font-size: 15px; }
+.sheet .opts { display: flex; flex-wrap: wrap; gap: 6px; }
+.sheet .opt input { position: absolute; opacity: 0; pointer-events: none; }
+.sheet .opt span {
+  display: inline-block; border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; font-size: 14px; cursor: pointer;
+}
+.sheet .opt input:checked + span { background: var(--primary); color: #fff; border-color: var(--primary); }
+.sheet select, .sheet input[type=number] { font: inherit; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.sheet .sheet-actions {
+  position: sticky; bottom: 0; display: flex; gap: 8px; padding: 12px 16px; background: #fff; border-top: 1px solid var(--line);
+}
+.sheet .sheet-actions .btn { flex: 1; }
+.reasons { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.reason-good { background: var(--open-soft); color: var(--open); }
+.reason-warn { background: var(--warn-soft); color: var(--warn); }
+.reason-info { background: var(--unknown-soft); color: var(--fg); }
