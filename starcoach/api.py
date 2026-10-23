@@ -9,10 +9,20 @@ import sqlite3
 from datetime import datetime
 
 from starcoach.address import floor_label
+from starcoach.filters import (
+    INSTALLMENT_PROVIDERS,
+    RELAXABLE,
+    Filters,
+    active_names,
+    offer_matches,
+    seller_reasons,
+    shop_distance,
+    shop_matches,
+    without,
+)
 from starcoach.hours import is_open_at, now_tehran, status_text, week_table
 from starcoach.search import search_products
 
-INSTALLMENT_PROVIDERS = {"ترب‌پی", "اسنپ‌پی", "دیجی پی", "تارا", "ازکی‌وام"}  # BNPL / credit (F22)
 CHANNEL_FA = {"in_person": "پرداخت حضوری در فروشگاه", "unknown": "نحوه پرداخت اعلام نشده"}
 PRICE_STATUS_FA = {
     "ok": None,
@@ -98,11 +108,21 @@ def search(conn: sqlite3.Connection, q: str, limit: int = 20) -> dict:
             "items": items}
 
 
-def product(conn: sqlite3.Connection, product_id: str, at: datetime | None = None) -> dict | None:
-    at = at or now_tehran()
+def _age_days(later: str | None, earlier: str | None) -> float | None:
+    if not later or not earlier:
+        return None
+    return (datetime.fromisoformat(later) - datetime.fromisoformat(earlier)).total_seconds() / 86400
+
+
+def product(conn: sqlite3.Connection, product_id: str, f: Filters | None = None,
+            _relaxing: bool = False) -> dict | None:
+    """A product with its sellers, filtered and sorted by `f`, each seller with data-only reasons."""
+    f = f or Filters()
     p = conn.execute("SELECT * FROM products WHERE product_id = ?", (product_id,)).fetchone()
     if p is None:
         return None
+    snapshot = conn.execute("SELECT value FROM meta WHERE key = 'snapshot'").fetchone()
+    snapshot = snapshot[0] if snapshot else None
     rows = conn.execute(
         "SELECT o.*, s.* FROM offers o JOIN shops s ON s.shop_id = o.shop_id WHERE o.product_id = ?",
         (product_id,),
@@ -111,22 +131,49 @@ def product(conn: sqlite3.Connection, product_id: str, at: datetime | None = Non
     for r in rows:
         entry = by_shop.get(r["shop_id"])
         if entry is None:
+            payment = payment_info(r["payment"])
             entry = by_shop[r["shop_id"]] = {
-                "shop": shop_summary(r, at) | {"payment": payment_info(r["payment"]),
-                                                "fast_delivery": r["fast_delivery"]},
+                "shop": shop_summary(r, f.at) | {"payment": payment, "fast_delivery": r["fast_delivery"]},
                 "offers": [],
+                "shop_ok": shop_matches(f, r, payment, _loads(r["hours"], None)),
+                "distance_m": shop_distance(f, r["lat"], r["lon"]),
             }
-        entry["offers"].append(offer_view(r))
+        offer = offer_view(r)
+        if offer_matches(f, offer):
+            entry["offers"].append(offer)
+    total = len(by_shop)
     sellers = []
     for entry in by_shop.values():
+        if not entry.pop("shop_ok") or not entry["offers"]:
+            continue
         # normal prices first, then far-off ("suspicious") ones, then no price
         entry["offers"].sort(key=lambda o: (OFFER_RANK[o["price_status"]], o["price"] or 0))
         best = entry["offers"][0]
         entry["best_price"] = best["price"]
         entry["best_status"] = best["price_status"]
         entry["last_change"] = max((o["price_changed_at"] or "" for o in entry["offers"]), default=None) or None
+        if entry["distance_m"] is not None:
+            entry["distance_m"] = round(entry["distance_m"])
         sellers.append(entry)
-    sellers.sort(key=lambda e: (OFFER_RANK[e["best_status"]], e["best_price"] or 0))
+    by_price = lambda e: (OFFER_RANK[e["best_status"]], e["best_price"] or 0)  # noqa: E731
+    if f.sort == "distance" and f.lat is not None:
+        sellers.sort(key=lambda e: (e["distance_m"] is None, e["distance_m"] or 0, by_price(e)))
+    else:
+        sellers.sort(key=by_price)
+    ok_prices = [e["best_price"] for e in sellers if e["best_status"] == "ok"]
+    cheapest_shown = min(ok_prices) if ok_prices else None
+    cheapest = p["min_price"]  # over all sellers, normal prices only
+    for entry in sellers:
+        entry["reasons"] = seller_reasons(entry, cheapest, f, _age_days(snapshot, entry["last_change"]),
+                                          cheapest_shown)
+    relax = []
+    if not sellers and f.active and not _relaxing:
+        # Which single filter, if removed, brings sellers back? (a quick alternative instead of a dead end)
+        for name in active_names(f):
+            alt = product(conn, product_id, without(f, name), _relaxing=True)
+            if alt["sellers"]:
+                relax.append({"filter": name, "label": RELAXABLE[name], "sellers": len(alt["sellers"])})
+        relax.sort(key=lambda r: -r["sellers"])
     return {
         "product_id": p["product_id"],
         "title": p["title"],
@@ -139,6 +186,10 @@ def product(conn: sqlite3.Connection, product_id: str, at: datetime | None = Non
         "n_shops": p["n_shops"],
         "min_price": p["min_price"],
         "median_price": p["median_price"],
+        "filters_active": f.active,
+        "sellers_total": total,
+        "sellers_hidden": total - len(sellers),
+        "relax": relax,
         "sellers": sellers,
     }
 

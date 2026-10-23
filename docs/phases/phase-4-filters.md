@@ -15,7 +15,7 @@
 - UI: a sticky context bar of chips that opens a filter sheet (`<dialog>`); choices are saved in `localStorage`.
 
 ## Checklist
-- [ ] `Filters` + seller filtering, sorting (price / distance) and reasons on the product page API
+- [x] `Filters` + seller filtering, sorting (price / distance) and reasons on the product page API
 - [ ] Search filtered by budget, area, open, conditions; cards show matching sellers
 - [ ] `/api/areas` with shop counts and centers
 - [ ] UI: context bar + filter sheet; results update

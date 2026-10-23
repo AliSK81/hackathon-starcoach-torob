@@ -4,7 +4,7 @@
 
 - **Current phase:** 4 — Filters, area and comparison (3 waits on the host)
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page.
-- **Last change:** Change 11
+- **Last change:** Change 12
 
 ### What we need from the user
 
@@ -286,3 +286,28 @@ Not done yet:
 
 Next change idea:
 - Wire `Filters` into the product API with the installment-only filter (R9) and distance (R3, R4)
+
+### Change 12 — Product sellers filter by installments, distance, open, budget; reasons and "relax" hints — 2026-10-23
+Phase: 4, step 1 (R3, R4, R9, R18, R19; start of R7)
+How to see it: `/api/products/<id>?installments=1`, `?lat=35.6950&lon=51.4113&sort=distance`, `?open=1&at=2026-10-24T11:00&radius_m=500`
+Proof it works: `results/filters-demo.txt` (full DB, visit time Sat 11:00):
+- 20W charger: installments only → 11 of 59 sellers, all with a BNPL provider; near Alaeddin by distance → nearest first («کنار شما (کمتر از ۵۰ متر)»); open + installments + 500 m → 7 sellers.
+- S25 FE: installments only → 2 of 34 (تارا/ازکی‌وام, اسنپ‌پی); open + installments + 500 m → 0, and the API answers: drop «فقط اقساطی» → 25 sellers, drop «فقط باز» → 1.
+- Every call ≤ 3 ms. 43 tests pass (installments-only, distance order and radius, budget never matches unknown prices, relax hint, cheapest reason under filters).
+
+Research: 02 §9 Alaeddin coordinates used as the test point.
+Questions: none
+Decisions: none
+
+Shipped:
+- `api.product(conn, id, Filters)`: shop filters (area, passage, radius, open at visit time, installments, TorobPay, in-person pay, fast delivery) + offer filters (budget on normal prices only, warranty); sort by price or distance; `sellers_total`, `sellers_hidden`
+- Reasons per seller, from data only: cheapest overall vs «ارزان‌ترین با شرایط شما», near-cheapest, open/closed at visit time, distance, installment providers, warranty, price fresh in the data's last week / unchanged > 3 months
+- `relax`: when filters leave 0 sellers, which single filter to drop and how many sellers come back
+- Found in the real run and fixed: «۰ متر از شما» for shops in the same building; "cheapest" claimed among filtered sellers only
+
+Not done yet:
+- Search results don't use the filters yet
+- No UI for filters yet
+
+Next change idea:
+- Filters on search results (cards show matching sellers), then the context bar UI

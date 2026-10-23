@@ -8,6 +8,7 @@ from starcoach import api
 from starcoach.app import create_app
 from starcoach.config import get_settings
 from starcoach.db import connect
+from starcoach.filters import INSTALLMENT_PROVIDERS, Filters
 from starcoach.hours import TEHRAN
 
 
@@ -49,6 +50,57 @@ def test_not_found_and_missing_db(client, tmp_path):
 def test_price_labels_are_separate(mini_db):
     conn = connect(mini_db, readonly=True)
     row = conn.execute("SELECT product_id FROM offers WHERE price_status = 'call' LIMIT 1").fetchone()
-    p = api.product(conn, row["product_id"], at=datetime(2026, 10, 24, 11, tzinfo=TEHRAN))
+    p = api.product(conn, row["product_id"], Filters(at=datetime(2026, 10, 24, 11, tzinfo=TEHRAN)))
     offer = next(o for s in p["sellers"] for o in s["offers"] if o["price_status"] == "call")
     assert offer["price"] is None and offer["price_note"]
+
+
+def _charger(client):
+    return client.get("/api/search", params={"q": "شارژر اپل ۲۰ وات"}).json()["items"][0]["product_id"]
+
+
+def test_installments_only_filter(client):
+    pid = _charger(client)
+    all_ = client.get(f"/api/products/{pid}").json()
+    only = client.get(f"/api/products/{pid}", params={"installments": "1"}).json()
+    assert 0 < len(only["sellers"]) < len(all_["sellers"])
+    assert only["sellers_hidden"] == only["sellers_total"] - len(only["sellers"])
+    for e in only["sellers"]:
+        assert {p["provider"] for p in e["shop"]["payment"]} & INSTALLMENT_PROVIDERS
+        assert any(r["text"].startswith("خرید اقساطی") for r in e["reasons"])
+
+
+def test_distance_sort_and_radius(client):
+    pid = _charger(client)
+    near_alaeddin = {"lat": "35.6950", "lon": "51.4113", "sort": "distance"}
+    p = client.get(f"/api/products/{pid}", params=near_alaeddin).json()
+    dists = [e["distance_m"] for e in p["sellers"] if e["distance_m"] is not None]
+    assert dists == sorted(dists) and dists
+    close = client.get(f"/api/products/{pid}", params=near_alaeddin | {"radius_m": "300"}).json()
+    assert all(e["distance_m"] <= 300 for e in close["sellers"])
+    assert len(close["sellers"]) < len(p["sellers"])
+
+
+def test_budget_excludes_unknown_prices(client):
+    pid = _charger(client)
+    p = client.get(f"/api/products/{pid}", params={"max_price": "100000000"}).json()
+    assert p["sellers"] and all(e["best_status"] == "ok" for e in p["sellers"])
+    assert p["sellers"][0]["reasons"][0]["text"] == "ارزان‌ترین قیمت ثبت‌شده"
+
+
+def test_zero_results_suggest_which_filter_to_relax(client):
+    pid = _charger(client)
+    p = client.get(f"/api/products/{pid}", params={"max_price": "1000", "installments": "1"}).json()
+    assert p["sellers"] == []
+    assert p["relax"] and p["relax"][0]["filter"] == "max_price" and p["relax"][0]["sellers"] > 0
+
+
+def test_cheapest_reason_respects_filters(client):
+    pid = _charger(client)
+    p = client.get(f"/api/products/{pid}", params={"installments": "1"}).json()
+    texts = [r["text"] for r in p["sellers"][0]["reasons"]]
+    overall = client.get(f"/api/products/{pid}").json()["min_price"]
+    if p["sellers"][0]["best_price"] == overall:
+        assert "ارزان‌ترین قیمت ثبت‌شده" in texts
+    else:
+        assert "ارزان‌ترین با شرایط شما" in texts

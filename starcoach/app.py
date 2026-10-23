@@ -4,13 +4,14 @@ import sqlite3
 from collections.abc import Iterator
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from starcoach import __version__, api
 from starcoach.config import Settings, get_settings
 from starcoach.db import connect
+from starcoach.filters import parse_filters
 
 WEB_DIR = Path(__file__).resolve().parent / "web"
 
@@ -53,8 +54,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return api.search(conn, q, limit=limit)
 
     @app.get("/api/products/{product_id}")
-    def product(product_id: str, conn: sqlite3.Connection = Depends(db)) -> dict:
-        p = api.product(conn, product_id)
+    def product(product_id: str, request: Request, conn: sqlite3.Connection = Depends(db)) -> dict:
+        """Query params: min_price, max_price, area, passage, lat, lon, radius_m, at, open,
+        installments, torobpay, in_person_pay, fast, warranty, sort (price | distance)."""
+        p = api.product(conn, product_id, parse_filters(dict(request.query_params)))
         if p is None:
             raise HTTPException(404, "product not found")
         return p

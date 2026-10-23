@@ -1,7 +1,7 @@
 """User filters (area, budget, visit time, purchase conditions) and data-only "why" reasons."""
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 
 from starcoach.hours import TEHRAN, is_open_at, now_tehran
@@ -138,12 +138,18 @@ def offer_matches(f: Filters, offer: dict) -> bool:
     return True
 
 
-def seller_reasons(entry: dict, cheapest: int | None, f: Filters, snapshot_age_days: float | None) -> list[dict]:
-    """Short, data-only reasons for a seller card. kind: good | info | warn."""
+def seller_reasons(entry: dict, cheapest: int | None, f: Filters, snapshot_age_days: float | None,
+                   cheapest_shown: int | None = None) -> list[dict]:
+    """Short, data-only reasons for a seller card. kind: good | info | warn.
+
+    `cheapest` is over all sellers; `cheapest_shown` over the sellers left after filters.
+    """
     shop, best = entry["shop"], entry["offers"][0]
     out = []
     if best["price_status"] == "ok" and cheapest is not None and best["price"] == cheapest:
         out.append({"kind": "good", "text": "ارزان‌ترین قیمت ثبت‌شده"})
+    elif best["price_status"] == "ok" and cheapest_shown is not None and best["price"] == cheapest_shown:
+        out.append({"kind": "good", "text": "ارزان‌ترین با شرایط شما"})
     elif best["price_status"] == "ok" and cheapest:
         extra = (best["price"] - cheapest) / cheapest
         if extra <= 0.05:
@@ -153,7 +159,8 @@ def seller_reasons(entry: dict, cheapest: int | None, f: Filters, snapshot_age_d
     elif shop["open_now"] is False:
         out.append({"kind": "warn", "text": "در زمان بازدید بسته است"})
     if entry.get("distance_m") is not None:
-        out.append({"kind": "info", "text": f"{format_distance(entry['distance_m'])} از شما"})
+        d = format_distance(entry["distance_m"])
+        out.append({"kind": "info", "text": d if d.startswith("کنار") else f"{d} از شما"})
     providers = {p["provider"] for p in shop.get("payment", [])}
     if providers & INSTALLMENT_PROVIDERS:
         out.append({"kind": "info", "text": "خرید اقساطی: " + "، ".join(sorted(providers & INSTALLMENT_PROVIDERS))})
@@ -166,7 +173,34 @@ def seller_reasons(entry: dict, cheapest: int | None, f: Filters, snapshot_age_d
     return out
 
 
+# Filter fields and their Persian names, for "relax this filter" hints.
+RELAXABLE = {
+    "max_price": "سقف بودجه",
+    "min_price": "حداقل قیمت",
+    "area": "محله",
+    "passage": "پاساژ",
+    "radius_m": "فاصله",
+    "open_only": "فقط باز",
+    "installments": "فقط اقساطی",
+    "torobpay": "ترب‌پی",
+    "in_person_pay": "پرداخت حضوری",
+    "fast_delivery": "ارسال فوری",
+    "warranty": "گارانتی‌دار",
+}
+_OFF = {"max_price": None, "min_price": None, "area": None, "passage": None, "radius_m": None}
+
+
+def without(f: Filters, name: str) -> Filters:
+    return replace(f, **{name: _OFF.get(name, False)})
+
+
+def active_names(f: Filters) -> list[str]:
+    return [n for n in RELAXABLE if getattr(f, n) not in (None, False)]
+
+
 def format_distance(m: float) -> str:
+    if m < 50:
+        return "کنار شما (کمتر از ۵۰ متر)"
     if m < 1000:
         return f"{int(round(m / 10.0) * 10)} متر"
     return f"{m / 1000:.1f} کیلومتر"
