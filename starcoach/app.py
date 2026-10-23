@@ -14,6 +14,7 @@ from starcoach import __version__, api, contact, hubs, visit
 from starcoach.config import Settings, get_settings
 from starcoach.db import connect
 from starcoach.filters import parse_filters
+from starcoach.inbox import Inbox
 from starcoach.logs import log_event
 
 WEB_DIR = Path(__file__).resolve().parent / "web"
@@ -24,6 +25,15 @@ class ContactRequest(BaseModel):
     questions: list[str] = Field(default_factory=list, max_length=8)
     visit_at: str | None = Field(default=None, max_length=30)
     request_id: str | None = Field(default=None, max_length=64)
+    mode: str = Field(default="auto", pattern="^(auto|seller)$")  # seller = send to the seller panel (R27)
+
+
+class SellerReply(BaseModel):
+    request_id: str = Field(max_length=64)
+    in_stock: bool
+    price_now: int | None = Field(default=None, ge=0, le=10**11)
+    hold_until: str | None = Field(default=None, max_length=10)
+    note: str | None = Field(default=None, max_length=200)
 
 
 def asset_version() -> str:
@@ -117,6 +127,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if body.request_id and body.request_id in contacts_seen:
             return contacts_seen[body.request_id]  # a retry never records twice
         visit_at = parse_filters({"at": body.visit_at}).at if body.visit_at else None
+        if body.mode == "seller":
+            return send_to_seller(body, visit_at, conn)
         result = contact.contact(conn, body.offer_id, body.questions, visit_at)
         if result is None:
             raise HTTPException(404, "offer not found")
@@ -126,6 +138,54 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                   shop_id=result["shop_id"], questions=result["questions"], status=result["reply"]["status"],
                   facts=result["reply"]["facts"], simulated=True)
         return result
+
+    inbox = Inbox(settings.log_dir / "inbox.jsonl")
+
+    def send_to_seller(body: ContactRequest, visit_at, conn: sqlite3.Connection) -> dict:
+        loaded = contact.load(conn, body.offer_id)
+        if loaded is None:
+            raise HTTPException(404, "offer not found")
+        o, s, p = loaded
+        questions = [q for q in body.questions if q in contact.QUESTIONS] or contact.DEFAULT_QUESTIONS
+        base = {"mode": "seller", "offer_id": o["offer_id"], "shop_id": s["shop_id"], "shop_name": s["name"],
+                "product_id": p["product_id"], "channel": "پنل فروشنده", "to": s["phone"], "questions": questions,
+                "message": contact.draft(o, s, p, questions, visit_at), "simulated": True,
+                "note": "فروشنده در «پنل فروشنده» (نمایشی) با یک لمس جواب می‌دهد."}
+        reused = inbox.recent_answer(o["offer_id"])
+        if reused:  # don't bother the seller twice about the same item (R27)
+            return base | {"status": "reused", "request": reused, "reply": contact.answer_reply(reused)}
+        title = p["title"] if not p["title_redacted"] else (o["seller_title"] or "")
+        req = inbox.create(body.request_id, o["offer_id"], s["shop_id"], p["product_id"], title, o["price"], questions,
+                           base["message"], visit_at.isoformat(timespec="minutes") if visit_at else None)
+        log_event(settings.log_dir, "contacts", "sent_to_seller", request_id=req["id"], offer_id=o["offer_id"],
+                  shop_id=s["shop_id"], questions=questions)
+        return base | {"status": req["status"], "request": req,
+                       "reply": contact.answer_reply(req) if req["status"] == "answered" else None}
+
+    @app.get("/api/contact/{request_id}")
+    def contact_status(request_id: str) -> dict:
+        req = inbox.requests.get(request_id)
+        if req is None:
+            raise HTTPException(404, "request not found")
+        return {"request": req, "status": req["status"],
+                "reply": contact.answer_reply(req) if req["status"] == "answered" else None}
+
+    @app.get("/api/seller/{shop_id}/inbox")
+    def seller_inbox(shop_id: str, conn: sqlite3.Connection = Depends(db)) -> dict:
+        """The seller's side (mock): questions from buyers, waiting ones first."""
+        s = conn.execute("SELECT shop_id, name, passage, floor, unit FROM shops WHERE shop_id = ?", (shop_id,)).fetchone()
+        if s is None:
+            raise HTTPException(404, "shop not found")
+        return {"shop": dict(s), "requests": inbox.for_shop(shop_id)}
+
+    @app.post("/api/seller/reply")
+    def seller_reply(body: SellerReply) -> dict:
+        req = inbox.answer(body.request_id, body.in_stock, body.price_now, body.hold_until, body.note)
+        if req is None:
+            raise HTTPException(404, "request not found")
+        log_event(settings.log_dir, "contacts", "seller_answered", request_id=body.request_id, in_stock=body.in_stock,
+                  price_now=body.price_now, hold_until=body.hold_until)
+        return {"request": req, "reply": contact.answer_reply(req)}
 
     @app.get("/api/plan")
     def plan(shops: str = Query(..., max_length=2000), at: str | None = None, lat: float | None = None,

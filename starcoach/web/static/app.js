@@ -29,7 +29,7 @@ function toman(n) { return n == null ? null : `${num(n)} تومان`; }
 function tomanShort(n) {
   if (n == null) return null;
   if (n >= 1e9) return `${new Intl.NumberFormat("fa-IR", { maximumFractionDigits: 2 }).format(n / 1e9)} میلیارد تومان`;
-  if (n >= 1e6) return `${new Intl.NumberFormat("fa-IR", { maximumFractionDigits: 1 }).format(n / 1e6)} میلیون تومان`;
+  if (n >= 1e6) return `${new Intl.NumberFormat("fa-IR", { maximumFractionDigits: n < 1e7 ? 2 : 1 }).format(n / 1e6)} میلیون تومان`;
   if (n >= 1e3) return `${new Intl.NumberFormat("fa-IR", { maximumFractionDigits: 0 }).format(n / 1e3)} هزار تومان`;
   return toman(n);
 }
@@ -508,10 +508,7 @@ function openContactSheet(offerId, shopName, productId, shopId) {
     const qs = [...sheet.querySelectorAll("input[name=q]:checked")].map((i) => i.value);
     const chat = document.getElementById("chat");
     try {
-      await sendContact(offerId, qs.length ? qs : defaults, (step, res) => {
-        if (step === "sent") chat.innerHTML = bubble(res.message, true, `${res.channel} به ${res.to || "فروشنده"} (نمایشی)`) + `<div class="typing">… در انتظار پاسخ</div>`;
-        else chat.innerHTML = bubble(res.message, true) + bubble(res.reply.text, false, res.note);
-      });
+      await askSeller(offerId, qs.length ? qs : defaults, chat);
       const c = contacts[offerId];
       const after = document.getElementById("contactAfter");
       after.innerHTML = `<div style="margin:8px 0">${contactChip(offerId)}</div>`;
@@ -830,6 +827,105 @@ document.addEventListener("click", (e) => {
   }
 });
 
+// ---------- R27: two-sided contact — the seller answers in one tap (mock channel) ----------
+const SELLER_WAIT_S = 30;
+
+async function postJSON(url, body) {
+  const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
+
+function rememberReply(offerId, reply, shopName) {
+  contacts[offerId] = { status: reply.status, facts: reply.facts, at: Date.now(), shop: shopName };
+  saveContacts();
+}
+
+// Send to the seller's inbox; wait for a one-tap answer; after SELLER_WAIT_S fall back to the automatic demo reply.
+async function askSeller(offerId, questions, chat) {
+  const res = await postJSON("/api/contact", { offer_id: offerId, questions, visit_at: visitISO(), mode: "seller", request_id: `${offerId}-${Date.now()}` });
+  const panel = `<a target="_blank" rel="noopener" href="/#/seller/${encodeURIComponent(res.shop_id)}">پنل فروشنده (نمایشی) را باز کنید</a>`;
+  if (res.status === "reused") {
+    chat.innerHTML = bubble(res.message, true) + bubble(res.reply.text, false,
+      "این فروشنده کمتر از ۳ ساعت پیش به همین سؤال جواب داده؛ دوباره مزاحمش نشدیم.");
+    rememberReply(offerId, res.reply, res.shop_name);
+    return;
+  }
+  chat.innerHTML = bubble(res.message, true, `فرستاده شد به ${res.channel}`) +
+    `<div class="typing">… منتظر جواب فروشنده (${num(SELLER_WAIT_S)} ثانیه)</div><p class="small muted">برای دیدن طرف فروشنده: ${panel}</p>`;
+  const id = res.request.id;
+  for (let waited = 0; waited < SELLER_WAIT_S; waited += 2) {
+    await sleep(2000);
+    if (!document.getElementById("chat")) return; // sheet closed
+    let st;
+    try { st = await getJSON(`/api/contact/${encodeURIComponent(id)}`); } catch { continue; }
+    if (st.status === "answered") {
+      chat.innerHTML = bubble(res.message, true) + bubble(st.reply.text, false, "پاسخ فروشنده از پنل فروشنده (نمایشی)");
+      rememberReply(offerId, st.reply, res.shop_name);
+      return;
+    }
+  }
+  const auto = await sendContact(offerId, questions); // falls back to the automatic simulated reply
+  chat.innerHTML = bubble(res.message, true) + bubble(auto.reply.text, false, `فروشنده در ${num(SELLER_WAIT_S)} ثانیه جواب نداد؛ ${auto.note}`);
+}
+
+let sellerTimer = null;
+let sellerSig = "";
+async function viewSeller(shopId, refresh = false) {
+  clearTimeout(sellerTimer);
+  let d;
+  try { d = await getJSON(`/api/seller/${encodeURIComponent(shopId)}/inbox`); } catch (e) { if (refresh) return; return failed(e); }
+  const sig = d.requests.map((r) => r.id + r.status).join("|");
+  const busy = document.activeElement && $view.contains(document.activeElement) && document.activeElement.matches("input, select");
+  const again = () => { sellerTimer = setTimeout(() => { if (location.hash.startsWith("#/seller/")) viewSeller(shopId, true); }, 4000); };
+  if (refresh && (sig === sellerSig || busy)) return again(); // never redraw under the seller's finger
+  sellerSig = sig;
+  const hours = [12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
+  const items = d.requests.map((r) => {
+    const qs = r.questions.map((q) => QUESTIONS_FA[q] || q).join(" · ");
+    const head = `<div class="between"><strong>${esc(r.product_title || "کالا")}</strong><span class="chip ${r.status === "waiting" ? "pill-warn" : "pill-open"}">${r.status === "waiting" ? "منتظر جواب شما" : "جواب داده شد"}</span></div>
+      <div class="muted small">قیمت ثبت‌شده‌ی شما: ${r.recorded_price ? esc(toman(r.recorded_price)) : "ثبت نشده"} · سؤال‌ها: ${esc(qs)}</div>`;
+    if (r.status !== "waiting") {
+      const a = r.answer;
+      return `<article class="card">${head}<div class="small" style="margin-top:6px">جواب شما: ${a.in_stock ? "موجود" : "ناموجود"}${a.price_now ? ` · ${esc(toman(a.price_now))}` : ""}${a.hold_until ? ` · نگه‌داری تا ${esc(a.hold_until)}` : ""}</div></article>`;
+    }
+    return `<article class="card" data-req="${esc(r.id)}">${head}
+      <div class="actions">
+        <button type="button" class="btn primary" data-answer="same">✅ موجود، همان قیمت</button>
+        <button type="button" class="btn" data-answer="none">❌ ندارم</button>
+      </div>
+      <div class="actions">
+        <input type="number" inputmode="numeric" placeholder="قیمت امروز (تومان)" class="price-in" style="flex:1;min-width:0;padding:8px;border:1px solid var(--line);border-radius:10px">
+        <button type="button" class="btn" data-answer="price">✅ موجود، با این قیمت</button>
+      </div>
+      <label class="small" style="display:block;margin-top:6px">نگه می‌دارم تا ساعت
+        <select class="hold-in"><option value="">نه</option>${hours.map((h) => `<option value="${h}:00">${num(h)}</option>`).join("")}</select></label>
+    </article>`;
+  }).join("");
+  $view.innerHTML = `
+    <section class="card">
+      <h1 style="margin-top:0">پنل فروشنده (نمایشی)</h1>
+      <p class="small" style="margin:0"><strong>${esc(d.shop.name || "")}</strong>${d.shop.passage ? ` · ${esc(d.shop.passage)}` : ""}</p>
+      <p class="muted small">در نسخه‌ی واقعی این سؤال‌ها به‌صورت اعلان در اپ فروشنده یا پیامک می‌رسد. فروشنده بدون تماس تلفنی، با یک لمس جواب می‌دهد؛ اگر به همین سؤال تازه جواب داده باشد، دستیار دوباره نمی‌پرسد.</p>
+    </section>
+    ${items || `<div class="card empty-state">سؤالی از خریداران نیست. از صفحه‌ی کالا «از فروشنده بپرس» را بزنید.</div>`}`;
+  if (location.hash.startsWith("#/seller/")) again();
+}
+document.addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-answer]");
+  if (!b) return;
+  const card = b.closest("[data-req]");
+  const kind = b.dataset.answer;
+  const price = Number(card.querySelector(".price-in").value) || null;
+  if (kind === "price" && !price) { card.querySelector(".price-in").focus(); return; }
+  b.disabled = true;
+  try {
+    await postJSON("/api/seller/reply", { request_id: card.dataset.req, in_stock: kind !== "none",
+      price_now: kind === "price" ? price : null, hold_until: card.querySelector(".hold-in").value || null });
+  } catch { b.disabled = false; return; }
+  viewSeller(location.hash.slice("#/seller/".length));
+});
+
 // ---------- data ----------
 async function getJSON(url) {
   const r = await fetch(url);
@@ -1053,6 +1149,7 @@ async function viewShop(id) {
         ${s.lat ? `<a class="btn primary" target="_blank" rel="noopener" href="${neshan(s.lat, s.lon)}">مسیریابی با نشان</a>
         <a class="btn" target="_blank" rel="noopener" href="${gmaps(s.lat, s.lon)}">گوگل مپ</a>` : ""}
         ${s.phone ? `<a class="btn" href="tel:${esc(s.phone)}" title="شماره‌ها در داده‌ی مسابقه ساختگی‌اند">تماس (شماره نمایشی)</a>` : ""}
+        <a class="btn" href="#/seller/${encodeURIComponent(s.shop_id)}" title="طرف فروشنده: سؤال‌های خریداران و جواب با یک لمس">پنل فروشنده (نمایشی)</a>
         ${links}
       </div>
     </section>
@@ -1097,6 +1194,7 @@ function route() {
   if (path.startsWith("/compare")) return viewCompare();
   if (path.startsWith("/guide")) return viewGuide(params);
   if (path.startsWith("/plan")) return viewPlan();
+  if (path.startsWith("/seller/")) return viewSeller(decodeURIComponent(path.slice(8)));
   if (path.startsWith("/passage/")) return viewPassage(decodeURIComponent(path.slice(9)));
   return viewHome();
 }

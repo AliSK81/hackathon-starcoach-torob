@@ -19,8 +19,9 @@ def conn(mini_db):
 
 
 @pytest.fixture()
-def client(mini_db):
-    return TestClient(create_app(replace(get_settings(), db_path=mini_db, llm_base_url="", llm_api_key="", llm_model="")))
+def client(mini_db, tmp_path):
+    return TestClient(create_app(replace(get_settings(), db_path=mini_db, log_dir=tmp_path,
+                                         llm_base_url="", llm_api_key="", llm_model="")))
 
 
 def _busy_product(conn):
@@ -81,3 +82,30 @@ def test_category_shops_never_include_listed_sellers(conn):
     listed = {r[0] for r in conn.execute("SELECT shop_id FROM offers WHERE product_id = ?", (pid,))}
     shops = visit.category_shops(conn, pid, None, SAT_11)
     assert all(s["shop_id"] not in listed and s["note"] for s in shops)
+
+
+def test_seller_panel_round_trip_and_reuse(client, conn):
+    offer, shop = conn.execute("SELECT offer_id, shop_id FROM offers WHERE price_status = 'ok' LIMIT 1").fetchone()
+    body = {"offer_id": offer, "questions": ["in_stock", "price_now"], "mode": "seller", "request_id": "q1"}
+    sent = client.post("/api/contact", json=body).json()
+    assert sent["status"] == "waiting" and sent["reply"] is None
+    assert client.post("/api/contact", json=body | {"questions": []}).json()["request"]["id"] == "q1"
+    inbox = client.get(f"/api/seller/{shop}/inbox").json()
+    assert [r["id"] for r in inbox["requests"]] == ["q1"]
+    ans = client.post("/api/seller/reply", json={"request_id": "q1", "in_stock": True, "price_now": 123000,
+                                                 "hold_until": "18:00"}).json()
+    assert ans["reply"]["facts"] == {"in_stock": True, "price_now": 123000, "price_changed": True, "hold_until": "18:00"}
+    assert client.get("/api/contact/q1").json()["status"] == "answered"
+    again = client.post("/api/contact", json={"offer_id": offer, "mode": "seller", "request_id": "q2"}).json()
+    assert again["status"] == "reused" and again["request"]["id"] == "q1"  # the seller isn't asked twice
+
+
+def test_inbox_survives_restart(tmp_path):
+    from starcoach.inbox import Inbox
+
+    a = Inbox(tmp_path / "inbox.jsonl")
+    a.create("r1", "o1", "s1", "p1", "t", 1000, ["in_stock"], "msg", None)
+    a.answer("r1", False, None, None, None)
+    a.answer("r1", True, 5, None, None)  # a second tap is ignored
+    b = Inbox(tmp_path / "inbox.jsonl")
+    assert b.requests["r1"]["status"] == "answered" and b.requests["r1"]["answer"]["in_stock"] is False

@@ -157,3 +157,25 @@ def contact(conn: sqlite3.Connection, offer_id: str, questions: list[str] | None
         "reply": reply, "simulated": True, "note": SIMULATED_NOTE,
         "recorded_price": o["price"], "recorded_at": o["price_changed_at"], "asked_at": now.isoformat(timespec="minutes"),
     }
+
+
+def answer_reply(req: dict) -> dict:
+    """A seller's one-tap answer as the same reply shape the buyer's app shows."""
+    ans = req.get("answer") or {}
+    facts: dict = {"in_stock": bool(ans.get("in_stock"))}
+    parts = ["سلام، وقت شما بخیر."]
+    if not ans.get("in_stock"):
+        parts.append("متأسفانه فعلاً این کالا را نداریم.")
+    else:
+        parts.append("بله، موجود داریم.")
+        recorded = req.get("recorded_price")
+        price = ans.get("price_now") or recorded
+        if price:
+            facts.update(price_now=price, price_changed=bool(recorded and price != recorded))
+            parts.append(f"قیمت امروز {_toman(price)} است." if facts["price_changed"] else "قیمت همان است که ثبت شده.")
+        if ans.get("hold_until"):
+            facts["hold_until"] = ans["hold_until"]
+            parts.append(f"تا ساعت {ans['hold_until']} برایتان نگه می‌داریم.")
+    if ans.get("note"):
+        parts.append(ans["note"])
+    return {"status": "answered", "text": " ".join(parts), "facts": facts, "delay_s": 0}

@@ -4,7 +4,7 @@
 
 - **Current phase:** 9 — Organizer clarifications (R26–R31); release v1.0.0 audited, public deploy parked (D11)
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page, with filters (area / near me, budget, visit time, installments, TorobPay, …), reasons, relax buttons and a 3-product compare.
-- **Last change:** Change 34
+- **Last change:** Change 35
 
 ### What we need from the user
 
@@ -760,3 +760,23 @@ Decisions: none
 Shipped:
 - `starcoach/hubs.py`, `starcoach/data/known_hubs.json` (cited), `/api/hubs`; `visit.nearby_places`, `/api/nearby`; index `products(category)`
 - UI: hubs card on product pages and on empty / loose search results; «داخل پاساژ» and «نقشه» buttons; mini-map + Neshan/Google
+
+### Change 35 — R27: two-sided seller contact — the seller answers in one tap; the agent never asks twice — 2026-10-23
+Phase: 9, step 2 (R27, R5, R6, R20)
+How to see it: product → «از فروشنده بپرس» → «بپرس»; open «پنل فروشنده (نمایشی)» (link in the chat or on the shop page) and tap an answer
+Proof it works (browser 375 px, full DB):
+- buyer: Apple 20W charger at «آذریار رویس» → «فرستاده شد به پنل فروشنده … منتظر جواب فروشنده (۳۰ ثانیه)»; seller answers «موجود، ۱٬۴۵۰٬۰۰۰، نگه می‌دارم تا ۱۸» → the buyer's chat shows «بله، موجود داریم. قیمت امروز ۱٬۴۵۰٬۰۰۰ تومان است. تا ساعت 18:00 برایتان نگه می‌داریم.» with «پاسخ فروشنده از پنل فروشنده (نمایشی)», and the status chip updates;
+- seller panel: question card with the recorded price and the questions; one tap «✅ موجود، همان قیمت» → «جواب داده شد · جواب شما: موجود»;
+- a second buyer asking the same item within 3 hours gets the stored answer («دوباره مزاحمش نشدیم») — the seller is not asked twice;
+- no seller answer in 30 s → the automatic simulated reply, labeled.
+73 tests pass (round trip, dedupe by request id, first answer wins, inbox replayed after restart); ruff clean.
+Found in the browser and fixed: the panel redrew every 4 s and removed the button under the finger (and would wipe a typed price); it now redraws only when the list changes and never while an input is focused. Prices under 10 M now show two decimals («۱٫۴۵ میلیون», not «۱٫۵»).
+
+Research: 05 §4 ("Let Google Call") and the organizers' Q&A §9.4.
+Questions: none
+Decisions: D13 (contact stays a mock, now two-sided)
+
+Shipped:
+- `starcoach/inbox.py` (append-only `logs/inbox.jsonl`, replayed at start; reuse window 3 h)
+- `POST /api/contact` `mode=seller`; `GET /api/contact/{id}`; `GET /api/seller/{shop}/inbox`; `POST /api/seller/reply`; `contact.answer_reply`
+- UI: buyer waiting state with polling and fallback; seller panel page; panel link on shop pages
