@@ -1,10 +1,16 @@
 #!/bin/sh
 # Get the DB ready before the server starts:
 #   1. DB already on the volume -> use it.
-#   2. DB_URL set -> download the packed DB (.gz) and check its SHA256 if DB_SHA256 is set.
-#   3. CSVs on the volume -> build the DB.
+#   2. /seed/starcoach.db.gz in the image (first deploy on a host without a download link) -> unpack it.
+#   3. DB_URL set -> download the packed DB (.gz) and check its SHA256 if DB_SHA256 is set.
+#   4. CSVs on the volume -> build the DB.
 # Otherwise the server still starts; /ready answers 503 until a DB exists.
 set -e
+
+if [ ! -f "$STARCOACH_DB" ] && [ -f /seed/starcoach.db.gz ]; then
+  echo "unpacking seed DB"
+  python -c "import gzip,os,shutil;d=os.environ['STARCOACH_DB'];shutil.copyfileobj(gzip.open('/seed/starcoach.db.gz','rb'),open(d+'.building','wb'));os.replace(d+'.building',d)"
+fi
 
 if [ ! -f "$STARCOACH_DB" ] && [ -n "$DB_URL" ]; then
   echo "downloading DB from DB_URL"

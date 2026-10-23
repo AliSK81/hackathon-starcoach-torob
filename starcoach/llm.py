@@ -26,13 +26,23 @@ class LLMError(Exception):
     pass
 
 
+def _is_openai_reasoning(model: str) -> bool:
+    name = model.rsplit("/", 1)[-1].lower()
+    return name.startswith(("gpt-5", "o1", "o3", "o4"))
+
+
 def chat(settings: Settings, messages: list[dict], tools: list[dict] | None = None, tool_choice=None,
          max_tokens: int = 400, purpose: str = "chat", timeout: float = TIMEOUT_S) -> dict:
     """One chat-completions call. Returns the first choice's message. Raises LLMError on any failure."""
     if not settings.llm_enabled:
         raise LLMError("llm not configured")
-    body: dict = {"model": settings.llm_model, "messages": messages, "max_tokens": max_tokens, "temperature": 0.2,
-                  "chat_template_kwargs": {"enable_thinking": False}}  # F27: thinking costs 6+ s
+    body: dict = {"model": settings.llm_model, "messages": messages}
+    if _is_openai_reasoning(settings.llm_model):
+        # OpenAI GPT-5 / o-series: no max_tokens, no custom temperature, no vLLM-only fields; thinking is capped by effort
+        body.update(max_completion_tokens=max_tokens, reasoning_effort="minimal")
+    else:
+        body.update(max_tokens=max_tokens, temperature=0.2,
+                    chat_template_kwargs={"enable_thinking": False})  # F27: thinking costs 6+ s
     if tools:
         body["tools"] = tools
         body["tool_choice"] = tool_choice or "auto"
