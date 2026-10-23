@@ -204,3 +204,75 @@ def format_distance(m: float) -> str:
     if m < 1000:
         return f"{int(round(m / 10.0) * 10)} متر"
     return f"{m / 1000:.1f} کیلومتر"
+
+
+# ---------- the assistant's pick among sellers ----------
+PICK_PRICE_PER_10PCT = 1.0  # penalty for each 10% above the cheapest normal price
+PICK_UNKNOWN_HOURS = 0.6
+PICK_PER_KM = 0.6
+PICK_OLD_PRICE = 0.6  # last change > 90 days before the data snapshot
+PICK_FRESH_PRICE = -0.2  # changed in the data's last week
+PICK_WARRANTY = -0.2
+
+
+def pick_seller(sellers: list[dict], age_days) -> dict | None:
+    """One recommended seller with plain reasons, weighing price, open status, distance, freshness, warranty.
+
+    `age_days(entry)` gives the age of the entry's last price change relative to the data snapshot.
+    Closed sellers and non-normal prices are never picked."""
+    cands = [e for e in sellers if e["best_status"] == "ok" and e["shop"]["open_now"] is not False]
+    if not cands:
+        return None
+    cheapest = min(e["best_price"] for e in cands)
+
+    def score(e):
+        s = (e["best_price"] - cheapest) / cheapest * 10 * PICK_PRICE_PER_10PCT
+        if e["shop"]["open_now"] is None:
+            s += PICK_UNKNOWN_HOURS
+        if e.get("distance_m") is not None:
+            s += e["distance_m"] / 1000 * PICK_PER_KM
+        age = age_days(e)
+        if age is not None and age > 90:
+            s += PICK_OLD_PRICE
+        elif age is not None and age <= 7:
+            s += PICK_FRESH_PRICE
+        if e["offers"][0]["warranty_kind"] == "yes":
+            s += PICK_WARRANTY
+        return s
+
+    best = min(cands, key=score)
+    why = []
+    extra = (best["best_price"] - cheapest) / cheapest
+    if extra == 0:
+        why.append("ارزان‌ترین قیمت ثبت‌شده‌ی فروشنده‌های قابل‌مراجعه")
+    elif extra < 0.01:
+        why.append("تقریباً هم‌قیمت ارزان‌ترین")
+    else:
+        why.append(f"فقط {extra * 100:.0f}٪ گران‌تر از ارزان‌ترین")
+    if best["shop"]["open_now"] is True:
+        why.append("در زمان بازدید باز است")
+    if best.get("distance_m") is not None:
+        why.append(format_distance(best["distance_m"]) + (" از شما" if best["distance_m"] >= 50 else ""))
+    age = age_days(best)
+    if age is not None and age <= 7:
+        why.append("قیمتش در هفته‌ی آخر داده به‌روز شده")
+    if best["offers"][0]["warranty_kind"] == "yes":
+        why.append("گارانتی دارد")
+    if best["shop"]["open_now"] is None:
+        why.append("احتیاط: ساعت کاری‌اش ثبت نشده؛ قبل از رفتن بپرسید")
+    if age is not None and age > 90:
+        why.append("احتیاط: قیمتش بیش از ۳ ماه تغییر نکرده؛ قیمت امروز را بپرسید")
+    # why not the cheapest one?
+    cheap = min(cands, key=lambda e: e["best_price"])
+    if cheap is not best:
+        reasons = []
+        if cheap["shop"]["open_now"] is None:
+            reasons.append("ساعت کاری‌اش ثبت نشده")
+        if cheap.get("distance_m") is not None and best.get("distance_m") is not None and cheap["distance_m"] - best["distance_m"] > 300:
+            reasons.append(f"{format_distance(cheap['distance_m'] - best['distance_m'])} دورتر است")
+        cage = age_days(cheap)
+        if cage is not None and cage > 90:
+            reasons.append("قیمتش بیش از ۳ ماه تغییر نکرده")
+        if reasons:
+            why.append(f"ارزان‌ترین («{cheap['shop']['name']}») را انتخاب نکردم چون " + " و ".join(reasons))
+    return {"shop_id": best["shop"]["shop_id"], "why": why}

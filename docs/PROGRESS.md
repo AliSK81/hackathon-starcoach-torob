@@ -4,7 +4,7 @@
 
 - **Current phase:** 8 — Release (audit passed except the parked public deploy, D11); improving weakest items
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page, with filters (area / near me, budget, visit time, installments, TorobPay, …), reasons, relax buttons and a 3-product compare.
-- **Last change:** Change 28
+- **Last change:** Change 29
 
 ### What we need from the user
 
@@ -674,3 +674,20 @@ Decisions: corrections only for words missing from the vocabulary, only when the
 
 Shipped:
 - `starcoach/spell.py`; `search_products` returns `corrected`; API passes it; search page says what was corrected
+
+### Change 29 — «⭐ پیشنهاد دستیار»: one recommended seller, with reasons and cautions — 2026-10-23
+Phase: 8, improving weakest items (Product, Intelligence: "attention to visit conditions")
+How to see it: open any product; the card above the seller list
+Proof it works (full DB, visit Sat 11:00):
+- S25 FE near Alaeddin → «نیآرا آروان», 184.2M: «تقریباً هم‌قیمت ارزان‌ترین · در زمان بازدید باز است · کنار شما · قیمتش در هفته‌ی آخر داده به‌روز شده · گارانتی دارد · ارزان‌ترین («نویار آذروش») را انتخاب نکردم چون ۴۷۰ متر دورتر است»;
+- Apple 20W charger, all of Tehran → the 1.25M seller, now with «احتیاط: ساعت کاری‌اش ثبت نشده…» and «احتیاط: قیمتش بیش از ۳ ماه تغییر نکرده…»;
+- in علاءالدین (browser, 375 px) → «آذریار رویس» 1,560,000, open, 260 m, warranty; no overflow.
+65 tests pass (pick is never closed or a non-normal price, always explained); ruff clean.
+
+Research: 04 §3.3 (deterministic "why"; reason codes from data) followed.
+Questions: none
+Decisions: pick weights in `filters.py` (price per 10% = 1.0, unknown hours 0.6, per km 0.6, price older than 90 days 0.6, fresh −0.2, warranty −0.2).
+
+Shipped:
+- `filters.pick_seller`; `api.product` returns `pick`; pick card with contact and plan buttons
+- Persian digits in reason texts (`faDigits`)

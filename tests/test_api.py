@@ -182,3 +182,11 @@ def test_product_reports_price_spread_and_english_name(client):
     p = client.get(f"/api/products/{pid}").json()
     assert p["price_spread"] is None or p["price_spread"] >= 1
     assert "english_name" in p
+
+
+def test_pick_is_open_or_unknown_and_explained(client):
+    pid = client.get("/api/search", params={"q": "شارژر اپل ۲۰ وات"}).json()["items"][0]["product_id"]
+    p = client.get(f"/api/products/{pid}", params={"at": "2026-10-24T11:00"}).json()
+    assert p["pick"] and p["pick"]["why"]
+    chosen = next(e for e in p["sellers"] if e["shop"]["shop_id"] == p["pick"]["shop_id"])
+    assert chosen["best_status"] == "ok" and chosen["shop"]["open_now"] is not False

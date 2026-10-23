@@ -15,7 +15,7 @@ It follows the four steps of the challenge video: **choose the product → find 
 uv sync
 uv run starcoach build-db        # CSVs in data/torob-dataset/ -> data/starcoach.db (~50 s)
 uv run starcoach serve           # http://127.0.0.1:8000 — open it at phone width
-uv run pytest                    # 64 offline tests
+uv run pytest                    # 65 offline tests
 uv run starcoach results         # regenerates results/*.txt|json from the DB (~2 s)
 uv run starcoach smoke --url http://127.0.0.1:8000
 ```
@@ -29,7 +29,7 @@ Optional LLM: set `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` in `.env` (any Open
 |---|---|---|
 | 1. Find the right product | Type a sentence («گوشی سامسونگ زیر ۲۰۰ میلیون قسطی تو علاءالدین»); or «نمیدونم چه مدلی هندزفری بخرم» → guided questions | Rule parser turns the sentence into filters shown as removable chips; free descriptions go to the LLM in the background. Guided choice asks questions built from the category's own data and shortlists 3 models; compare up to 3 side by side. |
 | 2. Find stores that have it, near you | Product page: sellers with passage / floor / unit, distance, open status | Only shops with an offer for the product are listed (category alone ≠ in stock). Area, passage or "near me" + radius. |
-| 3. Compare stores | Sellers sorted by price or distance; "why" chips; filters for budget, visit time, installments, TorobPay, in-person payment, fast delivery, warranty | All reasons come from data (cheapest, open at visit time, distance, installments, warranty, price freshness). Empty results offer one-tap "drop this filter" fixes. |
+| 3. Compare stores | «⭐ پیشنهاد دستیار» picks one seller and says why (and why not the cheapest); sellers sorted by price or distance; "why" chips; filters for budget, visit time, installments, TorobPay, in-person payment, fast delivery, warranty | All reasons come from data (cheapest, open at visit time, distance, installments, warranty, price freshness). Empty results offer one-tap "drop this filter" fixes. |
 | 4. Contact stores | «از فروشنده بپرس» or «🤖 از ۳ فروشنده‌ی اول بپرس» | The agent drafts the message from chosen questions and reports replies: in stock, today's price, closing time, hold. Phones in the data are fake, so replies are **simulated and labeled**. No answer / out of stock / closed → alternatives at once. |
 | + Plan the visit | «🗺 برنامه‌ی بازدید» | Orders stops into a walk, checks each is open on arrival, warns early, and shows where the shop is inside the passage. |
 
@@ -60,7 +60,7 @@ Optional LLM: set `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` in `.env` (any Open
 | R21 | Unknown shown clearly | «نامشخص», «ساعت کاری ثبت نشده», «قیمت ثبت نشده؛ استعلام تلفنی» |
 | R22 | Persian, RTL, mobile | `dir="rtl"`, `fa-IR` numbers and dates, checked at 375 × 812 |
 | R23 | Deployed and stable | Docker image, `/health`, `/ready`, healthcheck, `starcoach smoke`; public deploy parked by the team (D11) |
-| R24 | Code structure, tools, performance | one module per capability, one CLI command per capability, 64 tests, ruff clean; timings below |
+| R24 | Code structure, tools, performance | one module per capability, one CLI command per capability, 65 tests, ruff clean; timings below |
 | R25 | Demo-ready | §8 demo script |
 
 ## 4. Architecture
@@ -139,7 +139,7 @@ The LLM *replacing* the rules scored 0.423 on hard (F29); that is why the LLM on
 1. **Home (20 s).** Phone-width screen; say what the app is; point at the note that prices are recorded prices and stock is not confirmed.
 2. **A sentence (60 s).** Tap «گوشی سامسونگ زیر ۲۰۰ میلیون قسطی تو علاءالدین». Show the understood chips (budget, installments, Alaeddin), the "only phones" focus, and the relax buttons. Remove «پاساژ» with one tap.
 3. **Don't know the model (50 s).** Type «نمیدونم چه مدلی هندزفری بخرم» → guided questions → pick a budget and «بی‌سیم» → 3 models with reasons → «مقایسه‌ی این ۳ مدل».
-4. **Sellers (50 s).** Open S25 FE; set area to علاءالدین and Saturday 11:00 in the sheet; show seller cards: price + «آخرین تغییر قیمت», open status, passage / floor / unit, reasons; switch sort to «نزدیک‌ترین».
+4. **Sellers (50 s).** Open S25 FE; set area to علاءالدین and Saturday 11:00 in the sheet; read the «⭐ پیشنهاد دستیار» card and its reasons; show seller cards: price + «آخرین تغییر قیمت», open status, passage / floor / unit, reasons; switch sort to «نزدیک‌ترین».
 5. **The agent asks (50 s).** «🤖 از ۳ فروشنده‌ی اول بپرس» → replies arrive (labeled simulated) → «ارزان‌ترینِ تأییدشده». Open one seller that didn't answer → alternatives in the same passage.
 6. **Plan (40 s).** Add 2–3 stops → «🗺 برنامه‌ی بازدید»: walk order, arrival times, a warning for a shop without hours; «کجای پاساژ؟» shows floor and neighbouring units.
 7. **Free description with the LLM (20 s).** «برای کولر گازی خونه یه چیزی میخوام که برق رفت و اومد خراب نشه» → ⏳ → ✨ «محافظ برق».

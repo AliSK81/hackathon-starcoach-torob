@@ -24,6 +24,7 @@ function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 function num(n) { return nf.format(n); }
+function faDigits(t) { return String(t ?? "").replace(/[0-9]/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[d]); }
 function toman(n) { return n == null ? null : `${num(n)} تومان`; }
 function tomanShort(n) {
   if (n == null) return null;
@@ -788,11 +789,28 @@ async function viewProduct(id) {
     ${p.price_spread && p.price_spread > 3 ? `<div class="notice">قیمت‌ها تا ${num(Math.round(p.price_spread))} برابر با هم فرق دارند. ممکن است واحد فروش (عدد، متر، حلقه، بسته) یا اصل/غیراصل بودن کالا فرق کند؛ واحد فروش در داده ثبت نشده. قبل از خرید بپرسید.</div>` : ""}
     <h2>فروشنده‌ها (${ctx.sort === "distance" && ctx.place ? "نزدیک‌ترین اول" : "ارزان‌ترین اول"})</h2>
     ${filterSummary(p)}
+    ${pickCard(p)}
     ${p.sellers.length ? `<div class="actions" style="margin-bottom:10px"><button type="button" class="btn primary" id="askTop">🤖 از ${num(Math.min(3, p.sellers.length))} فروشنده‌ی اول بپرس</button></div><div id="agentBox"></div>` : ""}
     ${p.sellers.map((e) => sellerCard({ ...e, product_id: p.product_id, product_title: p.title })).join("")}
     ${specs}`;
   const askBtn = document.getElementById("askTop");
   if (askBtn) askBtn.onclick = () => { askBtn.disabled = true; askTopSellers(p); };
+}
+
+function pickCard(p) {
+  if (!p.pick) return "";
+  const e = p.sellers.find((x) => x.shop.shop_id === p.pick.shop_id);
+  if (!e) return "";
+  return `<section class="card pick">
+    <div class="small" style="color:var(--primary);font-weight:700">⭐ پیشنهاد دستیار</div>
+    <div class="between"><a href="#/s/${esc(e.shop.shop_id)}"><strong>${esc(e.shop.name)}</strong></a><span class="price">${esc(toman(e.best_price))}</span></div>
+    <div class="muted small">${esc(e.shop.location_short || e.shop.area || "")}</div>
+    <ul class="small" style="margin:6px 0 0;padding-inline-start:18px">${p.pick.why.map((w) => `<li class="${w.startsWith("احتیاط") ? "warn-text" : ""}">${esc(faDigits(w))}</li>`).join("")}</ul>
+    <div class="actions">
+      <button type="button" class="btn primary" data-contact="${esc(e.offers[0].offer_id)}" data-shop-name="${esc(e.shop.name)}" data-product-id="${esc(p.product_id)}" data-shop-id="${esc(e.shop.shop_id)}">از این فروشنده بپرس</button>
+      ${planBtn(e.shop.shop_id, e.shop.name, p.title, p.product_id, e.offers[0].offer_id)}
+    </div>
+  </section>`;
 }
 
 function filterSummary(p) {
@@ -834,7 +852,7 @@ function sellerCard(entry) {
       ${note}
       <div class="muted small">${ageText}</div>
       <div class="small">${warranty}</div>
-      ${(entry.reasons || []).length ? `<div class="reasons">${entry.reasons.map((r) => `<span class="chip reason-${r.kind}">${esc(r.text)}</span>`).join("")}</div>` : ""}
+      ${(entry.reasons || []).length ? `<div class="reasons">${entry.reasons.map((r) => `<span class="chip reason-${r.kind}">${esc(faDigits(r.text))}</span>`).join("")}</div>` : ""}
       ${pay ? `<div class="chips" style="margin-top:6px">${pay}</div>` : ""}
       ${best.seller_title ? `<div class="muted small">عنوان فروشنده: ${esc(best.seller_title)}</div>` : ""}
       ${contacts[best.offer_id] ? `<div style="margin-top:6px">${contactChip(best.offer_id)}</div>` : ""}

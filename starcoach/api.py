@@ -15,6 +15,7 @@ from starcoach.filters import (
     Filters,
     active_names,
     offer_matches,
+    pick_seller,
     seller_reasons,
     shop_distance,
     shop_matches,
@@ -264,6 +265,7 @@ def product(conn: sqlite3.Connection, product_id: str, f: Filters | None = None,
     for entry in sellers:
         entry["reasons"] = seller_reasons(entry, cheapest, f, _age_days(snapshot, entry["last_change"]),
                                           cheapest_shown)
+    pick = pick_seller(sellers, lambda e: _age_days(snapshot, e["last_change"]))
     relax = []
     if not sellers and f.active and not _relaxing:
         # Which single filter, if removed, brings sellers back? (a quick alternative instead of a dead end)
@@ -290,6 +292,7 @@ def product(conn: sqlite3.Connection, product_id: str, f: Filters | None = None,
         "sellers_total": total,
         "sellers_hidden": total - len(sellers),
         "relax": relax,
+        "pick": pick,
         "sellers": sellers,
     }
 
