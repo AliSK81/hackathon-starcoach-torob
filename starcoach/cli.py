@@ -73,6 +73,32 @@ def cmd_pack_db(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_eval_intents(args: argparse.Namespace) -> int:
+    from starcoach.db import connect
+    from starcoach.evaluate import EVAL_NOW, baseline_parse, run_eval
+    from starcoach.intent import Gazetteer, parse_request
+
+    settings = get_settings()
+    conn = connect(Path(args.db) if args.db else settings.db_path, readonly=True)
+    g = Gazetteer.from_db(conn)
+    parsers = {"baseline": baseline_parse, "rules": lambda t: parse_request(t, g, now=EVAL_NOW)}
+    if args.with_llm:
+        from starcoach.llm import refine_request
+
+        parsers["rules+llm"] = lambda t: refine_request(t, parse_request(t, g, now=EVAL_NOW), settings, now=EVAL_NOW)
+    report = {}
+    for name, parse in parsers.items():
+        report[name] = run_eval(Path(args.cases), parse, args.split)
+        r = report[name]
+        print(f"{name:<10} split={r['split']} cases={r['cases']} exact={r['exact_match']} slots={r['slot_accuracy']} {r['per_slot']}")
+    if args.out:
+        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.out).write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    log_event(settings.log_dir, "runs", "eval_intents", split=args.split,
+              **{k: {"exact": v["exact_match"], "slots": v["slot_accuracy"]} for k, v in report.items()})
+    return 0
+
+
 def cmd_smoke(args: argparse.Namespace) -> int:
     from starcoach.smoke import run
 
@@ -107,6 +133,14 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("pack-db", help="gzip the DB and print its SHA256, for upload to a server")
     p.add_argument("--db", default=None)
     p.set_defaults(func=cmd_pack_db)
+
+    p = sub.add_parser("eval-intents", help="score request parsing on labeled Persian requests")
+    p.add_argument("--cases", default="tests/data/intents.jsonl")
+    p.add_argument("--split", default="dev", choices=["dev", "test", "all"])
+    p.add_argument("--with-llm", action="store_true", help="also score rules + LLM (needs LLM_* in .env)")
+    p.add_argument("--out", default=None, help="write the full report as JSON")
+    p.add_argument("--db", default=None)
+    p.set_defaults(func=cmd_eval_intents)
 
     p = sub.add_parser("smoke", help="smoke test a running instance over HTTP")
     p.add_argument("--url", default="http://127.0.0.1:8000")

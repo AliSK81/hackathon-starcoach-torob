@@ -1,0 +1,252 @@
+{
+  "baseline": {
+    "split": "test",
+    "cases": 15,
+    "exact_match": 0.067,
+    "slot_accuracy": 0.429,
+    "per_slot": {
+      "area": "0/1",
+      "cheap": "0/1",
+      "conditions": "0/4",
+      "intent": "0/2",
+      "max_price": "0/6",
+      "min_price": "0/2",
+      "passage": "0/2",
+      "query": "15/15",
+      "time": "0/2"
+    },
+    "failures": [
+      {
+        "text": "یه گوشی سامسونگ زیر ۲۰۰ میلیون میخوام که قسطی بشه خرید",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "max_price",
+            "ok": false,
+            "want": 200000000,
+            "got": null
+          },
+          {
+            "slot": "conditions",
+            "ok": false,
+            "want": [
+              "installments"
+            ],
+            "got": []
+          }
+        ]
+      },
+      {
+        "text": "هندزفری کیو سی وای ارزون نزدیک علاالدین",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "passage",
+            "ok": false,
+            "want": "علاءالدین",
+            "got": null
+          },
+          {
+            "slot": "cheap",
+            "ok": false,
+            "want": true,
+            "got": false
+          }
+        ]
+      },
+      {
+        "text": "شارژر سامسونگ ۲۵ وات اصل",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "conditions",
+            "ok": false,
+            "want": [
+              "warranty"
+            ],
+            "got": []
+          }
+        ]
+      },
+      {
+        "text": "دوربین کانن بین ۵۰ تا ۸۰ میلیون",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "max_price",
+            "ok": false,
+            "want": 80000000,
+            "got": null
+          },
+          {
+            "slot": "min_price",
+            "ok": false,
+            "want": 50000000,
+            "got": null
+          }
+        ]
+      },
+      {
+        "text": "چراغ پنلی سقفی فردا صبح لاله زار",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "area",
+            "ok": false,
+            "want": "فردوسی",
+            "got": null
+          },
+          {
+            "slot": "time",
+            "ok": false,
+            "want": "2026-10-23T10:00",
+            "got": null
+          }
+        ]
+      },
+      {
+        "text": "پاوربانک انکر تا یک و نیم میلیون",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "max_price",
+            "ok": false,
+            "want": 1500000,
+            "got": null
+          }
+        ]
+      },
+      {
+        "text": "اسپیکر بلوتوثی که الان باز باشه با ترب‌پی",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "conditions",
+            "ok": false,
+            "want": [
+              "open",
+              "torobpay"
+            ],
+            "got": []
+          }
+        ]
+      },
+      {
+        "text": "کمکم کن یه لپ تاپ برای برنامه نویسی انتخاب کنم",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "intent",
+            "ok": false,
+            "want": "choose",
+            "got": "search"
+          }
+        ]
+      },
+      {
+        "text": "گلس آیفون ۱۵ زیر ۵۰۰ هزار تومان",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "max_price",
+            "ok": false,
+            "want": 500000,
+            "got": null
+          }
+        ]
+      },
+      {
+        "text": "کنتاکتور اشنایدر شنبه ساعت ۱۰ پاساژ بوشهری",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "passage",
+            "ok": false,
+            "want": "بوشهری",
+            "got": null
+          },
+          {
+            "slot": "time",
+            "ok": false,
+            "want": "2026-10-24T10:00",
+            "got": null
+          }
+        ]
+      },
+      {
+        "text": "ماوس بی سیم لاجیتک حداکثر ۲ میلیون",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "max_price",
+            "ok": false,
+            "want": 2000000,
+            "got": null
+          }
+        ]
+      },
+      {
+        "text": "رله شیله با ارسال فوری",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "conditions",
+            "ok": false,
+            "want": [
+              "fast"
+            ],
+            "got": []
+          }
+        ]
+      },
+      {
+        "text": "فرق گلکسی A57 و A17 چیه",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "intent",
+            "ok": false,
+            "want": "compare",
+            "got": "search"
+          }
+        ]
+      },
+      {
+        "text": "جاروبرقی بوش حدود ۲۰ میلیون",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "max_price",
+            "ok": false,
+            "want": 24000000,
+            "got": null
+          },
+          {
+            "slot": "min_price",
+            "ok": false,
+            "want": 16000000,
+            "got": null
+          }
+        ]
+      }
+    ]
+  },
+  "rules": {
+    "split": "test",
+    "cases": 15,
+    "exact_match": 1.0,
+    "slot_accuracy": 1.0,
+    "per_slot": {
+      "area": "1/1",
+      "cheap": "1/1",
+      "conditions": "4/4",
+      "intent": "2/2",
+      "max_price": "6/6",
+      "min_price": "2/2",
+      "passage": "2/2",
+      "query": "15/15",
+      "time": "2/2"
+    },
+    "failures": []
+  }
+}

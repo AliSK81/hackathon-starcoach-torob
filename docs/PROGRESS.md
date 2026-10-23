@@ -4,7 +4,7 @@
 
 - **Current phase:** 5 — Assistant: understand the need (3's public deploy parked, D11)
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page, with filters (area / near me, budget, visit time, installments, TorobPay, …), reasons, relax buttons and a 3-product compare.
-- **Last change:** Change 16
+- **Last change:** Change 17
 
 ### What we need from the user
 
@@ -396,3 +396,35 @@ Not done yet:
 
 Next change idea:
 - Persian rule parser: sentence → query words + budget + area + time + conditions
+
+### Change 17 — Persian request parser (no LLM) with a labeled eval and a baseline — 2026-10-23
+Phase: 5, steps 1–2 (R1 prep, R9, R19)
+How to see it: `uv run starcoach eval-intents --split test`
+Proof it works: 45 labeled requests in `tests/data/intents.jsonl` (30 dev, 15 held-out test), fixed "now" = Thu 2026-10-22 12:00 Tehran.
+
+| split | parser | exact match | slot accuracy |
+|---|---|---|---|
+| dev | baseline (raw text, no filters) | 0.10 | 0.469 |
+| dev | rules, before fixes | 0.90 | 0.896 |
+| dev | rules, after fixes | 1.00 | 1.00 |
+| test (held out, run once after tuning) | baseline | 0.067 | 0.429 |
+| test | rules | 1.00 | 1.00 |
+
+Reports: `results/intent-eval-dev.json`, `results/intent-eval-test.json`. 50 tests pass.
+Caveat (honest): the same author wrote the cases and the parser, and the test split is small (15). Expect lower accuracy on real users' messages; the LLM step and harder cases come next.
+
+Research: 03 §3.2 price parser reused. Two failures found on dev that research did not cover:
+- «هدفون بی سیم تا ۳ میلیون» → "30 to 3 million": «سی» (30) inside «سیم», and «م» glued as "million". Fixed with word boundaries.
+- «نزدیک لاله زار», «کنار جمهوری» matched same-named passages; people mean the street area. Landmarks now win unless «پاساژ …» is said.
+Questions: none
+Decisions: none
+
+Shipped:
+- `starcoach/intent.py`: budget (ranges, words, colloquial «تومن» resolved by median and flagged), conditions (installments, TorobPay, in-person pay, fast delivery, warranty, open), visit time (امروز/فردا/weekday + part of day / «ساعت ۵» → 17:00), place (DB gazetteer of areas and passages + street landmarks), intent (search / compare / choose), product words
+- `starcoach/evaluate.py` + `starcoach eval-intents` (per-slot scores, extra filters count as errors)
+
+Not done yet:
+- Not exposed in the API/UI yet; no LLM step yet
+
+Next change idea:
+- `/api/ask` and an assistant box that shows the "understood" chips

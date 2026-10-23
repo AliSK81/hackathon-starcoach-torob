@@ -1,0 +1,422 @@
+{
+  "baseline": {
+    "split": "dev",
+    "cases": 30,
+    "exact_match": 0.1,
+    "slot_accuracy": 0.469,
+    "per_slot": {
+      "ambiguous": "0/1",
+      "area": "0/4",
+      "cheap": "0/2",
+      "conditions": "0/7",
+      "intent": "0/2",
+      "max_price": "0/8",
+      "min_price": "0/5",
+      "passage": "0/2",
+      "query": "30/30",
+      "time": "0/3"
+    },
+    "failures": [
+      {
+        "text": "گوشی سامسونگ زیر ۶۰ میلیون",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "max_price",
+            "ok": false,
+            "want": 60000000,
+            "got": null
+          }
+        ]
+      },
+      {
+        "text": "یه هندزفری بلوتوث ارزون میخوام",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "cheap",
+            "ok": false,
+            "want": true,
+            "got": false
+          }
+        ]
+      },
+      {
+        "text": "شارژر اپل ۲۰ وات تو پاساژ علاءالدین",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "passage",
+            "ok": false,
+            "want": "علاءالدین",
+            "got": null
+          }
+        ]
+      },
+      {
+        "text": "دزدگیر اماکن بین ۱۰ تا ۱۵ میلیون",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "max_price",
+            "ok": false,
+            "want": 15000000,
+            "got": null
+          },
+          {
+            "slot": "min_price",
+            "ok": false,
+            "want": 10000000,
+            "got": null
+          }
+        ]
+      },
+      {
+        "text": "آیفون ۱۳ ۱۲۸ با خرید اقساطی",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "conditions",
+            "ok": false,
+            "want": [
+              "installments"
+            ],
+            "got": []
+          }
+        ]
+      },
+      {
+        "text": "محافظ برق کولر گازی نزدیک لاله زار",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "area",
+            "ok": false,
+            "want": "فردوسی",
+            "got": null
+          }
+        ]
+      },
+      {
+        "text": "هدفون بی سیم تا ۳ میلیون که الان باز باشه",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "max_price",
+            "ok": false,
+            "want": 3000000,
+            "got": null
+          },
+          {
+            "slot": "conditions",
+            "ok": false,
+            "want": [
+              "open"
+            ],
+            "got": []
+          }
+        ]
+      },
+      {
+        "text": "دوربین مداربسته داهوا فردا عصر",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "time",
+            "ok": false,
+            "want": "2026-10-23T17:00",
+            "got": null
+          }
+        ]
+      },
+      {
+        "text": "اسپیکر جی بی ال با ترب پی",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "conditions",
+            "ok": false,
+            "want": [
+              "torobpay"
+            ],
+            "got": []
+          }
+        ]
+      },
+      {
+        "text": "لپ تاپ ایسوس حدود ۴۰ میلیون",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "max_price",
+            "ok": false,
+            "want": 48000000,
+            "got": null
+          },
+          {
+            "slot": "min_price",
+            "ok": false,
+            "want": 32000000,
+            "got": null
+          }
+        ]
+      },
+      {
+        "text": "گوشی شیائومی بالای ۳۰ میلیون",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "min_price",
+            "ok": false,
+            "want": 30000000,
+            "got": null
+          }
+        ]
+      },
+      {
+        "text": "ساعت کاسیو اورجینال",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "conditions",
+            "ok": false,
+            "want": [
+              "warranty"
+            ],
+            "got": []
+          }
+        ]
+      },
+      {
+        "text": "کابل افشان ۲.۵ در شیخ هادی",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "area",
+            "ok": false,
+            "want": "شیخ هادی",
+            "got": null
+          }
+        ]
+      },
+      {
+        "text": "قاب گوشی زیر ۲۰۰ هزار",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "max_price",
+            "ok": false,
+            "want": 200000,
+            "got": null
+          }
+        ]
+      },
+      {
+        "text": "هندزفری تا ۵ تومن",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "max_price",
+            "ok": false,
+            "want": 5000000,
+            "got": null
+          },
+          {
+            "slot": "ambiguous",
+            "ok": false,
+            "want": true,
+            "got": false
+          }
+        ]
+      },
+      {
+        "text": "لامپ ال ای دی پنجشنبه ساعت ۵",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "time",
+            "ok": false,
+            "want": "2026-10-22T17:00",
+            "got": null
+          }
+        ]
+      },
+      {
+        "text": "سشوار فیلیپس ارسال فوری",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "conditions",
+            "ok": false,
+            "want": [
+              "fast"
+            ],
+            "got": []
+          }
+        ]
+      },
+      {
+        "text": "نمیدونم چه مدلی هندزفری بخرم",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "intent",
+            "ok": false,
+            "want": "choose",
+            "got": "search"
+          }
+        ]
+      },
+      {
+        "text": "مقایسه ایرپاد و کیو سی وای",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "intent",
+            "ok": false,
+            "want": "compare",
+            "got": "search"
+          }
+        ]
+      },
+      {
+        "text": "کلید و پریز سیمکت تو بازار چارسو",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "passage",
+            "ok": false,
+            "want": "چارسو",
+            "got": null
+          }
+        ]
+      },
+      {
+        "text": "گوشی سامسونگ A17 زیر ۲۰۰۰۰۰۰۰۰ ریال",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "max_price",
+            "ok": false,
+            "want": 20000000,
+            "got": null
+          }
+        ]
+      },
+      {
+        "text": "تلویزیون ال جی امروز ساعت 18",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "time",
+            "ok": false,
+            "want": "2026-10-22T18:00",
+            "got": null
+          }
+        ]
+      },
+      {
+        "text": "پمپ آب خانگی تو بهارستان قسطی",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "area",
+            "ok": false,
+            "want": "بهارستان",
+            "got": null
+          },
+          {
+            "slot": "conditions",
+            "ok": false,
+            "want": [
+              "installments"
+            ],
+            "got": []
+          }
+        ]
+      },
+      {
+        "text": "ریسه شلنگی ارزان کنار جمهوری",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "area",
+            "ok": false,
+            "want": "شیخ هادی",
+            "got": null
+          },
+          {
+            "slot": "cheap",
+            "ok": false,
+            "want": true,
+            "got": false
+          }
+        ]
+      },
+      {
+        "text": "هدفون سونی با گارانتی و پرداخت حضوری",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "conditions",
+            "ok": false,
+            "want": [
+              "in_person_pay",
+              "warranty"
+            ],
+            "got": []
+          }
+        ]
+      },
+      {
+        "text": "ساعت هوشمند ۲/۵ میلیون به بالا",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "min_price",
+            "ok": false,
+            "want": 2500000,
+            "got": null
+          }
+        ]
+      },
+      {
+        "text": "گوشی ۱۰ میلیونی",
+        "ok": false,
+        "failed": [
+          {
+            "slot": "max_price",
+            "ok": false,
+            "want": 12000000,
+            "got": null
+          },
+          {
+            "slot": "min_price",
+            "ok": false,
+            "want": 8000000,
+            "got": null
+          }
+        ]
+      }
+    ]
+  },
+  "rules": {
+    "split": "dev",
+    "cases": 30,
+    "exact_match": 1.0,
+    "slot_accuracy": 1.0,
+    "per_slot": {
+      "ambiguous": "1/1",
+      "area": "4/4",
+      "cheap": "2/2",
+      "conditions": "7/7",
+      "intent": "2/2",
+      "max_price": "8/8",
+      "min_price": "5/5",
+      "passage": "2/2",
+      "query": "30/30",
+      "time": "3/3"
+    },
+    "failures": []
+  }
+}
