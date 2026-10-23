@@ -165,10 +165,10 @@ def plan(conn: sqlite3.Connection, shop_ids: list[str], start_at: datetime | Non
         here = (located[0]["lat"], located[0]["lon"]) if located else None
     ordered = []
     while remaining:
-        def cost(s):
-            if here is None or not s["lat"]:
+        def cost(s, at=here):
+            if at is None or not s["lat"]:
                 return (1e9, 0)
-            return (distance_m(here[0], here[1], s["lat"], s["lon"]), s["floor"] if s["floor"] is not None else 0)
+            return (distance_m(at[0], at[1], s["lat"], s["lon"]), s["floor"] if s["floor"] is not None else 0)
         nxt = min(remaining, key=cost)
         # take every remaining stop in the same building now, lowest floor first
         building = [s for s in remaining if s is nxt or (nxt["passage"] and s["passage"] == nxt["passage"])
