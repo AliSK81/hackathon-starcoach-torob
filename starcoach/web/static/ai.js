@@ -89,8 +89,12 @@ document.addEventListener("submit", async (e) => {
   if (!form) return;
   e.preventDefault();
   const text = form.t.value.trim();
-  if (!text) return;
   const reply = form.parentElement.querySelector(".ai-guide-reply");
+  if (!text) {
+    reply.textContent = "ابتدا نیازتان را بنویسید (مثلاً همان متن نمونه بالا).";
+    form.t.focus();
+    return;
+  }
   reply.innerHTML = `<span class="ai-wait"><span class="ai-spark">✨</span> دارم جواب‌ها را از حرف شما درمی‌آورم…</span>`;
   let r;
   try { r = await getJSON(`/api/ai/guide/answers?q=${encodeURIComponent(form.dataset.q)}&cat=${encodeURIComponent(form.dataset.cat)}&text=${encodeURIComponent(text)}&${filterParams()}`); } catch { r = null; }

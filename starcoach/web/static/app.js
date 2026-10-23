@@ -168,11 +168,11 @@ function renderCtxBar() {
     ? `<span class="ctxchip on"><button type="button" class="ctxchip-main" data-open-sheet>${esc(text)}</button><button type="button" class="ctxclear" data-clear-ctx="${clearKey}" aria-label="پاک کردن" title="پاک کردن">✕</button></span>`
     : `<button type="button" class="ctxchip" data-open-sheet>${esc(text)}</button>`;
   const anyOn = Boolean(pl || ctx.max_price || ctx.min_price || ctx.day != null || conds.length);
-  const clearAll = anyOn
-    ? `<button type="button" class="ctxchip ctxclear-all" data-clear-ctx="all" title="پاک کردن همه‌ی شرایط">پاک کردن ✕</button>`
-    : "";
   const nOn = [pl, ctx.max_price || ctx.min_price, ctx.day != null].filter(Boolean).length + conds.length;
-  const all = `<button type="button" class="ctxchip ctxall" data-open-sheet>⚙️ فیلترها${nOn ? ` (${num(nOn)})` : ""}</button>`;
+  const filtersLabel = `⚙️ فیلترها${nOn ? ` (${num(nOn)})` : ""}`;
+  const all = anyOn
+    ? `<span class="ctxchip on ctxall"><button type="button" class="ctxchip-main" data-open-sheet>${filtersLabel}</button><button type="button" class="ctxclear" data-clear-ctx="all" aria-label="پاک کردن همه‌ی شرایط" title="پاک کردن همه‌ی شرایط">✕</button></span>`
+    : `<button type="button" class="ctxchip ctxall" data-open-sheet>${filtersLabel}</button>`;
   const locate = pl ? "" : `<button type="button" class="ctxchip ctxlocate" data-use-location>📍 نزدیک من</button>`;
   const active = [
     locate,
@@ -181,7 +181,7 @@ function renderCtxBar() {
     ctx.day != null && chip(true, "🕒 " + when, "when"),
     conds.length > 0 && chip(true, "💳 " + conds.join("، "), "conds"),
   ].filter(Boolean).join("");
-  bar.innerHTML = all + active + clearAll;
+  bar.innerHTML = all + active;
 }
 
 async function openSheet() {
