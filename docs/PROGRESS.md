@@ -2,9 +2,9 @@
 
 ## Status board
 
-- **Current phase:** 7 — Evaluation and reviewer doc (3's public deploy parked, D11)
+- **Current phase:** 8 — Release (audit passed except the parked public deploy, D11); improving weakest items
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page, with filters (area / near me, budget, visit time, installments, TorobPay, …), reasons, relax buttons and a 3-product compare.
-- **Last change:** Change 27
+- **Last change:** Change 27 (release audit)
 
 ### What we need from the user
 
@@ -621,3 +621,44 @@ Proof it works:
 Research: 01 §5 (no price-unit field; per-metre vs coil) and §8 (missing fields table) applied.
 Questions: none
 Decisions: none
+
+### Change 27 — Release audit against `docs/requirements.md`, line by line — 2026-10-23
+Phase: 8, step 2
+How to see it: this entry; `docs/REVIEW.md` §3 has the same mapping with links to evidence
+Proof it works: second fresh clone of `33a3530`: 63 tests pass offline; `git ls-files` has no `.env`, no DB, no dataset; `.env` never appears in git history.
+
+| Requirement (section) | Verdict | Evidence |
+|---|---|---|
+| §1 Goal: agent for in-person shopping in Tehran passages; good UX | pass | whole app; `docs/REVIEW.md` §2 |
+| §2 step 1 — choose the product/model (R1) | pass | guide page, `/api/guide`, `results/guide-demo.txt`; sentence parser + LLM for described needs |
+| §2 step 2 — stores that have it, near the user (R2, R3) | pass | product sellers (offer required), area/passage/near-me + radius, distance sort |
+| §2 step 3 — compare stores by price, distance, hours (R4) | pass | seller sort, reasons, compare page, plan arrival checks |
+| §2 step 4 — contact stores; agent asks and reports (R5, R6) | pass, simulated | contact sheet + «از ۳ فروشنده‌ی اول بپرس»; replies labeled simulated because phones are fake (F2, D6) |
+| §3.1 user doesn't know the model | pass | R1 above |
+| §3.2 stale prices → contact stores for updated price/stock | pass, simulated | `POST /api/contact`; confirmed stock and today's price shown apart from the recorded price |
+| §3.3 no answer / closed → alternatives quickly (R7) | pass | `/api/alternatives`, «جایگزین‌ها», plan warnings, relax hints |
+| §3.4 find the shop inside the passage (R8) | pass, within data | parsed floor/unit (65% / 91%), «کجای پاساژ؟» with floor neighbours; building-plaque detection. Google text lookup not used (offline, no API) |
+| §3.5 installment-only filter (R9) | pass | `installments=1`, chip «فقط خرید اقساطی» |
+| §4 use the dataset (R10) | pass | `starcoach stats`, F1, F13 |
+| §4.1 store info (R11) | pass | shop page; missing fields named as missing (Change 26) |
+| §4.2 address, coordinates, passage/floor/unit, hours, contacts (R12) | pass | shop page; messengers «ثبت نشده» |
+| §4.3 product info (R13) | pass | product page; English name/model when present |
+| §4.4 sellers, store products, seller title, price, unit, warranty, last change; category ≠ stock (R14, R15) | pass | product and shop pages; price-unit notice when prices differ > 3× |
+| §4.5 TorobPay, installments, Kalabarg, express delivery, info type clear (R16) | pass | payment list with channel text; Kalabarg «اطلاعاتی در داده نیست» (F18) |
+| §5.1 cards/filters/buttons; why + next step; easy change of area/budget/conditions (R17–R19) | pass | chips + sheet, reasons, action buttons, removable "understood" chips |
+| §5.2 transparency; unknown shown (R20, R21) | pass | separate price / change time / confirmed stock; «نامشخص» everywhere |
+| §5.3 Persian, RTL, mobile (R22) | pass | checked at 375 × 812 throughout |
+| §5.4 product and UX first | pass | effort went to flows; stack kept small |
+| §6 deploy on a server (Liara suggested) (R23) | **gap (parked by the user, D11)** | Docker image, `/ready`, healthcheck, packed DB download, smoke test; fresh-clone image healthy. No public URL yet |
+| §7 demo video (R25) | user's task | demo script in `docs/REVIEW.md` §8; app demo-ready |
+| §8 judging items | mapped | REVIEW §3 (R1–R25 → evidence) |
+| Process: fresh clone runs from README; tests offline; reviewer doc and results current | pass | two fresh clones; `starcoach results`; REVIEW updated |
+
+Result: every requirement has shipped work with proof, except the public deploy, which the user parked (D11). Gaps found in the first pass (missing files in git, unnamed missing fields) were fixed in Change 26 and re-checked.
+
+Research: none new.
+Questions: none
+Decisions: none
+
+Next change idea:
+- Tag the audited version; then improve the weakest score item (Deploy is blocked by D11 → next weakest: Intelligence/UX details such as typo correction and "cheap" phrasings)
