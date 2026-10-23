@@ -12,7 +12,7 @@ const aiReady = fetch("/health").then((r) => r.json()).then((h) => {
 let AI_ON = false;
 
 function aiWait(text) {
-  return `<div class="card ai-card ai-wait">${esc(text)}</div>`;
+  return `<div class="card ai-card ai-wait"><span class="ai-spark">✨</span> ${esc(text)}</div>`;
 }
 
 // ---------- search: reading of the request, wider candidates, ranked picks with reasons ----------
@@ -32,7 +32,7 @@ async function aiSearch(q) {
 function aiPickCard(p) {
   const tag = p.ai_new ? `<span class="chip pill-open">فقط با دستیار پیدا شد</span>` : "";
   return `<div class="ai-pick">${productCard(p, filtersActive())}
-    <div class="ai-why">${esc(p.ai_reason || "مناسب درخواست شما")} ${tag}</div></div>`;
+    <div class="ai-why">✨ ${esc(p.ai_reason || "مناسب درخواست شما")} ${tag}</div></div>`;
 }
 
 function aiSearchHTML(q, r) {
@@ -45,7 +45,7 @@ function aiSearchHTML(q, r) {
     ? `<div class="small" style="margin:10px 0 6px"><strong>${num(r.picks.length)} انتخاب دستیار برای شما</strong>${r.new_count ? ` · ${num(r.new_count)} مورد را جست‌وجوی ساده پیدا نکرده بود` : ""}</div>${r.picks.map(aiPickCard).join("")}`
     : "";
   return `<section class="card ai-card">
-      <div class="ai-head">دستیار هوشمند</div>
+      <div class="ai-head"><span class="ai-spark">✨</span> دستیار هوشمند</div>
       ${r.interpretation ? `<p style="margin:6px 0 0">برداشت من: ${esc(r.interpretation)}</p>` : ""}
       ${clarifyChips}${picks}${related}
       <div class="actions"><button type="button" class="btn" data-agent-say="${esc(q)}">ادامه با دستیار گفت‌وگو</button></div>
@@ -59,14 +59,14 @@ async function aiPick(productId) {
   const box = document.getElementById("aiPickBox");
   if (!AI_ON || !box) return;
   box.dataset.pid = productId;
-  box.innerHTML = `<div class="ai-wait small">دستیار دارد توضیح می‌نویسد…</div>`;
+  box.innerHTML = `<div class="ai-wait small"><span class="ai-spark">✨</span> دستیار دارد توضیح می‌نویسد…</div>`;
   let r;
   try { r = await getJSON(`/api/ai/pick?product_id=${encodeURIComponent(productId)}&${filterParams()}`); } catch { r = null; }
   const cur = document.getElementById("aiPickBox");
   if (!cur || cur.dataset.pid !== productId) return;
   const pick = r && r.pick;
   cur.innerHTML = pick
-    ? `<div class="ai-note">${esc(pick.summary)}${pick.ask.length
+    ? `<div class="ai-note"><span class="ai-spark">✨</span> ${esc(pick.summary)}${pick.ask.length
         ? `<div class="small" style="margin-top:4px"><strong>قبل از رفتن بپرسید:</strong> ${pick.ask.map(esc).join(" · ")}</div>` : ""}</div>` : "";
 }
 
@@ -74,7 +74,7 @@ async function aiPick(productId) {
 function aiGuideBox(q, category, said) {
   if (!AI_ON) return "";
   return `<section class="card ai-card">
-      <div class="ai-head">نیازتان را با کلمات خودتان بگویید</div>
+      <div class="ai-head"><span class="ai-spark">✨</span> نیازتان را با کلمات خودتان بگویید</div>
       <form class="searchbox ai-guide-form" data-q="${esc(q)}" data-cat="${esc(category)}" style="margin-top:8px">
         <input name="t" value="${esc(said)}" placeholder="مثلاً: برای ورزش، ضد عرق و ارزان" autocomplete="off">
         <button type="submit">انتخاب کن</button>
@@ -91,7 +91,7 @@ document.addEventListener("submit", async (e) => {
   const text = form.t.value.trim();
   if (!text) return;
   const reply = form.parentElement.querySelector(".ai-guide-reply");
-  reply.innerHTML = `<span class="ai-wait">دارم جواب‌ها را از حرف شما درمی‌آورم…</span>`;
+  reply.innerHTML = `<span class="ai-wait"><span class="ai-spark">✨</span> دارم جواب‌ها را از حرف شما درمی‌آورم…</span>`;
   let r;
   try { r = await getJSON(`/api/ai/guide/answers?q=${encodeURIComponent(form.dataset.q)}&cat=${encodeURIComponent(form.dataset.cat)}&text=${encodeURIComponent(text)}&${filterParams()}`); } catch { r = null; }
   const next = new URLSearchParams({ q: form.dataset.q, t: text });
@@ -106,20 +106,20 @@ async function aiGuide(q, category, answers, said) {
   for (const [k, v] of Object.entries(answers)) qs.set(`a.${k}`, v);
   if (said) aiGuidePicks(qs.toString(), said);
   const slots = [...document.querySelectorAll("[data-ai-why]")];
-  slots.forEach((el) => { el.innerHTML = `<span class="ai-wait small">…</span>`; });
+  slots.forEach((el) => { el.innerHTML = `<span class="ai-wait small"><span class="ai-spark">✨</span> …</span>`; });
   let r;
   try { r = await getJSON(`/api/ai/guide/why?${qs}&${filterParams()}`); } catch { r = null; }
   for (const el of slots) {
     if (!el.isConnected) continue;
     const why = r && r.why && r.why[el.dataset.aiWhy];
-    el.innerHTML = why ? `${esc(why)}` : "";
+    el.innerHTML = why ? `<span class="ai-spark">✨</span> ${esc(why)}` : "";
   }
 }
 
 async function aiGuidePicks(qs, said) {
   const box = document.getElementById("aiGuidePicks");
   if (!box) return;
-  box.innerHTML = `<div class="ai-wait small" style="margin-top:8px">دارم از میان مدل‌ها، بهترینِ نیاز شما را انتخاب می‌کنم…</div>`;
+  box.innerHTML = `<div class="ai-wait small" style="margin-top:8px"><span class="ai-spark">✨</span> دارم از میان مدل‌ها، بهترینِ نیاز شما را انتخاب می‌کنم…</div>`;
   let r;
   try { r = await getJSON(`/api/ai/guide/picks?${qs}&${filterParams()}`); } catch { r = null; }
   const cur = document.getElementById("aiGuidePicks");
@@ -143,14 +143,14 @@ async function aiHydrate(el) {
     const rows = new Map([...el.querySelectorAll(".alt[data-pid]")].map((n) => [n.dataset.pid, n]));
     for (const [pid, why] of Object.entries(r.why || {})) {
       const row = rows.get(pid);
-      if (row && why) row.querySelector(".ai-why").innerHTML = `${esc(why)}`;
+      if (row && why) row.querySelector(".ai-why").innerHTML = `<span class="ai-spark">✨</span> ${esc(why)}`;
     }
     for (const pid of r.order || []) { const row = rows.get(pid); if (row) el.insertBefore(row, el.querySelector(".ai-advice")); }
-    if (r.advice) el.querySelector(".ai-advice").innerHTML = `<div class="ai-note">${esc(r.advice)}</div>`;
+    if (r.advice) el.querySelector(".ai-advice").innerHTML = `<div class="ai-note"><span class="ai-spark">✨</span> ${esc(r.advice)}</div>`;
   } else if (el.dataset.ai === "dir") {
     let r;
     try { r = await getJSON(`/api/ai/directions/${encodeURIComponent(el.dataset.shop)}`); } catch { return; }
-    if (el.isConnected && r && r.text) el.innerHTML = `<div class="ai-note">${esc(r.text)}</div>`;
+    if (el.isConnected && r && r.text) el.innerHTML = `<div class="ai-note"><span class="ai-spark">✨</span> ${esc(r.text)}</div>`;
   }
 }
 new MutationObserver(() => {
@@ -179,16 +179,16 @@ function agentSave() {
 
 function agentHomeCard() {
   return `<div class="home-ai ai-only">
-      <button type="button" class="btn home-ai-btn" data-agent-open>گفت‌وگو با دستیار</button>
+      <button type="button" class="btn home-ai-btn" data-agent-open>✨ گفت‌وگو با دستیار</button>
     </div>`;
 }
 
 function agentShell() {
   if (document.getElementById("aiPanel")) return;
   document.body.insertAdjacentHTML("beforeend", `
-    <button id="aiFab" class="ai-fab ai-only" type="button" aria-label="دستیار هوشمند">دستیار</button>
+    <button id="aiFab" class="ai-fab ai-only" type="button" aria-label="دستیار هوشمند">✨ دستیار</button>
     <section id="aiPanel" class="ai-panel" hidden aria-label="دستیار هوشمند خرید">
-      <header class="ai-panel-head"><strong>دستیار خرید</strong>
+      <header class="ai-panel-head"><strong><span class="ai-spark">✨</span> دستیار خرید</strong>
         <span><button type="button" class="btn" id="aiReset">گفت‌وگوی تازه</button> <button type="button" class="btn" id="aiClose">بستن</button></span></header>
       <div id="aiMsgs" class="ai-msgs"></div>
       <div id="aiSugg" class="chips ai-sugg"></div>
@@ -286,8 +286,8 @@ function contactsMini(b) {
 }
 
 function blockHTML(b, slot) {
-  if (b.type === "product") return `<div class="ai-pick">${productCard(b.item, filtersActive())}${b.note ? `<div class="ai-why">${esc(b.note)}</div>` : ""}</div>`;
-  if (b.type === "seller") return `${sellerCard({ ...b.entry, product_id: b.product_id, product_title: b.product_title })}${b.note ? `<div class="ai-why">${esc(b.note)}</div>` : ""}`;
+  if (b.type === "product") return `<div class="ai-pick">${productCard(b.item, filtersActive())}${b.note ? `<div class="ai-why">✨ ${esc(b.note)}</div>` : ""}</div>`;
+  if (b.type === "seller") return `${sellerCard({ ...b.entry, product_id: b.product_id, product_title: b.product_title })}${b.note ? `<div class="ai-why">✨ ${esc(b.note)}</div>` : ""}`;
   if (b.type === "compare") return compareMini(b);
   if (b.type === "contacts") return contactsMini(b);
   if (b.type === "hubs") return `<div id="aiHub-${slot}"></div>`;
@@ -314,7 +314,7 @@ function agentRender() {
     const blocks = (m.blocks || []).map((b, j) => { slots.push([b, `${i}-${j}`]); return blockHTML(b, `${i}-${j}`); }).join("");
     html += `<div class="bubble">${esc(m.text).replace(/\n/g, "<br>")}${m.degraded ? `<div class="bubble-note">دستیار هوشمند در دسترس نبود؛ جست‌وجوی ساده نشان داده شد.</div>` : ""}</div>${note}${blocks}`;
   });
-  if (agentBusy) html += `<div class="typing" id="aiTyping">${esc(agentStatus || "دارم فکر می‌کنم…")}</div>`;
+  if (agentBusy) html += `<div class="typing" id="aiTyping">✨ ${esc(agentStatus || "دارم فکر می‌کنم…")}</div>`;
   box.innerHTML = html;
   for (const [b, slot] of slots) {
     if (b.type === "hubs") loadHubs(`aiHub-${slot}`, { q: b.q }, `کجا بروید: ${b.q}`);
@@ -357,7 +357,7 @@ async function agentSend(text) {
         buf = buf.slice(cut + 2);
         if (!chunk.startsWith("data: ")) continue;
         const ev = JSON.parse(chunk.slice(6));
-        if (ev.event === "step") { agentStatus = ev.label; const t = document.getElementById("aiTyping"); if (t) t.textContent = `${ev.label}`; }
+        if (ev.event === "step") { agentStatus = ev.label; const t = document.getElementById("aiTyping"); if (t) t.textContent = `✨ ${ev.label}`; }
         else if (ev.event === "final") final = ev;
       }
     }

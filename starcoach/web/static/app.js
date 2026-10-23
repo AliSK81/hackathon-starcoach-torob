@@ -172,12 +172,12 @@ function renderCtxBar() {
     ? `<button type="button" class="ctxchip ctxclear-all" data-clear-ctx="all" title="پاک کردن همه‌ی شرایط">پاک کردن ✕</button>`
     : "";
   const nOn = [pl, ctx.max_price || ctx.min_price, ctx.day != null].filter(Boolean).length + conds.length;
-  const all = `<button type="button" class="ctxchip ctxall" data-open-sheet>فیلترها${nOn ? ` (${num(nOn)})` : ""}</button>`;
+  const all = `<button type="button" class="ctxchip ctxall" data-open-sheet>⚙️ فیلترها${nOn ? ` (${num(nOn)})` : ""}</button>`;
   const active = [
-    pl && chip(true, place, "place"),
-    (ctx.max_price || ctx.min_price) && chip(true, budget, "budget"),
-    ctx.day != null && chip(true, when, "when"),
-    conds.length > 0 && chip(true, conds.join("، "), "conds"),
+    pl && chip(true, "📍 " + place, "place"),
+    (ctx.max_price || ctx.min_price) && chip(true, "💰 " + budget, "budget"),
+    ctx.day != null && chip(true, "🕒 " + when, "when"),
+    conds.length > 0 && chip(true, "💳 " + conds.join("، "), "conds"),
   ].filter(Boolean).join("");
   bar.innerHTML = all + active + clearAll;
 }
@@ -430,7 +430,7 @@ function understoodBanner(q) {
   const guide = lastAsk.intent === "choose"
     ? `<div class="actions"><a class="btn primary" href="#/guide?q=${encodeURIComponent(q)}">کمکم کن مدل مناسب را انتخاب کنم</a></div>` : "";
   const status = lastAsk.thinking ? `<div class="small" style="color:var(--primary)">⏳ دستیار هوشمند دارد جمله‌تان را دقیق‌تر می‌خواند…</div>`
-    : lastAsk.smart ? `<div class="small" style="color:var(--primary)">با کمک دستیار هوشمند خوانده شد${(lastAsk.llmAdded || []).includes("query") ? " (نام کالا از توضیح شما)" : ""}</div>`
+    : lastAsk.smart ? `<div class="small" style="color:var(--primary)">✨ با کمک دستیار هوشمند خوانده شد${(lastAsk.llmAdded || []).includes("query") ? " (نام کالا از توضیح شما)" : ""}</div>`
     : lastAsk.llmFailed ? `<div class="small muted">دستیار هوشمند در دسترس نبود؛ خواندنِ قاعده‌مند نشان داده شده.</div>` : "";
   return `<div class="card small">${status}<div class="muted">از جمله‌ی شما فهمیدم${lastAsk.query ? ` — کالا: «${esc(lastAsk.query)}»` : ""}:</div>
     <div class="reasons">${items || '<span class="muted">شرط خاصی نبود</span>'}</div>${amb}${guide}</div>`;
@@ -663,7 +663,7 @@ function savePlan() { try { localStorage.setItem("sc_plan", JSON.stringify(planL
 function inPlan(shopId) { return planList.some((x) => x.shop_id === shopId); }
 function renderPlanLink() {
   const a = document.getElementById("planLink");
-  if (a) a.textContent = planList.length ? `برنامه‌ی بازدید (${num(planList.length)})` : "برنامه‌ی بازدید";
+  if (a) a.textContent = planList.length ? `🗺 برنامه‌ی بازدید (${num(planList.length)})` : "🗺 برنامه‌ی بازدید";
 }
 function planBtn(shopId, name, item, productId, offerId) {
   return `<button type="button" class="btn ${inPlan(shopId) ? "on" : ""}" data-plan-add="${esc(shopId)}" data-plan-name="${esc(name || "")}"
@@ -1019,7 +1019,7 @@ async function loadReview(productId) {
       <h2 style="margin-top:0">بررسی کالا</h2>
       <p class="muted small" style="margin:0">از داده‌ی ترب (نشانه‌های بازار، نه نظر کاربران):</p>
       <ul class="small" style="margin:4px 0 0;padding-inline-start:18px">${notes || "<li>نشانه‌ی خاصی نیست.</li>"}</ul>
-      <div id="aiReview">${r.ai ? aiPart(r.ai) : r.llm_available ? `<button type="button" class="btn" id="aiReviewBtn" style="margin-top:8px">جمع‌بندی هوشمند: نقاط قوت، ضعف و چک‌لیست خرید</button>` : ""}</div>
+      <div id="aiReview">${r.ai ? aiPart(r.ai) : r.llm_available ? `<button type="button" class="btn" id="aiReviewBtn" style="margin-top:8px">✨ جمع‌بندی هوشمند: نقاط قوت، ضعف و چک‌لیست خرید</button>` : ""}</div>
     </section>`;
   const btn = document.getElementById("aiReviewBtn");
   if (btn) btn.onclick = async () => {
