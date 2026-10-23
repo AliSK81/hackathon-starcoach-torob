@@ -4,7 +4,7 @@
 
 - **Current phase:** 6 — Visit plan, substitution and seller follow-up (3's public deploy parked, D11)
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page, with filters (area / near me, budget, visit time, installments, TorobPay, …), reasons, relax buttons and a 3-product compare.
-- **Last change:** Change 22
+- **Last change:** Change 23
 
 ### What we need from the user
 
@@ -541,3 +541,27 @@ Not done yet:
 
 Next change idea:
 - UI: «از فروشنده بپرس» sheet on seller cards, status chips, alternatives on failure, plan page
+
+### Change 23 — Seller contact in the app: ask one seller, or let the agent ask the top 3; alternatives on failure — 2026-10-23
+Phase: 6, steps 1–3 UI (R5, R6, R7, R20)
+How to see it: open a product (e.g. S25 FE with the area set to علاءالدین) → «🤖 از ۳ فروشنده‌ی اول بپرس», or «از فروشنده بپرس» on any seller card
+Proof it works (browser 375 px, full DB, real time Fri 14:00, visit Sat 11:00):
+- agent: «رامیرا ماهورا: موجودی تأیید شد · قیمت امروز ۱۸۲٫۲ میلیون تومان (تغییر کرده)», «ویان وییلا: پاسخی نداد», «فرین مهریس: موجودی تأیید شد» → «۲ از ۳ فروشنده موجودی را تأیید کردند. ارزان‌ترینِ تأییدشده: «رامیرا ماهورا» با ۱۸۲٬۱۷۰٬۰۰۰ تومان — مجتمع تجاری علاءالدین، پلاک 19»;
+- single contact: question chips → message bubble → «پاسخی نیامد. فروشگاه الان طبق ساعت اعلام‌شده بسته است.» (marked «پاسخ نمایشی») → «پاسخی نداد» → 30 open alternatives for the visit time, same passage first;
+- seller cards keep the confirmed status as its own chip («موجودی تأیید شد (۱۴:۰۰)…»), apart from the recorded price and its date (R20).
+61 tests pass.
+Found in the browser and fixed: long status chips overflowed at 375 px (chips now wrap, except the scrolling bar); «نگه می‌دارد تا 11:00» for a next-day visit now names the day.
+
+Research: 05 §4 ("Let Google Call"-style follow-up) followed, simulated per D6.
+Questions: none
+Decisions: none
+
+Shipped:
+- `app.js`: contact sheet with question chips and chat bubbles, `sendContact` (request id per send), contact state in `localStorage`, `askTopSellers`, alternatives box (other sellers + substitutes), «جایگزین‌ها» on closed / failed sellers
+- `contact.py`: hold time names the day when it is not today
+
+Not done yet:
+- Visit plan page; "where in the passage" on the shop page
+
+Next change idea:
+- Plan page and in-passage location

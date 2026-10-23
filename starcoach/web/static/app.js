@@ -446,6 +446,144 @@ document.addEventListener("click", (e) => {
   if (b) { compareList = JSON.parse(b.dataset.compareSet).slice(0, COMPARE_MAX); saveCompare(); location.hash = "#/compare"; }
 });
 
+// ---------- seller contact (R5, R6) and alternatives (R7) ----------
+const QUESTIONS_FA = {
+  in_stock: "موجود دارید؟", price_now: "قیمت هنوز همین است؟", hours_today: "امروز تا کی باز هستید؟",
+  warranty: "گارانتی؟", installments: "اقساط / ترب‌پی؟", hold: "تا رسیدنم نگه می‌دارید؟",
+};
+let contacts = (() => { try { return JSON.parse(localStorage.getItem("sc_contacts") || "{}"); } catch { return {}; } })();
+function saveContacts() { try { localStorage.setItem("sc_contacts", JSON.stringify(contacts)); } catch { /* private mode */ } }
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function contactChip(offerId) {
+  const c = contacts[offerId];
+  if (!c) return "";
+  const t = new Date(c.at).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" });
+  if (c.status === "no_answer") return `<span class="chip pill-warn">پاسخی نداد (${t})</span>`;
+  if (!c.facts.in_stock) return `<span class="chip pill-closed">ناموجود — پاسخ فروشنده (${t})</span>`;
+  const price = c.facts.price_now ? ` · قیمت امروز ${tomanShort(c.facts.price_now)}${c.facts.price_changed ? " (تغییر کرده)" : ""}` : "";
+  const hold = c.facts.hold_until ? ` · نگه می‌دارد تا ${c.facts.hold_until}` : "";
+  return `<span class="chip pill-open">موجودی تأیید شد (${t})${esc(price)}${esc(hold)}</span>`;
+}
+
+async function sendContact(offerId, questions, onStep) {
+  const body = { offer_id: offerId, questions, visit_at: visitISO(), request_id: `${offerId}-${Date.now()}` };
+  const r = await fetch("/api/contact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(`${r.status}`);
+  const res = await r.json();
+  if (onStep) onStep("sent", res);
+  await sleep(res.reply.delay_s * 400); // a short, honest "waiting" — the reply is simulated
+  contacts[offerId] = { status: res.reply.status, facts: res.reply.facts, at: Date.now(), shop: res.shop_name };
+  saveContacts();
+  if (onStep) onStep("reply", res);
+  return res;
+}
+
+function bubble(text, mine, note) {
+  return `<div class="bubble ${mine ? "mine" : ""}">${esc(text).replace(/\n/g, "<br>")}${note ? `<div class="bubble-note">${esc(note)}</div>` : ""}</div>`;
+}
+
+function openContactSheet(offerId, shopName, productId, shopId) {
+  const sheet = document.getElementById("sheet");
+  const defaults = ["in_stock", "price_now", "hours_today"];
+  sheet.innerHTML = `
+    <form method="dialog" id="contactForm">
+      <h3 style="margin-top:0">پرسیدن از «${esc(shopName || "فروشنده")}»</h3>
+      <p class="muted small">دستیار این سؤال‌ها را از طرف شما می‌پرسد و جواب را این‌جا می‌آورد.</p>
+      <div class="opts">${Object.entries(QUESTIONS_FA).map(([k, l]) =>
+        `<label class="opt"><input type="checkbox" name="q" value="${k}" ${defaults.includes(k) ? "checked" : ""}><span>${esc(l)}</span></label>`).join("")}</div>
+      <div id="chat" class="chat"></div>
+      <div id="contactAfter"></div>
+    </form>
+    <div class="sheet-actions">
+      <button type="button" class="btn" id="contactClose">بستن</button>
+      <button type="button" class="btn primary" id="contactSend">بپرس</button>
+    </div>`;
+  sheet.showModal();
+  document.getElementById("contactClose").onclick = () => { sheet.close(); route(); };
+  document.getElementById("contactSend").onclick = async (ev) => {
+    ev.target.disabled = true;
+    const qs = [...sheet.querySelectorAll("input[name=q]:checked")].map((i) => i.value);
+    const chat = document.getElementById("chat");
+    try {
+      await sendContact(offerId, qs.length ? qs : defaults, (step, res) => {
+        if (step === "sent") chat.innerHTML = bubble(res.message, true, `${res.channel} به ${res.to || "فروشنده"} (نمایشی)`) + `<div class="typing">… در انتظار پاسخ</div>`;
+        else chat.innerHTML = bubble(res.message, true) + bubble(res.reply.text, false, res.note);
+      });
+      const c = contacts[offerId];
+      const after = document.getElementById("contactAfter");
+      after.innerHTML = `<div style="margin:8px 0">${contactChip(offerId)}</div>`;
+      if (c.status === "no_answer" || !c.facts.in_stock) after.innerHTML += await alternativesHTML(productId, shopId, c.status === "no_answer" ? "no_answer" : "out_of_stock");
+    } catch (e) {
+      chat.innerHTML = `<div class="notice">ارسال نشد (${esc(e.message)}). دوباره امتحان کنید.</div>`;
+      ev.target.disabled = false;
+    }
+  };
+}
+
+async function alternativesHTML(productId, shopId, reason) {
+  let a;
+  try {
+    const at = visitISO();
+    a = await getJSON(`/api/alternatives?product_id=${encodeURIComponent(productId)}&shop_id=${encodeURIComponent(shopId || "")}&reason=${reason}${at ? "&at=" + at : ""}`);
+  } catch { return ""; }
+  const title = reason === "no_answer" ? "فروشنده جواب نداد؛ این‌ها همین کالا را دارند:" : reason === "closed" ? "این فروشگاه بسته است؛ جایگزین‌ها:" : "این فروشنده ندارد؛ این‌ها همین کالا را دارند:";
+  const sellers = a.sellers.map((s) => `
+    <div class="alt">
+      <div class="between"><a href="#/s/${esc(s.shop_id)}"><strong>${esc(s.name)}</strong></a>${openPill(s.open_now, s.hours_status)}</div>
+      <div class="muted small">${esc(s.where || s.area || "")} · ${esc(s.why)}</div>
+      <div class="between"><span>${s.price ? esc(toman(s.price)) : unknown("قیمت ثبت نشده")}</span>
+        ${contacts[s.offer_id] ? "" : ""}</div>
+    </div>`).join("");
+  const subs = (a.substitutes || []).map((p) => `
+    <div class="alt"><a href="#/p/${esc(p.product_id)}"><strong>${esc(p.title)}</strong></a>
+      <div class="reasons">${p.why.map((w) => `<span class="chip reason-info">${esc(w)}</span>`).join("")}</div></div>`).join("");
+  return `<div class="card small" style="margin-top:8px">
+      <strong>${esc(title)}</strong> <span class="muted">(${num(a.sellers_total)} فروشنده‌ی باز)</span>
+      ${sellers || `<p class="muted">فروشنده‌ی باز دیگری برای همین کالا نیست.</p>`}
+      ${subs ? `<p style="margin:8px 0 4px"><strong>کالاهای مشابه:</strong></p>${subs}` : ""}
+    </div>`;
+}
+
+// The agent asks the first N matching sellers and reports which confirmed (R6).
+async function askTopSellers(p, n = 3) {
+  const box = document.getElementById("agentBox");
+  const targets = p.sellers.slice(0, n);
+  box.innerHTML = `<div class="card small"><strong>دستیار دارد از ${num(targets.length)} فروشنده می‌پرسد…</strong><div id="agentLog"></div></div>`;
+  const log = document.getElementById("agentLog");
+  const results = [];
+  for (const e of targets) {
+    const line = document.createElement("div");
+    line.className = "muted";
+    line.textContent = `… ${e.shop.name}`;
+    log.appendChild(line);
+    try {
+      const res = await sendContact(e.offers[0].offer_id, ["in_stock", "price_now", "hours_today", "hold"]);
+      results.push({ e, res });
+      line.innerHTML = `${esc(e.shop.name)}: ${contactChip(e.offers[0].offer_id)}`;
+    } catch { line.textContent = `${e.shop.name}: ارسال نشد`; }
+  }
+  const ok = results.filter((r) => r.res.reply.status === "answered" && r.res.reply.facts.in_stock);
+  const best = ok.sort((a, b) => (a.res.reply.facts.price_now || 1e18) - (b.res.reply.facts.price_now || 1e18))[0];
+  const summary = best
+    ? `${num(ok.length)} از ${num(results.length)} فروشنده موجودی را تأیید کردند. ارزان‌ترینِ تأییدشده: «${esc(best.e.shop.name)}»${best.res.reply.facts.price_now ? " با " + esc(toman(best.res.reply.facts.price_now)) : ""}${best.e.shop.location_short ? " — " + esc(best.e.shop.location_short) : ""}.`
+    : "هیچ‌کدام موجودی را تأیید نکردند.";
+  box.querySelector(".card").insertAdjacentHTML("beforeend", `<p style="margin:8px 0 0"><strong>${summary}</strong></p>
+    <p class="muted small" style="margin:4px 0 0">پاسخ‌ها نمایشی‌اند (شماره‌ها در داده ساختگی است).</p>
+    ${best ? `<div class="actions"><button class="btn primary" data-plan-add="${esc(best.e.shop.shop_id)}" data-plan-name="${esc(best.e.shop.name)}" data-plan-item="${esc(p.title)}">افزودن به برنامه‌ی بازدید</button></div>` : ""}`);
+  if (!best) box.querySelector(".card").insertAdjacentHTML("beforeend", await alternativesHTML(p.product_id, targets[0]?.shop.shop_id, "out_of_stock"));
+}
+
+document.addEventListener("click", (e) => {
+  const c = e.target.closest("[data-contact]");
+  if (c) openContactSheet(c.dataset.contact, c.dataset.shopName, c.dataset.productId, c.dataset.shopId);
+  const alt = e.target.closest("[data-alts]");
+  if (alt) {
+    const box = document.getElementById(`alts-${alt.dataset.shopId}`);
+    if (box) alternativesHTML(alt.dataset.alts, alt.dataset.shopId, alt.dataset.reason || "closed").then((h) => { box.innerHTML = h; });
+  }
+});
+
 // ---------- data ----------
 async function getJSON(url) {
   const r = await fetch(url);
@@ -548,8 +686,11 @@ async function viewProduct(id) {
     <div class="notice">موجودی تأیید نشده است: هر فروشنده این کالا را در ترب ثبت کرده، اما موجود بودن آن امروز معلوم نیست. قیمت‌ها «قیمت ثبت‌شده» با زمان آخرین تغییر هستند.</div>
     <h2>فروشنده‌ها (${ctx.sort === "distance" && ctx.place ? "نزدیک‌ترین اول" : "ارزان‌ترین اول"})</h2>
     ${filterSummary(p)}
-    ${p.sellers.map(sellerCard).join("")}
+    ${p.sellers.length ? `<div class="actions" style="margin-bottom:10px"><button type="button" class="btn primary" id="askTop">🤖 از ${num(Math.min(3, p.sellers.length))} فروشنده‌ی اول بپرس</button></div><div id="agentBox"></div>` : ""}
+    ${p.sellers.map((e) => sellerCard({ ...e, product_id: p.product_id })).join("")}
     ${specs}`;
+  const askBtn = document.getElementById("askTop");
+  if (askBtn) askBtn.onclick = () => { askBtn.disabled = true; askTopSellers(p); };
 }
 
 function filterSummary(p) {
@@ -594,10 +735,15 @@ function sellerCard(entry) {
       ${(entry.reasons || []).length ? `<div class="reasons">${entry.reasons.map((r) => `<span class="chip reason-${r.kind}">${esc(r.text)}</span>`).join("")}</div>` : ""}
       ${pay ? `<div class="chips" style="margin-top:6px">${pay}</div>` : ""}
       ${best.seller_title ? `<div class="muted small">عنوان فروشنده: ${esc(best.seller_title)}</div>` : ""}
+      ${contacts[best.offer_id] ? `<div style="margin-top:6px">${contactChip(best.offer_id)}</div>` : ""}
       <div class="actions">
-        <a class="btn primary" href="#/s/${esc(s.shop_id)}">فروشگاه</a>
-        ${s.lat ? `<a class="btn" target="_blank" rel="noopener" href="${neshan(s.lat, s.lon)}">مسیر (نشان)</a>` : ""}
+        <button type="button" class="btn primary" data-contact="${esc(best.offer_id)}" data-shop-name="${esc(s.name)}" data-product-id="${esc(entry.product_id)}" data-shop-id="${esc(s.shop_id)}">از فروشنده بپرس</button>
+        <a class="btn" href="#/s/${esc(s.shop_id)}">فروشگاه</a>
+        ${s.lat ? `<a class="btn" target="_blank" rel="noopener" href="${neshan(s.lat, s.lon)}">مسیر</a>` : ""}
+        ${s.open_now === false || (contacts[best.offer_id] && (contacts[best.offer_id].status === "no_answer" || !contacts[best.offer_id].facts.in_stock))
+          ? `<button type="button" class="btn" data-alts="${esc(entry.product_id)}" data-shop-id="${esc(s.shop_id)}" data-reason="${s.open_now === false ? "closed" : "no_answer"}">جایگزین‌ها</button>` : ""}
       </div>
+      <div id="alts-${esc(s.shop_id)}"></div>
     </article>`;
 }
 

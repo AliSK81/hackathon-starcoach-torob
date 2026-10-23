@@ -13,9 +13,9 @@
 - Plan: nearest-neighbour from the start point, same-passage stops kept together and ordered by floor; walking 4.5 km/h; 10 minutes per stop.
 
 ## Checklist
-- [~] `/api/alternatives` (other sellers, then substitute products) + "جایگزین" on seller cards
-- [ ] Contact: `/api/contact` (draft + simulated reply), contact sheet in the UI, status on seller cards
-- [ ] No answer / out of stock / closed → alternatives shown in the same place
+- [x] `/api/alternatives` (other sellers, then substitute products) + "جایگزین" on seller cards
+- [x] Contact: `/api/contact` (draft + simulated reply), contact sheet in the UI, status on seller cards
+- [x] No answer / out of stock / closed → alternatives shown in the same place
 - [ ] Visit plan: add stops, `/api/plan`, plan page with arrival times and warnings
 - [ ] In-passage location: floor, unit, neighbouring units on the same floor
 - [ ] Check real output on the demo scenarios

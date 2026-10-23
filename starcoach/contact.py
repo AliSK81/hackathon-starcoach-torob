@@ -11,7 +11,7 @@ import sqlite3
 from datetime import datetime, timedelta
 
 from starcoach.filters import INSTALLMENT_PROVIDERS, TOROBPAY
-from starcoach.hours import hhmm, is_open_at, now_tehran
+from starcoach.hours import DAY_FA, DAYS, hhmm, is_open_at, now_tehran
 
 QUESTIONS = {
     "in_stock": "الان موجود دارید؟",
@@ -132,7 +132,10 @@ def simulate_reply(o: sqlite3.Row, s: sqlite3.Row, questions: list[str], now: da
         facts["torobpay"] = TOROBPAY in providers
     if "hold" in questions:
         hold = rng.random() < 0.7
-        until = max(visit_at or now, now + timedelta(hours=1)).strftime("%H:%M")  # never "hold until now"
+        until_dt = max(visit_at or now, now + timedelta(hours=1))  # never "hold until now"
+        until = until_dt.strftime("%H:%M")
+        if until_dt.date() != now.date():
+            until = f"{DAY_FA[DAYS[until_dt.weekday()]]} {until}"
         facts["hold_until"] = until if hold else None
         parts.append(f"تا ساعت {until} برایتان نگه می‌داریم؛ به اسم شما." if hold else "نگه داشتن نداریم؛ زودتر تشریف بیاورید.")
     return {"status": "answered", "delay_s": delay_s, "text": " ".join(parts), "facts": facts}

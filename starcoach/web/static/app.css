@@ -224,3 +224,13 @@ body { padding-bottom: 64px; }
 .cmp-table.diff-only tr.same { display: none; }
 .chip { max-width: 100%; }
 .reasons .chip { white-space: normal; line-height: 1.6; padding-block: 3px; }
+
+.chat { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.bubble { max-width: 88%; padding: 8px 12px; border-radius: 14px; background: var(--unknown-soft); font-size: 14px; align-self: flex-end; }
+.bubble.mine { background: var(--primary-soft); align-self: flex-start; }
+.bubble-note { margin-top: 4px; font-size: 11px; color: var(--muted); }
+.typing { color: var(--muted); font-size: 13px; animation: pulse 1s infinite alternate; }
+@keyframes pulse { from { opacity: .4; } to { opacity: 1; } }
+.alt { border-top: 1px solid var(--line); padding: 8px 0; }
+.chip { white-space: normal; line-height: 1.6; }
+.ctxchip, .chip.cmp { white-space: nowrap; }
