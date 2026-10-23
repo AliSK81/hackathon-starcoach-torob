@@ -4,7 +4,7 @@
 
 - **Current phase:** 9 — Organizer clarifications (R26–R31); release v1.0.0 audited, public deploy parked (D11)
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page, with filters (area / near me, budget, visit time, installments, TorobPay, …), reasons, relax buttons and a 3-product compare.
-- **Last change:** Change 33
+- **Last change:** Change 34
 
 ### What we need from the user
 
@@ -741,3 +741,22 @@ Proof it works: requirements now list R1–R31; every new ID has a phase.
 Research: 02 §4 (Balad list of Tehran trade hubs) will back R26.
 Questions: the pasted Q&A answers: product choice and store choice both matter; the agent should know Tehran's trade hubs and send a location widget; seller contact may be mocked but should be easy for both sides; outside sources are welcome but skipping relevant dataset results is a fault; reviews are important (no dataset); category-specific components earn points.
 Decisions: D13
+
+### Change 34 — R26: where in Tehran a product is sold («بورس»), dataset first, with a self-drawn location widget — 2026-10-23
+Phase: 9, step 1 (R26, R28)
+How to see it: a product page → «بورس «…» در تهران» card → «نقشه»; or search for something the data lacks; API `/api/hubs?q=…` (`llm=1` allows the LLM step), `/api/nearby?lat=…&lon=…`
+Proof it works (full DB, Saturday 11:00):
+- «هندزفری» → data: پاساژ علاءالدین 44 sellers (33 open), چارسو 26, شیخ هادی 25, فردوسی 22; plus the cited Balad list (پایتخت، چارسو، علاءالدین، بازار موبایل ایران، مرکز تجارت ایرانیان), labeled «منبع: بلاگ «بلد» — بیرون از داده‌ی ترب»;
+- «لوستر» → فردوسی 45, بوشهری 14 (+ Balad: لاله‌زار); «پمپ آب» → بهارستان 23; «کت و شلوار عروس» (no exact match) → «محله امجدیه — 7 فروشنده» from data;
+- only when data and the cited list are both empty does the LLM answer («کت و شلوار مردانه» → بازار بزرگ تهران، ولیعصر، انقلاب), labeled «پیشنهاد هوش مصنوعی…؛ در داده‌ی ترب نیست — قبل از رفتن بررسی کنید»;
+- mini-map: SVG from DB coordinates (target, up to 10 nearby passages, the user's point, scale bar, north); checked in the browser: no overlapping labels, none outside the frame.
+69 tests pass (dataset hubs first; no LLM call when data or the cited list answers); ruff clean.
+Tried and dropped: an OpenStreetMap iframe — no request could be confirmed in the test browser and tiles are unreliable in Iran (research 05 §3).
+
+Research: 02 §4 (Balad trade-hub list, cited) and 05 §3 (map providers in Iran).
+Questions: none
+Decisions: none
+
+Shipped:
+- `starcoach/hubs.py`, `starcoach/data/known_hubs.json` (cited), `/api/hubs`; `visit.nearby_places`, `/api/nearby`; index `products(category)`
+- UI: hubs card on product pages and on empty / loose search results; «داخل پاساژ» and «نقشه» buttons; mini-map + Neshan/Google

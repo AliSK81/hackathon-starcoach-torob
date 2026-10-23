@@ -240,3 +240,4 @@ body { padding-bottom: 64px; }
 .stop { border-inline-start: 4px solid var(--primary); }
 .pick { border: 2px solid var(--primary); }
 .warn-text { color: var(--warn); }
+.minimap { width: 100%; height: auto; display: block; margin-top: 6px; }

@@ -727,6 +727,109 @@ document.addEventListener("click", (e) => {
   }
 });
 
+// ---------- R26: where this kind of product is sold («بورس»), with a location widget ----------
+// A self-drawn mini-map from our own data (no map tiles: works offline and where tile servers are blocked).
+function miniMapSVG(center, places, you, label) {
+  const W = 320, H = 220, pad = 22;
+  const mPerDegLat = 111320, mPerDegLon = 111320 * Math.cos(center.lat * Math.PI / 180);
+  const others = places.filter((p) => p.name !== label).slice(0, 10);
+  const pts = [...others, ...(you && you.lat != null ? [you] : [])];
+  // fit the scale to what is shown (at least 150 m around the target)
+  const reach = Math.max(150, ...pts.map((p) => Math.max(Math.abs((p.lon - center.lon) * mPerDegLon), Math.abs((p.lat - center.lat) * mPerDegLat) * W / H)));
+  const scale = (W / 2 - pad) / (reach * 1.1); // px per metre
+  const xy = (p) => [W / 2 + (p.lon - center.lon) * mPerDegLon * scale, H / 2 - (p.lat - center.lat) * mPerDegLat * scale];
+  const placed = [[W / 2 - 40, H / 2 - 34, W / 2 + 40, H / 2 - 16]]; // the target's own label
+  const free = (x, y, w) => {
+    const box = [x - w / 2, y - 18, x + w / 2, y - 6];
+    if (box[0] < 2 || box[2] > W - 2 || box[1] < 2) return false;
+    if (placed.some((b) => !(box[2] < b[0] || box[0] > b[2] || box[3] < b[1] || box[1] > b[3]))) return false;
+    placed.push(box);
+    return true;
+  };
+  let me = "";
+  if (you && you.lat != null) {
+    const [x, y] = xy(you);
+    const below = free(x, y + 26, 22); // "you" label under the dot when there is room
+    me = `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="6" fill="#2563eb"/>` +
+      (below ? `<text x="${x.toFixed(1)}" y="${(y + 18).toFixed(1)}" font-size="10" text-anchor="middle" fill="#2563eb">شما</text>` : "");
+  }
+  const dots = others.map((p) => {
+    const [x, y] = xy(p);
+    const label = free(x, y, p.name.length * 5.6) ? `<text x="${x.toFixed(1)}" y="${(y - 8).toFixed(1)}" font-size="9" text-anchor="middle" fill="#475569">${esc(p.name)}</text>` : "";
+    return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${Math.min(7, 2.5 + Math.sqrt(p.shops) / 3).toFixed(1)}" fill="#94a3b8" opacity=".7"/>${label}`;
+  }).join("");
+  const barM = reach > 600 ? 500 : reach > 250 ? 200 : 100;
+  const bar = barM * scale;
+  return `<svg viewBox="0 0 ${W} ${H}" class="minimap" direction="ltr" role="img" aria-label="${esc(label)}">
+    <rect width="${W}" height="${H}" rx="12" fill="#eef2f6"/>
+    ${dots}${me}
+    <circle cx="${W / 2}" cy="${H / 2}" r="9" fill="#0f766e"/><circle cx="${W / 2}" cy="${H / 2}" r="15" fill="none" stroke="#0f766e" stroke-width="2" opacity=".5"/>
+    <text x="${W / 2}" y="${H / 2 - 20}" font-size="12" font-weight="700" text-anchor="middle" fill="#0f766e">${esc(label)}</text>
+    <line x1="${pad}" y1="${H - 12}" x2="${pad + bar}" y2="${H - 12}" stroke="#334155" stroke-width="2"/>
+    <text x="${pad + bar / 2}" y="${H - 16}" font-size="9" text-anchor="middle" fill="#334155">${faDigits(barM)} متر</text>
+    <text x="${W - 8}" y="16" font-size="10" text-anchor="end" fill="#334155">شمال ↑</text>
+  </svg>`;
+}
+
+async function mapWidget(lat, lon, label) {
+  let places = [];
+  try { places = (await getJSON(`/api/nearby?lat=${lat}&lon=${lon}`)).places; } catch { /* draw the target alone */ }
+  return `<div class="mapw">
+      ${miniMapSVG({ lat, lon }, places, ctx.place, label)}
+      <div class="actions">
+        <a class="btn primary" target="_blank" rel="noopener" href="${neshan(lat, lon)}">مسیریابی با نشان</a>
+        <a class="btn" target="_blank" rel="noopener" href="${gmaps(lat, lon)}">گوگل مپ</a>
+      </div>
+      <p class="muted small" style="margin:4px 0 0">نقشه‌ی ساده از روی داده‌ی ترب: نقطه‌ی سبز مقصد، نقطه‌های خاکستری پاساژهای اطراف${ctx.place ? "، نقطه‌ی آبی محل انتخابی شما" : ""}.</p>
+    </div>`;
+}
+function placeSearchLink(name) {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name + " تهران")}`;
+}
+
+function hubsHTML(h, intro) {
+  const data = (h.data_hubs || []).map((x, i) => `
+    <div class="alt">
+      <div class="between"><strong>${esc(x.kind === "passage" ? `${x.passage_kind || "پاساژ"} ${x.name}` : `محله ${x.name}`)}</strong>
+        <span class="chip">${num(x.shops)} فروشنده${x.open ? ` · ${num(x.open)} باز` : ""}</span></div>
+      <div class="actions">
+        ${x.kind === "passage" ? `<a class="btn" href="#/passage/${encodeURIComponent(x.name)}">داخل پاساژ</a>` : ""}
+        ${x.lat ? `<button type="button" class="btn" data-map="${x.lat},${x.lon}" data-map-label="${esc(x.name)}" data-map-box="hubmap-${i}">نقشه</button>` : ""}
+      </div>
+      <div id="hubmap-${i}"></div>
+    </div>`).join("");
+  const known = h.known ? `<div class="alt"><div class="small"><strong>بورس‌های شناخته‌شده‌ی «${esc(h.known.label)}» در تهران:</strong></div>
+      <div class="chips" style="margin-top:4px">${h.known.places.map((p) => `<a class="chip" target="_blank" rel="noopener" href="${placeSearchLink(p)}">${esc(p)}</a>`).join("")}</div>
+      <p class="muted small" style="margin:4px 0 0">منبع: بلاگ «بلد» — بیرون از داده‌ی ترب.</p></div>` : "";
+  const llm = h.llm ? `<div class="alt"><div class="small"><strong>پیشنهاد دستیار هوشمند:</strong></div>
+      <div class="chips" style="margin-top:4px">${h.llm.places.map((p) => `<a class="chip" target="_blank" rel="noopener" href="${placeSearchLink(p)}">${esc(p)}</a>`).join("")}</div>
+      <p class="muted small" style="margin:4px 0 0">${esc(h.llm.note)}</p></div>` : "";
+  if (!data && !known && !llm) return "";
+  return `<section class="card">
+      <h2 style="margin-top:0">${esc(intro)}</h2>
+      ${data ? `<p class="muted small" style="margin:0">از داده‌ی ترب: جاهایی که بیشترین فروشنده‌ی این دسته را دارند.</p>${data}` : ""}
+      ${known}${llm}
+    </section>`;
+}
+
+async function loadHubs(boxId, params, intro) {
+  const box = document.getElementById(boxId);
+  if (!box) return;
+  const at = visitISO();
+  try {
+    const h = await getJSON(`/api/hubs?${new URLSearchParams(params)}${at ? "&at=" + at : ""}`);
+    box.innerHTML = hubsHTML(h, intro);
+  } catch { box.innerHTML = ""; }
+}
+document.addEventListener("click", (e) => {
+  const m = e.target.closest("[data-map]");
+  if (m) {
+    const [lat, lon] = m.dataset.map.split(",").map(Number);
+    const box = document.getElementById(m.dataset.mapBox);
+    if (box) { if (box.innerHTML) box.innerHTML = ""; else mapWidget(lat, lon, m.dataset.mapLabel).then((h) => { box.innerHTML = h; }); }
+  }
+});
+
 // ---------- data ----------
 async function getJSON(url) {
   const r = await fetch(url);
@@ -766,7 +869,8 @@ async function viewSearch(q) {
          <div class="actions" style="justify-content:center">${(data.relax || []).map((r) => `<button class="btn" data-relax="${esc(r.filter)}">بدون «${esc(r.label)}»: ${num(r.products)} کالا</button>`).join("")}</div>
          <button class="btn primary" data-open-sheet>تغییر شرایط</button>`
       : "<p>کلمه‌ی کوتاه‌تر یا نام دیگری امتحان کنید.</p>";
-    $view.innerHTML = understoodBanner(q) + `<div class="card empty-state">برای «${esc(q)}» چیزی پیدا نشد.${hint}</div>`;
+    $view.innerHTML = understoodBanner(q) + `<div class="card empty-state">برای «${esc(q)}» چیزی پیدا نشد.${hint}</div><div id="hubsBox"></div>`;
+    loadHubs("hubsBox", { q, llm: 1 }, data.filters_active ? "جاهایی که این کالا معمولاً فروخته می‌شود:" : "این کالا را در فروشگاه‌های داده پیدا نکردیم؛ بورسش در تهران:");
     return;
   }
   const loose = data.mode === "or" ? `<div class="notice">همه‌ی کلمه‌ها با هم پیدا نشد؛ نتایج نزدیک را نشان می‌دهیم.</div>` : "";
@@ -782,7 +886,8 @@ async function viewSearch(q) {
   const typo = fixedWords.length
     ? `<p class="small">نتایج برای ${fixedWords.map(([a, b]) => `«${esc(b)}» (به‌جای «${esc(a)}»)`).join("، ")}</p>` : "";
   $view.innerHTML = understoodBanner(q) + typo + loose + focus + few + guideLink + `<p class="muted small">مرتب‌شده بر اساس شباهت و تعداد فروشنده${scope}</p>` +
-    data.items.map((p) => productCard(p, data.filters_active)).join("");
+    data.items.map((p) => productCard(p, data.filters_active)).join("") + `<div id="hubsBox"></div>`;
+  if (data.mode === "or") loadHubs("hubsBox", { q, llm: 1 }, "دقیقاً همین را پیدا نکردیم؛ بورس این کالا در تهران:");
 }
 
 function productCard(p, filtered) {
@@ -837,7 +942,9 @@ async function viewProduct(id) {
     ${pickCard(p)}
     ${p.sellers.length ? `<div class="actions" style="margin-bottom:10px"><button type="button" class="btn primary" id="askTop">🤖 از ${num(Math.min(3, p.sellers.length))} فروشنده‌ی اول بپرس</button></div><div id="agentBox"></div>` : ""}
     ${p.sellers.map((e) => sellerCard({ ...e, product_id: p.product_id, product_title: p.title })).join("")}
+    <div id="hubsBox"></div>
     ${specs}`;
+  if (p.category) loadHubs("hubsBox", { category: p.category, q: p.title }, `بورس «${p.category}» در تهران`);
   const askBtn = document.getElementById("askTop");
   if (askBtn) askBtn.onclick = () => { askBtn.disabled = true; askTopSellers(p); };
 }

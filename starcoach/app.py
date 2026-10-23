@@ -10,7 +10,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from starcoach import __version__, api, contact, visit
+from starcoach import __version__, api, contact, hubs, visit
 from starcoach.config import Settings, get_settings
 from starcoach.db import connect
 from starcoach.filters import parse_filters
@@ -141,6 +141,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if page is None:
             raise HTTPException(404, "passage not found")
         return page
+
+    @app.get("/api/hubs")
+    def hubs_api(q: str = Query("", max_length=200), category: str | None = None, at: str | None = None,
+                 llm: bool = False, conn: sqlite3.Connection = Depends(db)) -> dict:
+        """R26: where this kind of product is sold — dataset hubs first, then a cited list, then (llm=1) the LLM."""
+        if not category and q:
+            top = api.search(conn, q, limit=10)["items"]
+            category = api.focus_category(top) or (top[0]["category"] if top else None)
+        return hubs.hubs(conn, category, q, parse_filters({"at": at}).at, settings if llm else None)
+
+    @app.get("/api/nearby")
+    def nearby(lat: float, lon: float, radius_m: int = Query(900, ge=100, le=3000),
+               conn: sqlite3.Connection = Depends(db)) -> dict:
+        """Passages around a point, for the app's own mini-map (no map tiles needed)."""
+        return {"lat": lat, "lon": lon, "radius_m": radius_m, "places": visit.nearby_places(conn, lat, lon, radius_m)}
 
     @app.get("/api/areas")
     def areas(conn: sqlite3.Connection = Depends(db)) -> dict:

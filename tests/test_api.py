@@ -190,3 +190,11 @@ def test_pick_is_open_or_unknown_and_explained(client):
     assert p["pick"] and p["pick"]["why"]
     chosen = next(e for e in p["sellers"] if e["shop"]["shop_id"] == p["pick"]["shop_id"])
     assert chosen["best_status"] == "ok" and chosen["shop"]["open_now"] is not False
+
+
+def test_hubs_put_dataset_first_and_label_outside_knowledge(client):
+    h = client.get("/api/hubs", params={"q": "شارژر اپل"}).json()
+    assert h["category"] and h["data_hubs"]
+    assert all(x["source"] == "data" and x["shops"] >= 3 for x in h["data_hubs"])
+    assert h["known"] and "balad" in h["known"]["source"]
+    assert h["llm"] is None  # no LLM when the dataset or the cited list has an answer

@@ -269,3 +269,22 @@ def category_shops(conn: sqlite3.Connection, product_id: str, origin: sqlite3.Ro
                     "note": "فقط زمینه‌ی فعالیت معلوم است؛ این کالا را ثبت نکرده و موجودی‌اش نامعلوم است"})
     out.sort(key=lambda x: (x["open_now"] is not True, x["distance_m"] if x["distance_m"] is not None else 1e9))
     return out[:MAX_CATEGORY_SHOPS]
+
+
+def nearby_places(conn: sqlite3.Connection, lat: float, lon: float, radius_m: int = 900, limit: int = 12) -> list[dict]:
+    """Passages (by median pin) within `radius_m`, for a self-drawn mini-map that needs no map tiles."""
+    rows = conn.execute("SELECT passage, lat, lon FROM shops WHERE passage IS NOT NULL AND lat IS NOT NULL").fetchall()
+    groups: dict[str, list[tuple[float, float]]] = {}
+    for r in rows:
+        groups.setdefault(r["passage"], []).append((r["lat"], r["lon"]))
+    out = []
+    for name, pts in groups.items():
+        if len(pts) < 3:
+            continue
+        la = sorted(p[0] for p in pts)[len(pts) // 2]
+        lo = sorted(p[1] for p in pts)[len(pts) // 2]
+        d = distance_m(lat, lon, la, lo)
+        if d <= radius_m:
+            out.append({"name": name, "lat": la, "lon": lo, "shops": len(pts), "distance_m": round(d)})
+    out.sort(key=lambda x: -x["shops"])
+    return out[:limit]

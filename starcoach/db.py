@@ -62,6 +62,7 @@ CREATE TABLE offers (
 CREATE INDEX offers_product ON offers(product_id);
 CREATE INDEX offers_shop ON offers(shop_id);
 CREATE INDEX shops_passage ON shops(passage);
+CREATE INDEX products_category ON products(category);
 """
 
 
