@@ -9,13 +9,22 @@ from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from starcoach import __version__, api
+from pydantic import BaseModel, Field
+
+from starcoach import __version__, api, contact, visit
 from starcoach.config import Settings, get_settings
 from starcoach.db import connect
 from starcoach.filters import parse_filters
 from starcoach.logs import log_event
 
 WEB_DIR = Path(__file__).resolve().parent / "web"
+
+
+class ContactRequest(BaseModel):
+    offer_id: str = Field(max_length=100)
+    questions: list[str] = Field(default_factory=list, max_length=8)
+    visit_at: str | None = Field(default=None, max_length=30)
+    request_id: str | None = Field(default=None, max_length=64)
 
 
 def asset_version() -> str:
@@ -86,6 +95,45 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         params = dict(request.query_params)
         answers = {k[2:]: v for k, v in params.items() if k.startswith("a.")}
         return api.guide(conn, q, answers, parse_filters(params), category=cat)
+
+    @app.get("/api/alternatives")
+    def alternatives(product_id: str, shop_id: str | None = None, reason: str = "closed", at: str | None = None,
+                     conn: sqlite3.Connection = Depends(db)) -> dict:
+        """R7: other sellers of the product (open at `at`, same passage first), then substitute products."""
+        return visit.alternatives(conn, product_id, shop_id, parse_filters({"at": at}).at, reason)
+
+    @app.get("/api/shops/{shop_id}/where")
+    def where(shop_id: str, conn: sqlite3.Connection = Depends(db)) -> dict:
+        """R8: floor, unit and neighbouring units inside the shop's passage."""
+        w = visit.in_passage(conn, shop_id)
+        if w is None:
+            raise HTTPException(404, "shop not found")
+        return w
+
+    contacts_seen: dict[str, dict] = {}
+
+    @app.post("/api/contact")
+    def contact_seller(body: ContactRequest, conn: sqlite3.Connection = Depends(db)) -> dict:
+        """R5/R6: draft a message to the seller and return a SIMULATED reply (phones are fake, D6)."""
+        if body.request_id and body.request_id in contacts_seen:
+            return contacts_seen[body.request_id]  # a retry never records twice
+        visit_at = parse_filters({"at": body.visit_at}).at if body.visit_at else None
+        result = contact.contact(conn, body.offer_id, body.questions, visit_at)
+        if result is None:
+            raise HTTPException(404, "offer not found")
+        if body.request_id:
+            contacts_seen[body.request_id] = result
+        log_event(settings.log_dir, "contacts", "contact", request_id=body.request_id, offer_id=body.offer_id,
+                  shop_id=result["shop_id"], questions=result["questions"], status=result["reply"]["status"],
+                  facts=result["reply"]["facts"], simulated=True)
+        return result
+
+    @app.get("/api/plan")
+    def plan(shops: str = Query(..., max_length=2000), at: str | None = None, lat: float | None = None,
+             lon: float | None = None, conn: sqlite3.Connection = Depends(db)) -> dict:
+        """Order stops (comma-separated shop ids) into a walk with arrival times and open checks."""
+        start = (lat, lon) if lat is not None and lon is not None else None
+        return visit.plan(conn, [x for x in shops.split(",") if x], parse_filters({"at": at}).at, start)
 
     @app.get("/api/areas")
     def areas(conn: sqlite3.Connection = Depends(db)) -> dict:

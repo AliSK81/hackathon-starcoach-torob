@@ -4,7 +4,7 @@
 
 - **Current phase:** 6 — Visit plan, substitution and seller follow-up (3's public deploy parked, D11)
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page, with filters (area / near me, budget, visit time, installments, TorobPay, …), reasons, relax buttons and a 3-product compare.
-- **Last change:** Change 20
+- **Last change:** Change 22
 
 ### What we need from the user
 
@@ -510,3 +510,34 @@ Not done yet:
 
 Next change idea:
 - Phase 6 plan: visit plan, alternatives when a store is closed or doesn't answer, simulated seller contact
+
+### Change 21 — Lint pass: ruff config; code and tests clean — 2026-10-23
+Phase: rule 12 (clean as you go)
+How to see it: `uvx ruff@0.8.4 check starcoach tests`
+Proof it works: "All checks passed!" (E, F, W, B, I; B008 and E501 ignored with reasons in `pyproject.toml`); 56 tests pass.
+Shipped: `[tool.ruff]` in `pyproject.toml`; one import order fix; README "Lint" section.
+
+### Change 22 — Phase 6 backend: alternatives, simulated seller contact, visit plan, in-passage location — 2026-10-23
+Phase: 6, steps 1–5 backend (R4, R5, R6, R7, R8)
+How to see it: `/api/alternatives?product_id=…&shop_id=…`, `POST /api/contact`, `/api/plan?shops=a,b,c&at=…`, `/api/shops/<id>/where`; `results/visit-demo.txt`
+Proof it works (full DB, S25 FE in علاءالدین, Sat 11:00):
+- the agent asks the 3 cheapest of 8 sellers: «بله، موجود داریم. قیمت همان است…»; «…قیمت امروز ۱۸۳٬۱۳۰٬۰۰۰ تومان است…»; replies carry facts (in_stock, price_now, closes_at, hold_until) and are marked simulated;
+- if the first seller doesn't answer: 30 open alternatives, same passage first, each with floor/unit, price, hours (< 1 ms);
+- 4-stop plan from the Alaeddin entrance: 205 m walk, 11:00 → 11:42, ordered by floor inside the building; a warning for the stop with no hours; the same plan on Friday flags closed stops.
+61 tests pass (determinism of replies, dedupe by request id, closed alternatives excluded, plan order and warnings, passage neighbours).
+Found in the real run and fixed: "hold until 11:00" when asked at 11:00; no neighbours when the address has no floor.
+
+Research: 04 §3.2 tools (`find_substitutes`, `plan_visit`, `draft_seller_message`) implemented server-side, deterministic.
+Questions: none
+Decisions: D6 applied (simulated replies, labeled)
+
+Shipped:
+- `starcoach/visit.py`: `alternatives` (+ `substitutes` in the same category and price band), `in_passage`, `plan`
+- `starcoach/contact.py`: message draft from chosen questions; deterministic simulated reply grounded in price freshness, hours, warranty and payment data
+- API routes; `logs/contacts.jsonl`
+
+Not done yet:
+- No UI for contact, alternatives, plan, or "where" yet
+
+Next change idea:
+- UI: «از فروشنده بپرس» sheet on seller cards, status chips, alternatives on failure, plan page

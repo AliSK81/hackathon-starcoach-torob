@@ -1,0 +1,69 @@
+from dataclasses import replace
+from datetime import datetime
+
+import pytest
+from fastapi.testclient import TestClient
+
+from starcoach import contact, visit
+from starcoach.app import create_app
+from starcoach.config import get_settings
+from starcoach.db import connect
+from starcoach.hours import TEHRAN
+
+SAT_11 = datetime(2026, 10, 24, 11, tzinfo=TEHRAN)
+
+
+@pytest.fixture()
+def conn(mini_db):
+    return connect(mini_db, readonly=True)
+
+
+@pytest.fixture()
+def client(mini_db):
+    return TestClient(create_app(replace(get_settings(), db_path=mini_db, llm_base_url="", llm_api_key="", llm_model="")))
+
+
+def _busy_product(conn):
+    return conn.execute("SELECT product_id FROM products ORDER BY n_shops DESC LIMIT 1").fetchone()[0]
+
+
+def test_alternatives_exclude_origin_and_closed(conn):
+    pid = _busy_product(conn)
+    origin = conn.execute("SELECT shop_id FROM offers WHERE product_id = ? LIMIT 1", (pid,)).fetchone()[0]
+    alt = visit.alternatives(conn, pid, origin, SAT_11)
+    assert alt["sellers"] and all(s["shop_id"] != origin for s in alt["sellers"])
+    assert all(s["open_now"] is not False for s in alt["sellers"])
+    same = [s["same_passage"] for s in alt["sellers"]]
+    assert same == sorted(same, reverse=True)  # same passage first
+
+
+def test_contact_is_deterministic_and_marked_simulated(conn):
+    offer = conn.execute("SELECT offer_id FROM offers WHERE price_status = 'ok' LIMIT 1").fetchone()[0]
+    a = contact.contact(conn, offer, ["in_stock", "price_now", "hold"], SAT_11, now=SAT_11)
+    b = contact.contact(conn, offer, ["in_stock", "price_now", "hold"], SAT_11, now=SAT_11)
+    assert a["reply"] == b["reply"] and a["simulated"] is True and a["note"]
+    assert "1)" in a["message"] and a["reply"]["status"] in ("answered", "no_answer")
+
+
+def test_contact_api_dedupes_by_request_id(client, conn):
+    offer = conn.execute("SELECT offer_id FROM offers LIMIT 1").fetchone()[0]
+    body = {"offer_id": offer, "questions": ["in_stock"], "request_id": "r-1"}
+    first = client.post("/api/contact", json=body).json()
+    again = client.post("/api/contact", json=body).json()
+    assert first == again
+    assert client.post("/api/contact", json={"offer_id": "nope"}).status_code == 404
+
+
+def test_plan_orders_stops_and_flags_closed(client, conn):
+    shops = [r[0] for r in conn.execute("SELECT shop_id FROM shops WHERE n_offers > 0 AND lat IS NOT NULL LIMIT 4")]
+    p = client.get("/api/plan", params={"shops": ",".join(shops), "at": "2026-10-30T12:00"}).json()  # a Friday
+    assert len(p["stops"]) == 4 and p["total_walk_m"] >= 0
+    assert [s["arrive"] for s in p["stops"]] == sorted(s["arrive"] for s in p["stops"])
+    closed = {w["shop_id"] for w in p["warnings"] if w["kind"] == "closed"}
+    assert closed == {s["shop_id"] for s in p["stops"] if s["open_on_arrival"] is False}
+
+
+def test_where_lists_floor_neighbours(client, conn):
+    sid = conn.execute("SELECT shop_id FROM shops WHERE passage IS NOT NULL AND floor IS NOT NULL LIMIT 1").fetchone()[0]
+    w = client.get(f"/api/shops/{sid}/where").json()
+    assert w["passage"] and w["floor_label"] and w["passage_shops"] >= 1
