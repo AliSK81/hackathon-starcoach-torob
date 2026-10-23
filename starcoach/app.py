@@ -49,9 +49,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return api.meta(conn)
 
     @app.get("/api/search")
-    def search(q: str = Query("", max_length=200), limit: int = Query(20, ge=1, le=50),
+    def search(request: Request, q: str = Query("", max_length=200), limit: int = Query(20, ge=1, le=50),
                conn: sqlite3.Connection = Depends(db)) -> dict:
-        return api.search(conn, q, limit=limit)
+        """Same filter params as /api/products/{id}."""
+        return api.search(conn, q, limit=limit, f=parse_filters(dict(request.query_params)))
 
     @app.get("/api/products/{product_id}")
     def product(product_id: str, request: Request, conn: sqlite3.Connection = Depends(db)) -> dict:

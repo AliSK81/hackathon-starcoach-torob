@@ -104,3 +104,12 @@ def test_cheapest_reason_respects_filters(client):
         assert "ارزان‌ترین قیمت ثبت‌شده" in texts
     else:
         assert "ارزان‌ترین با شرایط شما" in texts
+
+
+def test_search_filters_keep_only_products_with_matching_sellers(client):
+    plain = client.get("/api/search", params={"q": "شارژر"}).json()["items"]
+    inst = client.get("/api/search", params={"q": "شارژر", "installments": "1"}).json()["items"]
+    assert inst and len(inst) <= len(plain)
+    assert all(0 < i["match_shops"] <= i["n_shops"] for i in inst)
+    cheap = client.get("/api/search", params={"q": "شارژر", "max_price": "2000000"}).json()["items"]
+    assert all(i["match_min_price"] <= 2000000 for i in cheap)

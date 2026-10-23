@@ -4,7 +4,7 @@
 
 - **Current phase:** 4 — Filters, area and comparison (3 waits on the host)
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page.
-- **Last change:** Change 13
+- **Last change:** Change 14
 
 ### What we need from the user
 
@@ -329,3 +329,22 @@ Not done yet:
 
 Next change idea:
 - Filters on search results, then the context bar UI; then Phase 5 with this LLM
+
+### Change 14 — Search results respect the filters; cards know matching and open sellers — 2026-10-23
+Phase: 4, step 2 (R9, R19)
+How to see it: `/api/search?q=گوشی سامسونگ&max_price=60000000&open=1&at=2026-10-24T11:00`
+Proof it works (full DB): «گوشی سامسونگ» → S25 FE 34/34 sellers, 18 open now; with installments only → S25 FE 2/34, A17 1/26, A57 2/25; under 60M + open Sat 11:00 → A17 13/26, A07 20/28. «هندزفری بلوتوث» under 3M in شیخ هادی → Soundcore R50i 1/17 at 2.19M. 12–24 ms per search. 44 tests pass.
+
+Research: none new.
+Questions: none
+Decisions: none
+
+Shipped:
+- `api.search(..., f)`: with active filters it scans the top 400 ranked products and keeps those with a matching seller; each item has `match_shops`, `match_min_price`, `open_shops`
+- `/api/search` takes the same filter params as the product API
+
+Not done yet:
+- No UI for filters; no areas list
+
+Next change idea:
+- `/api/areas`, then the context bar and filter sheet in the web app

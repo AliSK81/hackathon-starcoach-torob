@@ -90,10 +90,50 @@ def offer_view(row: sqlite3.Row) -> dict:
     }
 
 
-def search(conn: sqlite3.Connection, q: str, limit: int = 20) -> dict:
-    result = search_products(conn, q, limit=limit)
+def _seller_stats(conn: sqlite3.Connection, product_ids: list[str], f: Filters) -> dict[str, dict]:
+    """Per product: sellers matching `f`, the lowest matching normal price, and sellers open at the visit time."""
+    stats: dict[str, dict] = {pid: {"match": set(), "open": set(), "min_price": None} for pid in product_ids}
+    if not product_ids:
+        return stats
+    shop_cache: dict[str, tuple[bool, bool | None]] = {}
+    for chunk in range(0, len(product_ids), 500):
+        ids = product_ids[chunk:chunk + 500]
+        rows = conn.execute(
+            f"""SELECT o.product_id, o.price, o.price_status, o.warranty_kind,
+                       s.shop_id, s.area, s.passage, s.lat, s.lon, s.fast_delivery, s.payment, s.hours
+                FROM offers o JOIN shops s ON s.shop_id = o.shop_id
+                WHERE o.product_id IN ({",".join("?" * len(ids))})""",
+            ids,
+        )
+        for r in rows:
+            cached = shop_cache.get(r["shop_id"])
+            if cached is None:
+                hours = _loads(r["hours"], None)
+                cached = shop_cache[r["shop_id"]] = (
+                    shop_matches(f, r, payment_info(r["payment"]), hours), is_open_at(hours, f.at))
+            shop_ok, open_now = cached
+            if not shop_ok or not offer_matches(f, r):
+                continue
+            st = stats[r["product_id"]]
+            st["match"].add(r["shop_id"])
+            if open_now:
+                st["open"].add(r["shop_id"])
+            if r["price_status"] == "ok" and (st["min_price"] is None or r["price"] < st["min_price"]):
+                st["min_price"] = r["price"]
+    return stats
+
+
+def search(conn: sqlite3.Connection, q: str, limit: int = 20, f: Filters | None = None) -> dict:
+    """Ranked products. With active filters, only products with at least one matching seller are kept."""
+    f = f or Filters()
+    result = search_products(conn, q, limit=400 if f.active else limit)
+    candidates = result["items"]
+    stats = _seller_stats(conn, [it["product_id"] for it in candidates], f)
     items = []
-    for it in result["items"]:
+    for it in candidates:
+        st = stats[it["product_id"]]
+        if f.active and not st["match"]:
+            continue
         items.append({
             "product_id": it["product_id"],
             "title": it["title"],
@@ -103,9 +143,14 @@ def search(conn: sqlite3.Connection, q: str, limit: int = 20) -> dict:
             "n_shops": it["n_shops"],
             "min_price": it["min_price"],
             "median_price": it["median_price"],
+            "match_shops": len(st["match"]),
+            "match_min_price": st["min_price"],
+            "open_shops": len(st["open"]),
         })
+        if len(items) >= limit:
+            break
     return {"query": q, "words": result["words"], "mode": result["mode"], "total": result.get("total", 0),
-            "items": items}
+            "filters_active": f.active, "items": items}
 
 
 def _age_days(later: str | None, earlier: str | None) -> float | None:
