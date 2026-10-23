@@ -34,7 +34,7 @@
 | 6 | Visit plan, substitution and seller follow-up | done | [phase-6](phases/phase-6-visit.md) |
 | 7 | Evaluation and reviewer doc | done | [phase-7](phases/phase-7-review.md) |
 | 8 | Release: audit, final deploy, tag | in progress: audit passed, tagged v1.0.0; public deploy parked (D11) | — |
-| 9 | Organizer clarifications (R26–R31) | in progress | [phase-9](phases/phase-9-clarifications.md) |
+| 9 | Organizer clarifications (R26–R31) | done (v1.1.0) | [phase-9](phases/phase-9-clarifications.md) |
 
 ## Requirement → phase
 

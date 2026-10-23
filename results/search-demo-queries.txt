@@ -47,4 +47,4 @@
    shops=11  min=     4,899,000  هدفون بی سیم ناتینگ مدل CMF Buds 2a  [هدفون، هدست و هندزفری]
    shops=21  min=     5,396,000  هدفون بی سیم انکر مدل Soundcore R60i NC  [هدفون، هدست و هندزفری]
 
-mean query time: 6.1 ms over 12 queries
+mean query time: 8.5 ms over 12 queries

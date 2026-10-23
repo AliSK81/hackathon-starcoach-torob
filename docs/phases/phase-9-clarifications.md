@@ -16,4 +16,4 @@
 - [x] R29 review summary (data signals + labeled AI summary)
 - [x] R30 category components (colour / size chips from sellers' variant titles)
 - [x] R31 online-presence badge
-- [ ] Re-run the audit for R26–R31
+- [x] Re-run the audit for R26–R31

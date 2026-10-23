@@ -2,9 +2,9 @@
 
 ## Status board
 
-- **Current phase:** 9 — Organizer clarifications (R26–R31); release v1.0.0 audited, public deploy parked (D11)
+- **Current phase:** improving weakest items; v1.1.0 audited (R1–R31), public deploy parked (D11)
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page, with filters (area / near me, budget, visit time, installments, TorobPay, …), reasons, relax buttons and a 3-product compare.
-- **Last change:** Change 37
+- **Last change:** Change 38 (audit R26–R31, tagged v1.1.0)
 
 ### What we need from the user
 
@@ -810,3 +810,19 @@ Questions: none
 Decisions: none
 
 Shipped: `starcoach/variants.py` (`parse_variant`, `summarize`); offers carry `color`/`size`; product API `variants`; chips that filter seller cards; `shop_summary` includes `instagram`/`website`; badge in seller cards
+
+### Change 38 — Audit of the organizer items R26–R31; tagged v1.1.0 — 2026-10-23
+Phase: 9 done
+How to see it: this entry; `docs/REVIEW.md` §3 rows R26–R31
+Proof it works: fresh clone of `008ad1c` → `starcoach/data/known_hubs.json` and `aliases.json` present; 74 tests pass offline; `starcoach results` regenerated.
+
+| Requirement | Verdict | Evidence |
+|---|---|---|
+| R26 which bazaar sells what + location widget | pass | `/api/hubs` (data → cited Balad list → labeled LLM), hubs card on product pages and empty/loose searches, self-drawn mini-map + Neshan/Google (Change 34) |
+| R27 contact easy for both sides | pass (mock, as allowed) | seller panel with one-tap answers, buyer chat updates, 3-hour answer reuse so the seller isn't asked twice, inbox replayed after restart (Change 35) |
+| R28 dataset first; outside knowledge labeled | pass | hubs: LLM only when data and the cited list are empty; reviews: data signals first, AI labeled; LLM never adds products, prices or shops |
+| R29 honest product review | pass | «بررسی کالا»: market signals + labeled AI summary with an in-shop checklist (Change 36) |
+| R30 category-specific components | pass, limited by data | colour/size chips from sellers' variants (11 of 300 clothing/shoe products have them in this sample); category facets in guided choice (Change 37, Change 19) |
+| R31 website / Instagram shops | pass | online-presence badge and links (Change 37) |
+
+Still open: public deploy (parked, D11).
