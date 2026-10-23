@@ -15,7 +15,7 @@ It follows the four steps of the challenge video: **choose the product → find 
 uv sync
 uv run starcoach build-db        # CSVs in data/torob-dataset/ -> data/starcoach.db (~50 s)
 uv run starcoach serve           # http://127.0.0.1:8000 — open it at phone width
-uv run pytest                    # 73 offline tests
+uv run pytest                    # 74 offline tests
 uv run starcoach results         # regenerates results/*.txt|json from the DB (~2 s)
 uv run starcoach smoke --url http://127.0.0.1:8000
 ```
@@ -61,11 +61,13 @@ Optional LLM: set `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` in `.env` (any Open
 | R21 | Unknown shown clearly | «نامشخص», «ساعت کاری ثبت نشده», «قیمت ثبت نشده؛ استعلام تلفنی» |
 | R22 | Persian, RTL, mobile | `dir="rtl"`, `fa-IR` numbers and dates, checked at 375 × 812 |
 | R23 | Deployed and stable | Docker image, `/health`, `/ready`, healthcheck, `starcoach smoke`; public deploy parked by the team (D11) |
-| R24 | Code structure, tools, performance | one module per capability, one CLI command per capability, 73 tests, ruff clean; timings below |
+| R24 | Code structure, tools, performance | one module per capability, one CLI command per capability, 74 tests, ruff clean; timings below |
 | R25 | Demo-ready | §8 demo script |
 | R26 | Which bazaar sells what + location widget | `/api/hubs`: dataset hubs first, then a cited Balad list, then the LLM (labeled); hubs card on product pages and empty searches; self-drawn mini-map |
 | R27 | Seller contact easy for both sides | buyer question → seller panel (`#/seller/<id>`, one-tap answers) → buyer's chat updates; answers reused for 3 h so the seller isn't asked twice; automatic simulated reply as fallback |
 | R29 | A useful, honest product review | «بررسی کالا»: market signals from the data + an AI summary (strengths, weaknesses, in-shop checklist) labeled «نظر واقعی خریداران نیست» |
+| R30 | Category-specific components | colour / size chips parsed from sellers' variant titles (shoes, clothing, furniture), filtering sellers to the chosen variant and its price; guided questions use category-specific facets («برای چه کسی؟» for shoes and watches) |
+| R31 | Website / Instagram shops | «فروشگاه با صفحه‌ی آنلاین» badge with Instagram / website links on seller cards and shop pages |
 
 ## 4. Architecture
 

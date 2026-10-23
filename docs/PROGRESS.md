@@ -4,7 +4,7 @@
 
 - **Current phase:** 9 — Organizer clarifications (R26–R31); release v1.0.0 audited, public deploy parked (D11)
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page, with filters (area / near me, budget, visit time, installments, TorobPay, …), reasons, relax buttons and a 3-product compare.
-- **Last change:** Change 36
+- **Last change:** Change 37
 
 ### What we need from the user
 
@@ -794,3 +794,19 @@ Questions: none
 Decisions: D13 (reviews labeled with their source)
 
 Shipped: `starcoach/review.py` (signals, `ReviewCache`, `ai_review`), `/api/products/{id}/review`, «بررسی کالا» card
+
+### Change 37 — R30 colour / size chips for clothing, shoes and other variant products; R31 online-presence badge — 2026-10-23
+Phase: 9, steps 4–5 (R30, R31)
+How to see it: open «کفش اسپرت ونس دیور» → «رنگ و سایز» chips; any seller card of a real-named shop → «فروشگاه با صفحه‌ی آنلاین · 📷 اینستاگرام / 🌐 سایت»
+Proof it works (full DB, browser 375 px):
+- sellers write variants as «نام - رنگ / سایز»; parsed per offer: «ونس دیور» → sizes 41–47, colours «مشکی کف سفید، مشکی تمام، سرمه ایی، سفید تمام»; «ونس نایکی» → 41–44 and 3 colours; «مبل تخت خوابشو کاپری» → 6 colours; tapping «۴۴» shows only sellers who listed size 44, at that variant's price (۳٬۴۸۰٬۰۰۰ تومان);
+- false colours removed: «شارژر اپل» had «اصل» as a "colour" → a colour now needs a colour word;
+- honest coverage: 11 of the first 300 clothing/shoe products have variant chips — most products have one seller row in this 10% sample;
+- R31: seller cards of the 112 real-named shops show their Instagram / website links.
+74 tests pass; ruff clean.
+
+Research: none new.
+Questions: none
+Decisions: none
+
+Shipped: `starcoach/variants.py` (`parse_variant`, `summarize`); offers carry `color`/`size`; product API `variants`; chips that filter seller cards; `shop_summary` includes `instagram`/`website`; badge in seller cards

@@ -50,7 +50,12 @@ function openPill(open, text) {
   return `<span class="chip ${cls}">${esc(text)}</span>`;
 }
 function nameBadge(shop) {
-  return shop.name_is_real ? "" : `<span class="chip pill-unknown" title="در داده‌ی مسابقه، نام بیشتر فروشگاه‌ها ساختگی است">نام نمایشی</span>`;
+  if (!shop.name_is_real) return `<span class="chip pill-unknown" title="در داده‌ی مسابقه، نام بیشتر فروشگاه‌ها ساختگی است">نام نمایشی</span>`;
+  const links = [
+    shop.instagram ? `<a class="chip" target="_blank" rel="noopener" href="${esc(shop.instagram)}">📷 اینستاگرام</a>` : "",
+    shop.website ? `<a class="chip" target="_blank" rel="noopener" href="${esc(shop.website)}">🌐 سایت</a>` : "",
+  ].join("");
+  return `<span class="chip pill-open" title="نام واقعی؛ صفحه‌ی آنلاین فروشگاه برای دیدن عکس و نمونه‌کار">فروشگاه با صفحه‌ی آنلاین</span>${links}`;
 }
 function neshan(lat, lon) { return `https://nshn.ir/?lat=${lat}&lng=${lon}`; }
 function gmaps(lat, lon) { return `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`; }
@@ -958,6 +963,33 @@ async function loadReview(productId) {
   };
 }
 
+// ---------- R30: colour / size chips (clothing, shoes, any product whose sellers list variants) ----------
+let variantPick = { color: null, size: null };
+function variantChips(p) {
+  const v = p.variants || { colors: [], sizes: [] };
+  if (!v.colors.length && !v.sizes.length) return "";
+  const group = (axis, title, items) => items.length ? `
+    <div style="margin-top:6px"><span class="small muted">${title}:</span>
+      <div class="chips" style="margin-top:4px">${items.map((x) => `<button type="button" class="chip ${variantPick[axis] === x.value ? "pill-open" : ""}" data-variant="${axis}" data-value="${esc(x.value)}">${esc(faDigits(x.value))} <span class="muted">(${num(x.sellers)})</span></button>`).join("")}</div></div>` : "";
+  return `<section class="card">
+      <strong>رنگ و سایز</strong> <span class="muted small">از عنوان‌هایی که فروشنده‌ها ثبت کرده‌اند؛ عدد = چند فروشنده</span>
+      ${group("size", "سایز", v.sizes)}${group("color", "رنگ", v.colors)}
+      ${variantPick.color || variantPick.size ? `<p class="small" style="margin:6px 0 0">فقط فروشنده‌هایی که «${esc(faDigits([variantPick.size, variantPick.color].filter(Boolean).join(" / ")))}» را ثبت کرده‌اند نشان داده می‌شوند. <a href="javascript:void 0" data-variant-clear>همه</a></p>` : ""}
+    </section>`;
+}
+function offerMatchesVariant(o) {
+  return (!variantPick.color || o.color === variantPick.color) && (!variantPick.size || o.size === variantPick.size);
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-variant]");
+  if (b) {
+    const axis = b.dataset.variant;
+    variantPick[axis] = variantPick[axis] === b.dataset.value ? null : b.dataset.value;
+    route();
+  }
+  if (e.target.closest("[data-variant-clear]")) { variantPick = { color: null, size: null }; route(); }
+});
+
 // ---------- data ----------
 async function getJSON(url) {
   const r = await fetch(url);
@@ -1037,7 +1069,9 @@ function productCard(p, filtered) {
     </a>`;
 }
 
+let variantProduct = null;
 async function viewProduct(id) {
+  if (variantProduct !== id) { variantPick = { color: null, size: null }; variantProduct = id; }
   loading();
   let p;
   try { p = await getJSON(`/api/products/${encodeURIComponent(id)}?${filterParams()}`); } catch (e) { return failed(e); }
@@ -1069,7 +1103,11 @@ async function viewProduct(id) {
     ${filterSummary(p)}
     ${pickCard(p)}
     ${p.sellers.length ? `<div class="actions" style="margin-bottom:10px"><button type="button" class="btn primary" id="askTop">🤖 از ${num(Math.min(3, p.sellers.length))} فروشنده‌ی اول بپرس</button></div><div id="agentBox"></div>` : ""}
-    ${p.sellers.map((e) => sellerCard({ ...e, product_id: p.product_id, product_title: p.title })).join("")}
+    ${variantChips(p)}
+    ${p.sellers
+      .map((e) => ({ ...e, offers: e.offers.filter(offerMatchesVariant) }))
+      .filter((e) => e.offers.length)
+      .map((e) => sellerCard({ ...e, product_id: p.product_id, product_title: p.title })).join("")}
     <div id="reviewBox"></div>
     <div id="hubsBox"></div>
     ${specs}`;

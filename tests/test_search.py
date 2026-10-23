@@ -37,3 +37,14 @@ def test_typo_is_corrected_only_when_nothing_matches(mini_db):
     r = search_products(conn, "گوشی سامسنگ")
     assert r["corrected"] == {"سامسنگ": "سامسونگ"} and r["items"]
     assert search_products(conn, "شارژر اپل")["corrected"] == {}
+
+
+def test_variant_parsing_from_seller_titles():
+    from starcoach.variants import parse_variant, summarize
+
+    assert parse_variant("ونس دیور - مشکی کف سفید / 44") == {"color": "مشکی کف سفید", "size": "44"}
+    assert parse_variant("ست کت و شلوار - عسلی / سایز ۳ مناسب ۴۴ و ۴۶") == {"color": "عسلی", "size": "3 مناسب 44 و 46"}
+    assert parse_variant("شارژر اپل 20 وات") == {"color": None, "size": None}
+    offers = [{"shop_id": "a", "color": "مشکی", "size": "42"}, {"shop_id": "b", "color": "سفید", "size": "41"}]
+    s = summarize(offers)
+    assert [x["value"] for x in s["sizes"]] == ["41", "42"] and len(s["colors"]) == 2

@@ -24,6 +24,8 @@ from starcoach.filters import (
 from starcoach.hours import is_open_at, now_tehran, status_text, week_table
 from starcoach.search import search_products
 from starcoach.textnorm import tokens
+from starcoach.variants import parse_variant
+from starcoach.variants import summarize as summarize_variants
 
 CHANNEL_FA = {"in_person": "پرداخت حضوری در فروشگاه", "unknown": "نحوه پرداخت اعلام نشده"}
 PRICE_STATUS_FA = {
@@ -62,6 +64,8 @@ def shop_summary(row: sqlite3.Row, at: datetime) -> dict:
         "lon": row["lon"],
         "open_now": is_open_at(hours, at),
         "hours_status": status["text"],
+        "instagram": row["instagram"],  # R31: the 112 real-named shops have Instagram or a website
+        "website": row["website"],
     }
 
 
@@ -79,6 +83,8 @@ def payment_info(payment_json: str | None) -> list[dict]:
 
 def offer_view(row: sqlite3.Row) -> dict:
     return {
+        **parse_variant(row["seller_title"]),
+        "shop_id": row["shop_id"],
         "offer_id": row["offer_id"],
         "seller_title": row["seller_title"],
         "description": row["description"],
@@ -293,6 +299,7 @@ def product(conn: sqlite3.Connection, product_id: str, f: Filters | None = None,
         "sellers_hidden": total - len(sellers),
         "relax": relax,
         "pick": pick,
+        "variants": summarize_variants([o for e in sellers for o in e["offers"]]),
         "sellers": sellers,
     }
 
