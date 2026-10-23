@@ -234,3 +234,7 @@ body { padding-bottom: 64px; }
 .alt { border-top: 1px solid var(--line); padding: 8px 0; }
 .chip { white-space: normal; line-height: 1.6; }
 .ctxchip, .chip.cmp { white-space: nowrap; }
+
+.planlink { color: #fff; font-size: 13px; border: 1px solid rgba(255, 255, 255, .4); border-radius: 999px; padding: 2px 10px; }
+.btn.on { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); }
+.stop { border-inline-start: 4px solid var(--primary); }

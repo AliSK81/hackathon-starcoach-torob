@@ -570,7 +570,7 @@ async function askTopSellers(p, n = 3) {
     : "هیچ‌کدام موجودی را تأیید نکردند.";
   box.querySelector(".card").insertAdjacentHTML("beforeend", `<p style="margin:8px 0 0"><strong>${summary}</strong></p>
     <p class="muted small" style="margin:4px 0 0">پاسخ‌ها نمایشی‌اند (شماره‌ها در داده ساختگی است).</p>
-    ${best ? `<div class="actions"><button class="btn primary" data-plan-add="${esc(best.e.shop.shop_id)}" data-plan-name="${esc(best.e.shop.name)}" data-plan-item="${esc(p.title)}">افزودن به برنامه‌ی بازدید</button></div>` : ""}`);
+    ${best ? `<div class="actions">${planBtn(best.e.shop.shop_id, best.e.shop.name, p.title, p.product_id, best.e.offers[0].offer_id)}<a class="btn" href="#/plan">دیدن برنامه</a></div>` : ""}`);
   if (!best) box.querySelector(".card").insertAdjacentHTML("beforeend", await alternativesHTML(p.product_id, targets[0]?.shop.shop_id, "out_of_stock"));
 }
 
@@ -583,6 +583,103 @@ document.addEventListener("click", (e) => {
     if (box) alternativesHTML(alt.dataset.alts, alt.dataset.shopId, alt.dataset.reason || "closed").then((h) => { box.innerHTML = h; });
   }
 });
+
+// ---------- visit plan (R4) and where-in-passage (R8) ----------
+let planList = (() => { try { return JSON.parse(localStorage.getItem("sc_plan") || "[]"); } catch { return []; } })();
+function savePlan() { try { localStorage.setItem("sc_plan", JSON.stringify(planList)); } catch { /* private mode */ } renderPlanLink(); }
+function inPlan(shopId) { return planList.some((x) => x.shop_id === shopId); }
+function renderPlanLink() {
+  const a = document.getElementById("planLink");
+  if (a) a.textContent = planList.length ? `🗺 برنامه‌ی بازدید (${num(planList.length)})` : "🗺 برنامه‌ی بازدید";
+}
+function planBtn(shopId, name, item, productId, offerId) {
+  return `<button type="button" class="btn ${inPlan(shopId) ? "on" : ""}" data-plan-add="${esc(shopId)}" data-plan-name="${esc(name || "")}"
+    data-plan-item="${esc(item || "")}" data-plan-product="${esc(productId || "")}" data-plan-offer="${esc(offerId || "")}">${inPlan(shopId) ? "✓ در برنامه" : "+ برنامه‌ی بازدید"}</button>`;
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-plan-add]");
+  if (b) {
+    const id = b.dataset.planAdd;
+    if (inPlan(id)) planList = planList.filter((x) => x.shop_id !== id);
+    else planList.push({ shop_id: id, name: b.dataset.planName, item: b.dataset.planItem, product_id: b.dataset.planProduct, offer_id: b.dataset.planOffer });
+    savePlan();
+    document.querySelectorAll(`[data-plan-add="${CSS.escape(id)}"]`).forEach((x) => {
+      x.classList.toggle("on", inPlan(id));
+      x.textContent = inPlan(id) ? "✓ در برنامه" : "+ برنامه‌ی بازدید";
+    });
+  }
+  const rm = e.target.closest("[data-plan-remove]");
+  if (rm) { planList = planList.filter((x) => x.shop_id !== rm.dataset.planRemove); savePlan(); route(); }
+  const w = e.target.closest("[data-where]");
+  if (w) {
+    const box = document.getElementById(`where-${w.dataset.where}`);
+    if (box) getJSON(`/api/shops/${encodeURIComponent(w.dataset.where)}/where`).then((d) => { box.innerHTML = whereHTML(d); }).catch(() => {});
+  }
+});
+
+function whereHTML(w) {
+  if (!w.passage) return `<p class="small muted">این فروشگاه در پاساژ ثبت نشده؛ آدرس: ${esc(w.address || "نامشخص")}</p>`;
+  const unit = w.unit ? `واحد ${w.unit}` : w.plaque && !w.plaque_is_building ? `پلاک ${w.plaque}` : "واحد نامشخص";
+  const where = [`${w.passage_kind || "پاساژ"} ${w.passage}`, w.floor_label || "طبقه نامشخص", unit].join("، ");
+  const bnote = w.plaque_is_building && !w.unit ? `<div class="muted">«پلاک ${esc(w.plaque)}» پلاک ساختمان است و چند فروشگاه دیگر هم همین را دارند؛ شماره‌ی واحد را از فروشنده بپرسید.</div>` : "";
+  const count = w.floor_shops ? `${num(w.floor_shops)} فروشگاه در این طبقه، ` : "";
+  const nb = w.neighbours.filter((n) => n.unit).slice(0, 5).map((n) =>
+    `<li>${esc(n.unit)} — ${esc(n.name || "")}${n.category ? ` <span class="muted">(${esc(n.category)})</span>` : ""}</li>`).join("");
+  return `<div class="small" style="margin-top:6px"><strong>${esc(where)}</strong>${bnote}
+    <div class="muted">${count}${num(w.passage_shops)} فروشگاه در این پاساژ (در داده‌ی ترب).</div>
+    ${nb ? `<div style="margin-top:4px">واحدهای نزدیک${w.floor_shops ? " در همین طبقه" : ""} برای پیدا کردن راه:</div><ul style="margin:2px 0;padding-inline-start:18px">${nb}</ul>` : ""}
+    <div class="muted">آدرس ثبت‌شده: ${esc(w.address || "نامشخص")}</div></div>`;
+}
+
+async function viewPlan() {
+  if (!planList.length) {
+    $view.innerHTML = `<div class="card empty-state">برنامه‌ی بازدید خالی است. روی کارت هر فروشنده «+ برنامه‌ی بازدید» را بزنید.</div>`;
+    return;
+  }
+  loading();
+  const qs = new URLSearchParams({ shops: planList.map((x) => x.shop_id).join(",") });
+  const at = visitISO();
+  if (at) qs.set("at", at);
+  if (ctx.place?.lat != null) { qs.set("lat", ctx.place.lat); qs.set("lon", ctx.place.lon); }
+  let pl;
+  try { pl = await getJSON(`/api/plan?${qs}`); } catch (e) { return failed(e); }
+  const byShop = Object.fromEntries(planList.map((x) => [x.shop_id, x]));
+  const start = ctx.place ? `از ${ctx.place.kind === "me" ? "موقعیت شما" : ctx.place.name}` : "از اولین فروشگاه";
+  const warn = pl.warnings.map((w) => {
+    const item = byShop[w.shop_id];
+    const alt = w.kind === "closed" && item?.product_id
+      ? `<button type="button" class="btn" data-alts="${esc(item.product_id)}" data-shop-id="${esc(w.shop_id)}" data-reason="closed">جایگزین</button>` : "";
+    return `<div class="notice">${esc(w.text)} ${alt}<div id="alts-${esc(w.shop_id)}"></div></div>`;
+  }).join("");
+  let prev = ctx.place?.lat != null ? [ctx.place.lat, ctx.place.lon] : null;
+  const stops = pl.stops.map((st, i) => {
+    const item = byShop[st.shop_id] || {};
+    const route = st.lat && prev ? `https://nshn.ir?origin=${prev[0]},${prev[1]}&destination=${st.lat},${st.lon}&vehicle=d` : (st.lat ? neshan(st.lat, st.lon) : null);
+    if (st.lat) prev = [st.lat, st.lon];
+    return `
+      <article class="card stop">
+        <div class="between"><span class="chip pill-open">${num(i + 1)} · ساعت ${esc(st.arrive)}</span>${openPill(st.open_on_arrival, st.hours_status)}</div>
+        <div style="margin-top:6px"><a href="#/s/${esc(st.shop_id)}"><strong>${esc(st.name || "فروشگاه")}</strong></a>
+          ${item.item ? `<div class="small muted">برای: ${esc(item.item)}</div>` : ""}</div>
+        <div class="small">${esc(st.where || "محل دقیق در آدرس نیست")}${st.walk_m ? ` · ${num(st.walk_m)} متر پیاده از قبلی` : ""}</div>
+        ${item.offer_id && contacts[item.offer_id] ? `<div style="margin-top:6px">${contactChip(item.offer_id)}</div>` : ""}
+        <div class="actions">
+          ${item.offer_id ? `<button type="button" class="btn primary" data-contact="${esc(item.offer_id)}" data-shop-name="${esc(st.name)}" data-product-id="${esc(item.product_id)}" data-shop-id="${esc(st.shop_id)}">از فروشنده بپرس</button>` : ""}
+          <button type="button" class="btn" data-where="${esc(st.shop_id)}">کجای پاساژ؟</button>
+          ${route ? `<a class="btn" target="_blank" rel="noopener" href="${route}">مسیر</a>` : ""}
+          <button type="button" class="btn" data-plan-remove="${esc(st.shop_id)}">حذف</button>
+        </div>
+        <div id="where-${esc(st.shop_id)}"></div>
+      </article>`;
+  }).join("");
+  const when = ctx.day == null ? "الان" : `${DAYS_FA[ctx.day]} ساعت ${num(ctx.hour ?? 11)}`;
+  $view.innerHTML = `
+    <h1>برنامه‌ی بازدید</h1>
+    <p class="muted small">شروع ${esc(start)}، ${esc(when)} · ${num(pl.stops.length)} توقف · ${num(pl.total_walk_m)} متر پیاده · پایان حدود ساعت ${esc(pl.finish)}
+      · <a href="javascript:void 0" data-open-sheet>تغییر زمان یا محل شروع</a></p>
+    <p class="muted small">ترتیب: نزدیک‌ترین توقف بعدی؛ فروشگاه‌های یک ساختمان پشت سر هم و از طبقه‌ی پایین به بالا. ۱۰ دقیقه برای هر توقف.</p>
+    ${warn}${stops}`;
+}
 
 // ---------- data ----------
 async function getJSON(url) {
@@ -687,7 +784,7 @@ async function viewProduct(id) {
     <h2>فروشنده‌ها (${ctx.sort === "distance" && ctx.place ? "نزدیک‌ترین اول" : "ارزان‌ترین اول"})</h2>
     ${filterSummary(p)}
     ${p.sellers.length ? `<div class="actions" style="margin-bottom:10px"><button type="button" class="btn primary" id="askTop">🤖 از ${num(Math.min(3, p.sellers.length))} فروشنده‌ی اول بپرس</button></div><div id="agentBox"></div>` : ""}
-    ${p.sellers.map((e) => sellerCard({ ...e, product_id: p.product_id })).join("")}
+    ${p.sellers.map((e) => sellerCard({ ...e, product_id: p.product_id, product_title: p.title })).join("")}
     ${specs}`;
   const askBtn = document.getElementById("askTop");
   if (askBtn) askBtn.onclick = () => { askBtn.disabled = true; askTopSellers(p); };
@@ -738,6 +835,7 @@ function sellerCard(entry) {
       ${contacts[best.offer_id] ? `<div style="margin-top:6px">${contactChip(best.offer_id)}</div>` : ""}
       <div class="actions">
         <button type="button" class="btn primary" data-contact="${esc(best.offer_id)}" data-shop-name="${esc(s.name)}" data-product-id="${esc(entry.product_id)}" data-shop-id="${esc(s.shop_id)}">از فروشنده بپرس</button>
+        ${planBtn(s.shop_id, s.name, entry.product_title, entry.product_id, best.offer_id)}
         <a class="btn" href="#/s/${esc(s.shop_id)}">فروشگاه</a>
         ${s.lat ? `<a class="btn" target="_blank" rel="noopener" href="${neshan(s.lat, s.lon)}">مسیر</a>` : ""}
         ${s.open_now === false || (contacts[best.offer_id] && (contacts[best.offer_id].status === "no_answer" || !contacts[best.offer_id].facts.in_stock))
@@ -783,6 +881,7 @@ async function viewShop(id) {
         ${links}
       </div>
     </section>
+    <section class="card"><h2 style="margin-top:0">کجای پاساژ؟</h2><div id="where-${esc(s.shop_id)}"><button type="button" class="btn" data-where="${esc(s.shop_id)}">نشان بده</button></div></section>
     <section class="card"><h2 style="margin-top:0">ساعت کاری</h2>${hours}</section>
     <section class="card">
       <h2 style="margin-top:0">شرایط خرید</h2>
@@ -819,6 +918,7 @@ function route() {
   if (path.startsWith("/s/")) return viewShop(decodeURIComponent(path.slice(3)));
   if (path.startsWith("/compare")) return viewCompare();
   if (path.startsWith("/guide")) return viewGuide(params);
+  if (path.startsWith("/plan")) return viewPlan();
   return viewHome();
 }
 
@@ -830,6 +930,7 @@ document.getElementById("searchForm").addEventListener("submit", (e) => {
 window.addEventListener("hashchange", route);
 
 renderCtxBar();
+renderPlanLink();
 getJSON("/api/meta").then((m) => {
   if (m.snapshot) $foot.textContent = `داده: نمونه‌ی ترب از فروشگاه‌های تهران · آخرین تغییر قیمت ثبت‌شده: ${dateFmt.format(new Date(m.snapshot))}`;
 }).catch(() => {});

@@ -122,6 +122,11 @@ def in_passage(conn: sqlite3.Connection, shop_id: str, limit: int = 6) -> dict |
         (s["passage"], shop_id),
     ).fetchall()
     out["passage_shops"] = len(same) + 1
+    # a plaque shared by many shops in one passage is the building's street number, not a unit
+    shared = sum(1 for r in same if s["plaque"] and r["plaque"] == s["plaque"])
+    out["plaque_is_building"] = shared >= 2
+    if out["plaque_is_building"]:
+        same = [r for r in same if r["unit"] or r["plaque"] != s["plaque"]]
     if s["floor"] is not None:
         floor_mates = [r for r in same if r["floor"] == s["floor"]]
         out["floor_shops"] = len(floor_mates) + 1
@@ -134,8 +139,10 @@ def in_passage(conn: sqlite3.Connection, shop_id: str, limit: int = 6) -> dict |
         digits = "".join(ch for ch in v if ch.isdigit())
         return int(digits) if digits else None
 
-    mine = unit_no(s)
+    mine = unit_no(s) if not out["plaque_is_building"] or s["unit"] else None
     ranked = sorted(floor_mates, key=lambda r: abs(unit_no(r) - mine) if mine is not None and unit_no(r) is not None else 1e9)
+    if mine is None:
+        ranked = []  # no unit number to measure "next to" from; listing random units would mislead
     for r in ranked[:limit]:
         cats = _loads(r["categories"], [])
         out["neighbours"].append({"shop_id": r["shop_id"], "name": r["name"],

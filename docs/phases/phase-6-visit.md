@@ -16,6 +16,6 @@
 - [x] `/api/alternatives` (other sellers, then substitute products) + "جایگزین" on seller cards
 - [x] Contact: `/api/contact` (draft + simulated reply), contact sheet in the UI, status on seller cards
 - [x] No answer / out of stock / closed → alternatives shown in the same place
-- [ ] Visit plan: add stops, `/api/plan`, plan page with arrival times and warnings
-- [ ] In-passage location: floor, unit, neighbouring units on the same floor
-- [ ] Check real output on the demo scenarios
+- [x] Visit plan: add stops, `/api/plan`, plan page with arrival times and warnings
+- [x] In-passage location: floor, unit, neighbouring units on the same floor
+- [x] Check real output on the demo scenarios

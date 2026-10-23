@@ -2,9 +2,9 @@
 
 ## Status board
 
-- **Current phase:** 6 — Visit plan, substitution and seller follow-up (3's public deploy parked, D11)
+- **Current phase:** 7 — Evaluation and reviewer doc (3's public deploy parked, D11)
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page, with filters (area / near me, budget, visit time, installments, TorobPay, …), reasons, relax buttons and a 3-product compare.
-- **Last change:** Change 23
+- **Last change:** Change 24
 
 ### What we need from the user
 
@@ -565,3 +565,25 @@ Not done yet:
 
 Next change idea:
 - Plan page and in-passage location
+
+### Change 24 — Phase 6 done: visit plan page and "where in the passage" — 2026-10-23
+Phase: 6, steps 4–6 (R4, R8, R7)
+How to see it: «+ برنامه‌ی بازدید» on seller cards (or after «🤖 از ۳ فروشنده‌ی اول بپرس») → «🗺 برنامه‌ی بازدید» at the top; «کجای پاساژ؟» on plan stops and shop pages
+Proof it works (browser 375 px, start علاءالدین, Saturday 11:00):
+- plan: 3 stops, 102 m on foot, 11:00 → 11:31; a warning «ساعت کاری «مهردیس پاکآرا» ثبت نشده؛ قبل از رفتن بپرسید»; closed stops get a «جایگزین» button; Neshan links from the previous stop;
+- where: «پاساژ علاءالدین، همکف، واحد 77 — 55 shops on this floor; nearby units 79, 75, 80»; a shop whose only number is «پلاک 19» (shared by many shops in the building) now says it is the building number and to ask for the unit, instead of listing five «پلاک 19» neighbours.
+61 tests pass.
+
+Research: 01 §2 (floor/unit parse) and 02 §3 (finding the unit in a multi-floor passage) applied.
+Questions: none
+Decisions: none
+
+Shipped:
+- `app.js`: plan state in `localStorage`, plan buttons, plan page (timeline, warnings, alternatives, contact, route, remove), «کجای پاساژ؟» on shop page and stops
+- `visit.in_passage`: building plaque detection; no neighbours without a reference unit
+
+Not done yet:
+- Phase 7: reviewer doc, results summary, demo scenario
+
+Next change idea:
+- Reviewer doc (`docs/REVIEW.md`): architecture, logic, choices, how to run and check, results with numbers, demo script
