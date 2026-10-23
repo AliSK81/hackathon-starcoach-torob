@@ -99,6 +99,16 @@ def cmd_eval_intents(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_results(args: argparse.Namespace) -> int:
+    from starcoach.results import generate
+
+    settings = get_settings()
+    report = generate(Path(args.db) if args.db else settings.db_path, Path(args.cases), Path(args.out))
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+    log_event(settings.log_dir, "runs", "results", **report)
+    return 0
+
+
 def cmd_smoke(args: argparse.Namespace) -> int:
     from starcoach.smoke import run
 
@@ -141,6 +151,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--out", default=None, help="write the full report as JSON")
     p.add_argument("--db", default=None)
     p.set_defaults(func=cmd_eval_intents)
+
+    p = sub.add_parser("results", help="regenerate the offline result files in results/")
+    p.add_argument("--out", default="results")
+    p.add_argument("--cases", default="tests/data/intents.jsonl")
+    p.add_argument("--db", default=None)
+    p.set_defaults(func=cmd_results)
 
     p = sub.add_parser("smoke", help="smoke test a running instance over HTTP")
     p.add_argument("--url", default="http://127.0.0.1:8000")

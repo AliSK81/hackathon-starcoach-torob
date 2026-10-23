@@ -1,0 +1,19 @@
+{
+  "shops": 6476,
+  "shops_with_offers": 3792,
+  "shops_real_name": 112,
+  "shops_with_passage": 4056,
+  "shops_with_floor": 4227,
+  "shops_with_unit_or_plaque": 5881,
+  "passages": 559,
+  "shops_with_hours": 4471,
+  "products": 225903,
+  "products_multi_shop": 35254,
+  "products_redacted": 851,
+  "offers": 331506,
+  "snapshot": "2026-10-13T00:02:35.297834+00:00",
+  "price_call": 15729,
+  "price_invalid": 211,
+  "price_ok": 312868,
+  "price_suspicious": 2698
+}

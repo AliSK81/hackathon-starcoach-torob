@@ -25,6 +25,7 @@ Optional: copy `.env.example` to `.env` and edit it. The app needs no keys.
 | `uv run starcoach search "<query>"` | Searches products from the command line |
 | `uv run starcoach eval-intents --split test` | Scores the Persian request parser on labeled requests against a no-parsing baseline (`--with-llm` adds the LLM) |
 | `uv run starcoach serve` | Runs the web app and API on http://127.0.0.1:8000 |
+| `uv run starcoach results` | Regenerates the offline result files in `results/` from the DB |
 | `uv run starcoach smoke --url <base>` | Checks a running instance: health, ready, search, product, shop, web |
 | `uv run starcoach pack-db` | Writes `data/starcoach.db.gz` and prints its SHA256, for upload to a server |
 
@@ -65,6 +66,7 @@ uv run pytest
 
 ## Docs
 
+- `docs/REVIEW.md` — **reviewer guide**: what it does, requirement → evidence, architecture, results, limits, demo script
 - `docs/requirements.md` — the challenge text
 - `docs/ROADMAP.md` — phases and what each one delivers
 - `docs/PROGRESS.md` — what shipped, with proof

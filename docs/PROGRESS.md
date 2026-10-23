@@ -4,7 +4,7 @@
 
 - **Current phase:** 7 — Evaluation and reviewer doc (3's public deploy parked, D11)
 - **Live / working:** `starcoach build-db` builds the full DB (48 s, 382 MB); `starcoach search` answers Persian queries in ~10 ms; `serve` runs the mobile web app: search → product sellers → shop page, with filters (area / near me, budget, visit time, installments, TorobPay, …), reasons, relax buttons and a 3-product compare.
-- **Last change:** Change 24
+- **Last change:** Change 25
 
 ### What we need from the user
 
@@ -587,3 +587,24 @@ Not done yet:
 
 Next change idea:
 - Reviewer doc (`docs/REVIEW.md`): architecture, logic, choices, how to run and check, results with numbers, demo script
+
+### Change 25 — Reviewer guide and a one-command results refresh — 2026-10-23
+Phase: 7 (R10, R24, R25)
+How to see it: `docs/REVIEW.md`; `uv run starcoach results`
+Proof it works: `starcoach results` rewrote 6 files in 2.0 s (`stats.json`, `search-demo-queries.txt`, `intent-eval-rules.json`, `guide-demo.txt`, `filters-demo.txt`, `visit-demo.txt`); its summary repeats the eval table (test: baseline 0.429 → rules 1.0). Live check of the demo-script claims: «برای کولر گازی خونه … خراب نشه» → «محافظ برق کولر گازی» (rules+LLM), top result «محافظ برق ارتدار کولر گازی خیام»; «تو مترو آهنگ گوش بدم، سیم نداشته باشه» → «هندزفری بلوتوث». 62 tests pass; ruff clean.
+
+Research: none new.
+Questions: none
+Decisions: none
+
+Shipped:
+- `starcoach/results.py` + `starcoach results`
+- `docs/REVIEW.md`: run and check, the four steps → screens, R1–R25 → evidence, architecture and modules, logic and reasons, results with numbers, honest limits, a 5-minute demo script
+- README: links the reviewer guide; new command listed
+
+Not done yet:
+- Phase 8 (release audit, tag); public deploy parked (D11)
+- Known gaps: typo correction; "cheap" phrasings like «پول زیادی ندارم»
+
+Next change idea:
+- Release audit against `docs/requirements.md`, then tag; then improve the weakest score item

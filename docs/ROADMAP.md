@@ -32,7 +32,7 @@
 | 4 | Filters, area and comparison | done | [phase-4](phases/phase-4-filters.md) |
 | 5 | Assistant: understand the need | done | [phase-5](phases/phase-5-assistant.md) |
 | 6 | Visit plan, substitution and seller follow-up | done | [phase-6](phases/phase-6-visit.md) |
-| 7 | Evaluation and reviewer doc | not started | — |
+| 7 | Evaluation and reviewer doc | done | [phase-7](phases/phase-7-review.md) |
 | 8 | Release: audit, final deploy, tag | not started | — |
 
 ## Requirement → phase

@@ -53,3 +53,14 @@ def test_warranty_and_payment_cleaning():
     assert clean_warranty("null") == (None, None, None)
     pay = clean_payment('[{"provider_name":"ترب‌پی","channel":"in_person"},{"provider_name":"ترب‌پی","channel":"in_person"}]')
     assert pay == [{"provider": "ترب‌پی", "channel": "in_person"}]
+
+
+def test_results_command_writes_files(mini_db, tmp_path):
+    from pathlib import Path
+
+    from starcoach.results import generate
+
+    cases = Path(__file__).parent / "data" / "intents.jsonl"
+    r = generate(mini_db, cases, tmp_path)
+    assert set(r["written"]) >= {"stats.json", "search-demo-queries.txt", "intent-eval-rules.json"}
+    assert r["intent_summary"]["test"]["rules"]["slots"] > r["intent_summary"]["test"]["baseline"]["slots"]
